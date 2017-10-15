@@ -22,9 +22,7 @@ architecture via an environment variable:
 
     BLIS_ARCH=haswell pip install blis
 
-If you're using an Intel CPU, it should autodetect 'haswell'. Other architectures available are sandybridge, carrizo, piledriver, bulldozer, knl and reference.
-
-After installation, run a small matrix multiplication benchmark:
+If you're using an Intel CPU, it should autodetect ``haswell``. Other architectures available are ``sandybridge``, ``carrizo``, ``piledriver``, ``bulldozer``, ``knl`` and ``reference``. After installation, run a small matrix multiplication benchmark:
 
 .. code:: bash
 
