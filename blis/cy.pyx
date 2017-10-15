@@ -218,31 +218,31 @@ cdef extern from "blis.h" nogil:
     )
 
     void bli_srandv(
-	dim_t   m,
-	float*  x, inc_t incx,
-	cntx_t* cntx
+        dim_t   m,
+        float*  x, inc_t incx,
+        cntx_t* cntx
     )
 
     void bli_drandv(
-	dim_t   m,
-	double*  x, inc_t incx,
-	cntx_t* cntx
+        dim_t   m,
+        double*  x, inc_t incx,
+        cntx_t* cntx
     )
 
     void bli_ssumsqv(
-	dim_t   m,
-	float*  x, inc_t incx,
-	float*  scale,
-	float*  sumsq,
-	cntx_t* cntx
+        dim_t   m,
+        float*  x, inc_t incx,
+        float*  scale,
+        float*  sumsq,
+        cntx_t* cntx
     ) nogil
 
     void bli_dsumsqv(
-	dim_t   m,
-	double*  x, inc_t incx,
-	double*  scale,
-	double*  sumsq,
-	cntx_t* cntx
+        dim_t   m,
+        double*  x, inc_t incx,
+        double*  scale,
+        double*  sumsq,
+        cntx_t* cntx
     ) nogil
 
 
@@ -543,9 +543,9 @@ cdef double dotv(
 
 cdef void randv(dim_t m, reals_ft x, inc_t incx) nogil:
     if reals_ft is floats_t:
-	bli_srandv(m, x, incx)
+        bli_srandv(m, x, incx)
     else:
-	bli_drandv(m, x, incx)
+        bli_drandv(m, x, incx)
 
 
 cdef void sumsqv(
