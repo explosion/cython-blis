@@ -220,13 +220,13 @@ cdef extern from "blis.h" nogil:
     void bli_srandv(
         dim_t   m,
         float*  x, inc_t incx,
-        cntx_t* cntx
+        blis_cntx_t* cntx
     )
 
     void bli_drandv(
         dim_t   m,
         double*  x, inc_t incx,
-        cntx_t* cntx
+        blis_cntx_t* cntx
     )
 
     void bli_ssumsqv(
@@ -234,7 +234,7 @@ cdef extern from "blis.h" nogil:
         float*  x, inc_t incx,
         float*  scale,
         float*  sumsq,
-        cntx_t* cntx
+        blis_cntx_t* cntx
     ) nogil
 
     void bli_dsumsqv(
@@ -242,7 +242,7 @@ cdef extern from "blis.h" nogil:
         double*  x, inc_t incx,
         double*  scale,
         double*  sumsq,
-        cntx_t* cntx
+        blis_cntx_t* cntx
     ) nogil
 
 
@@ -543,18 +543,31 @@ cdef double dotv(
 
 cdef void randv(dim_t m, reals_ft x, inc_t incx) nogil:
     if reals_ft is floats_t:
-        bli_srandv(m, x, incx)
+        bli_srandv(m, x, incx, NULL)
+    elif reals_ft is float1d_t:
+        bli_srandv(m, &x[0], incx, NULL)
+    if reals_ft is doubles_t:
+        bli_drandv(m, x, incx, NULL)
+    elif reals_ft is double1d_t:
+        bli_drandv(m, &x[0], incx, NULL)
     else:
-        bli_drandv(m, x, incx)
+        with gil:
+            raise ValueError("Unhandled fused type")
 
 
-cdef void sumsqv(
-    dim_t   m,
-    reals_ft*  x, inc_t incx,
-    reals_ft*  scale,
-    reals_ft*  sumsq,
-    cntx_t* cntx
-) nogil
+cdef void sumsqv(dim_t   m, reals_ft  x, inc_t incx,
+        reals_ft scale, reals_ft sumsq) nogil:
+    if reals_ft is floats_t:
+        bli_ssumsqv(m, &x[0], incx, scale, sumsq, NULL)
+    elif reals_ft is float1d_t:
+        bli_ssumsqv(m, &x[0], incx, &scale[0], &sumsq[0], NULL)
+    if reals_ft is doubles_t:
+        bli_dsumsqv(m, x, incx, scale, sumsq, NULL)
+    elif reals_ft is double1d_t:
+        bli_dsumsqv(m, &x[0], incx, &scale[0], &sumsq[0], NULL)
+    else:
+        with gil:
+            raise ValueError("Unhandled fused type")
 
 
 @atexit.register
