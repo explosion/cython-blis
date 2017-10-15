@@ -1,0 +1,6 @@
+include LICENSE
+include README.rst
+include compilation_flags.json
+include bin/cythonize.py
+recursive-include blis/_src *.c
+recursive-include blis/_src *.h

@@ -1,0 +1,14 @@
+.*.sw*
+blis/blis.c
+*.pyc
+*.so
+.env/
+.hypothesis/
+build/
+cache/
+__pycache__/
+.python-version
+cythonize.dat
+
+# Blis stuff
+blis/include
