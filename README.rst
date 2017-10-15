@@ -102,7 +102,28 @@ so that calls can be easily mapped to Blis:
 With these restrictions, there are ony 15 valid combinations – which
 correspond to all the things you would otherwise do with the ``gemm``, ``gemv``,
 ``ger`` and ``axpy`` functions. You can therefore forget about all the other
-functions and just use the ``einsum``.
+functions and just use the ``einsum``. Here are the valid einsum strings, the
+calls they correspond to, and the numpy equivalents:
+
+=============== ========================================== =================
+Equation        Maps to                                    Numpy
+=============== ========================================== =================
+``'a,a->a'``    ``axpy(A, B)``                             ``A+B``
+``'a,b->ab'``   ``ger(A, B)``                              ``outer(A, B)``
+``'a,b->ba'``   ``ger(B, A)``                              ``outer(B, A)``
+``'ab,a->ab'``  ``batch_axpy(A, B)``                       ``A*B``
+``'ab,a->ba'``  ``batch_axpy(A, B, trans1=True)``          ``(A*B).T``
+``'ab,b->a'``   ``gemv(A, B)``                             ``A*B``
+``'ab,a->b'``   ``gemv(A, B, trans1=True)``                ``A.T*B``
+``'ab,ac->bc'`` ``gemm(A, B, trans1=True, trans2=False)``  ``dot(A.T, B)``
+``'ab,ac->cb'`` ``gemm(B, A, trans1=True, trans2=True)``   ``dot(B.T, A)``
+``'ab,bc->ac'`` ``gemm(A, B, trans1=False, trans2=False)`` ``dot(A, B)``
+``'ab,bc->ca'`` ``gemm(B, A, trans1=False, trans2=True)``  ``dot(B.T, A.T)``
+``'ab,ca->bc'`` ``gemm(A, B, trans1=True, trans2=True)``   ``dot(B, A.T)``
+``'ab,ca->cb'`` ``gemm(B, A, trans1=False, trans2=False)`` ``dot(B, A)``
+``'ab,cb->ac'`` ``gemm(A, B, trans1=False, trans2=True)``  ``dot(A.T, B.T)``
+``'ab,cb->ca'`` ``gemm(B, A, trans1=False, trans2=True)``  ``dot(B, A.T)``
+=============== ========================================== =================
 
 We also provide fused-type, nogil Cython bindings to the underlying
 Blis linear algebra library. Fused types are a simple template mechanism,
