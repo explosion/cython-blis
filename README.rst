@@ -40,7 +40,7 @@ If you're using an Intel CPU, it should autodetect ``haswell``. Other architectu
     Total: 5510596.19141
     83.18 seconds
     
-This is on a Dell XPS 13 i7-7500U.  The low ``numpy.einsum`` performance is
+The low ``numpy.einsum`` performance is
 expected, but the low numpy GEMM performance is surprising. If linking numpy
 against MKL gives better performance:
 
@@ -51,7 +51,8 @@ against MKL gives better performance:
     5.21 seconds
 
 
-Running the same benchmark on a 2015 Macbook Air gives:
+These figures refer to performance on a Dell XPS 13 i7-7500U.  Running the
+same benchmark on a 2015 Macbook Air gives:
 
 .. code:: bash
 
