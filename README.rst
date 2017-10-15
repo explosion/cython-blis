@@ -36,7 +36,7 @@ If you're using an Intel CPU, it should autodetect ``haswell``. Other architectu
     16.81 seconds
     Blis einsum ab,cb->ca
     8.10 seconds
-    Numpy (openblas) einsum ab,cb->ca
+    Numpy einsum ab,cb->ca
     Total: 5510596.19141
     83.18 seconds
 
