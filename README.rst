@@ -145,7 +145,9 @@ Development
 
 To build the source package, you should run the following command:
 
+.. code:: bash
+
     ./bin/copy-source-files.sh
     
-This populates the ``blis/_src`` folder for the various architectures, using the ``flame-blis`` submodule.
-
+This populates the ``blis/_src`` folder for the various architectures, using the 
+``flame-blis`` submodule.
