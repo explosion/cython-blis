@@ -4,10 +4,6 @@ blis="$PWD/flame-blis"
 headers="$HOME/blis/include/blis"
 cyblis="$PWD/blis"
 
-mkdir -p $cyblis/_src/$arch/src
-mkdir -p $cyblis/_src/$arch/include
-
-
 if [ "$1" != "" ]; then
   arches=$1
 else
@@ -17,6 +13,10 @@ fi
 for arch in $arches
 do
   echo $arch
+
+  mkdir -p $cyblis/_src/$arch/src
+  mkdir -p $cyblis/_src/$arch/include
+
   cd $blis
   ./configure -i64 $arch
   make
