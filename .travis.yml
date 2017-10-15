@@ -9,7 +9,6 @@ python:
 install:
   - pip install -r dev-requirements.txt
   - pip install -r requirements.txt
-  - bin/copy-source-files.sh reference
   - BLIS_ARCH=reference python setup.py build_ext --inplace
   - BLIS_ARCH=reference pip install -e .
   - pip install pytest-cov
