@@ -139,3 +139,13 @@ allowing just a touch of compile-time generic programming:
 
 Bindings have been added as we've needed them. Please submit pull requests if
 the library is missing some functions you require.
+
+Development
+-----------
+
+To build the source package, you should run the following command:
+
+    ./bin/copy-source-files.sh
+    
+This populates the ``blis/_src`` folder for the various architectures, using the ``flame-blis`` submodule.
+
