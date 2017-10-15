@@ -52,9 +52,9 @@ Air gives:
     Total: 11032012.6953
     6.68 seconds
 
-It might be that Openblas is performing poorly on the relatively small
-matrices (which are typically the sizes for neural network models). The
-low numpy einsum performance is expected.
+It might be that Openblas is performing poorly on the "small"
+matrices (which are typical sizes for neural network models). The
+low ``numpy.einsum`` performance is expected.
 
 Usage
 -----
