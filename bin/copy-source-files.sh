@@ -8,7 +8,11 @@ mkdir -p $cyblis/_src/$arch/src
 mkdir -p $cyblis/_src/$arch/include
 
 
-arches='bulldozer carrizo cortex-a15 cortex-a9 haswell knl piledriver sandybridge reference'
+if [ "$1" != "" ]; then
+  arches=$1
+else
+  arches='bulldozer carrizo cortex-a15 cortex-a9 haswell knl piledriver sandybridge reference'
+fi
 
 for arch in $arches
 do
