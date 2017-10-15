@@ -2,7 +2,7 @@
 
 blis="$PWD/flame-blis"
 headers="$HOME/blis/include/blis"
-cyblis="$PWD"
+cyblis="$PWD/blis"
 
 mkdir -p $cyblis/_src/$arch/src
 mkdir -p $cyblis/_src/$arch/include
