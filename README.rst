@@ -8,6 +8,9 @@ as a self-contained Python C-extension.
     :target: https://pypi.python.org/pypi/blis
     :alt: pypi Version
 
+Overview
+--------
+
 You can install the package via pip, optionally specifying your machine's
 architecture via an environment variable:
 
