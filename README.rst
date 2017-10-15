@@ -8,10 +8,6 @@ as a self-contained Python C-extension.
     :target: https://travis-ci.org/explosion/cython-blis
     :alt: Build Status
 
-.. image:: https://img.shields.io/appveyor/ci/explosion/cython-blis/master.svg?style=flat-square
-    :target: https://ci.appveyor.com/project/explosion/cython-blis
-    :alt: Appveyor Build Status
-
 .. image:: https://img.shields.io/pypi/v/blis.svg?style=flat-square
     :target: https://pypi.python.org/pypi/blis
     :alt: pypi Version
