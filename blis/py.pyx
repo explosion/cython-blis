@@ -163,7 +163,7 @@ def einsum(todo, A, B, out=None):
     elif todo == 'ab,bc->ac':
         return gemm(A, B, out=out, trans1=False, trans2=False)
     elif todo == 'ab,bc->ca':
-        return gemm(B, A, out=out, trans1=False, trans2=True)
+        return gemm(B, A, out=out, trans1=True, trans2=True)
     elif todo == 'ab,ca->bc':
         return gemm(A, B, out=out, trans1=True, trans2=True)
     elif todo == 'ab,ca->cb':
