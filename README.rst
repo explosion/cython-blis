@@ -2,8 +2,17 @@ Cython BLIS: Fast BLAS-like operations from Python and Cython, without the tears
 ================================================================================
 
 This repository provides the `Blis linear algebra <https://github.com/flame/blis>`_
-as a self-contained Python C-extension. You can install the package via pip,
-optionally specifying your machine's architecture via an environment variable:
+as a self-contained Python C-extension.
+
+.. image:: https://img.shields.io/pypi/v/blis.svg?style=flat-square
+    :target: https://pypi.python.org/pypi/blis
+    :alt: pypi Version
+
+Overview
+--------
+
+You can install the package via pip, optionally specifying your machine's
+architecture via an environment variable:
 
 .. code:: bash
 
