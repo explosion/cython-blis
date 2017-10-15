@@ -57,7 +57,7 @@ Air gives:
     6.68 seconds
 
 It might be that Openblas is performing poorly on the relatively small
-matrices (which are typically the sizes typical for neural network models).
+matrices (which are typically the sizes for neural network models).
 
 Usage
 -----
