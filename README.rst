@@ -41,7 +41,7 @@ If you're using an Intel CPU, it should autodetect ``haswell``. Other architectu
     83.18 seconds
     
 The low ``numpy.einsum`` performance is
-expected, but the low numpy GEMM performance is surprising. If linking numpy
+expected, but the low `numpy.dot` performance is surprising. If linking numpy
 against MKL gives better performance:
 
 .. code:: bash
