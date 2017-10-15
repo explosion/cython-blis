@@ -39,9 +39,19 @@ If you're using an Intel CPU, it should autodetect ``haswell``. Other architectu
     Numpy einsum ab,cb->ca
     Total: 5510596.19141
     83.18 seconds
+    
+This is on a Dell XPS 13 i7-7500U.  The low ``numpy.einsum`` performance is
+expected, but the low numpy GEMM performance is surprising. If linking numpy
+against MKL gives better performance:
 
-This is on a Dell XPS 13 i7-7500U. Running the same benchmark on a 2015 Macbook
-Air gives:
+.. code:: bash
+
+    Numpy (mkl_rt) gemm...
+    Total: 11032011.71875
+    5.21 seconds
+
+
+Running the same benchmark on a 2015 Macbook Air gives:
 
 .. code:: bash
 
@@ -52,9 +62,13 @@ Air gives:
     Total: 11032012.6953
     6.68 seconds
 
-It might be that Openblas is performing poorly on the "small"
-matrices (which are typical sizes for neural network models). The
-low ``numpy.einsum`` performance is expected.
+Clearly the Dell's numpy+OpenBLAS performance is the outlier, so possibly
+something has gone wrong in the compilation and architecture detection.
+However, numpy+OpenBLAS is exactly the configuration most Linux users are
+running --- and even after a lot of digging, we haven't been able to get
+consistent performance across our machines. By removing the system dependency,
+the `blis` library makes it much easier to get consistent performance.
+
 
 Usage
 -----
