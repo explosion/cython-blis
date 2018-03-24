@@ -34,13 +34,13 @@
 
 #include "blis.h"
 
-obj_t BLIS_TWO = {};
-obj_t BLIS_ONE = {};
-obj_t BLIS_ONE_HALF = {};
-obj_t BLIS_ZERO = {};
-obj_t BLIS_MINUS_ONE_HALF = {};
-obj_t BLIS_MINUS_ONE = {};
-obj_t BLIS_MINUS_TWO = {};
+obj_t BLIS_TWO = {0};
+obj_t BLIS_ONE = {0};
+obj_t BLIS_ONE_HALF = {0};
+obj_t BLIS_ZERO = {0};
+obj_t BLIS_MINUS_ONE_HALF = {0};
+obj_t BLIS_MINUS_ONE = {0};
+obj_t BLIS_MINUS_TWO = {0};
 
 static bool_t bli_const_is_init = FALSE;
 
