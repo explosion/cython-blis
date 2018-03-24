@@ -834,7 +834,7 @@ typedef struct
 typedef struct membrk_s
 {
 	pool_t    pools[3];
-	mtx_s     mutex;
+	mtx_t     mutex;
 
 	malloc_ft malloc_fp;
 	free_ft   free_fp;
