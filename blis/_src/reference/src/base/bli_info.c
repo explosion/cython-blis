@@ -44,8 +44,8 @@
 
 // This string gets defined via -D on the command line when BLIS is compiled.
 // This string is (or rather, should be) only used here.
-static char* bli_version_str       = BLIS_VERSION_STRING;
-static char* bli_int_type_size_str = '64'; //STRINGIFY_INT( BLIS_INT_TYPE_SIZE );
+static char* bli_version_str       = "0.2.2-53"; //BLIS_VERSION_STRING;
+static char* bli_int_type_size_str = "64"; //STRINGIFY_INT( BLIS_INT_TYPE_SIZE );
 
 char* bli_info_get_version_str( void )              { return bli_version_str; }
 char* bli_info_get_int_type_size_str( void )        { return bli_int_type_size_str; }
