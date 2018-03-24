@@ -686,7 +686,7 @@
 // p1 = p0 + (num/dem)
 #define bli_ptr_add( p1, p0, num, dem ) \
 { \
-	p1 = ( typeof( p1 ) ) \
+	p1 = ( void* ) \
 	     ( ( char* )(p0) + ( (   (num) * sizeof( *(p0) ) \
 	                         ) / (dem) \
 	                       ) \
