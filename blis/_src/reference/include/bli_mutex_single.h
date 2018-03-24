@@ -42,6 +42,7 @@
 // Define mtx_t.
 typedef struct mtx_s
 {
+  int:0;
 } mtx_t;
 
 // Define macros to operate on pthread-based mtx_t.
