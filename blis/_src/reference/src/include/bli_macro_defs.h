@@ -59,7 +59,7 @@
   #define typeof __typeof__
 #else
   #ifndef typeof
-  #define typeof __typeof__
+  #define typeof typeid
   #endif
 #endif
 
