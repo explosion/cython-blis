@@ -2,7 +2,7 @@ Cython BLIS: Fast BLAS-like operations from Python and Cython, without the tears
 ================================================================================
 
 This repository provides the `Blis linear algebra <https://github.com/flame/blis>`_
-as a self-contained Python C-extension.
+routines as a self-contained Python C-extension.
 
 .. image:: https://img.shields.io/travis/explosion/cython-blis/master.svg?style=flat-square
     :target: https://travis-ci.org/explosion/cython-blis
@@ -22,7 +22,7 @@ architecture via an environment variable:
 
     BLIS_ARCH=haswell pip install blis
 
-After installation, run a small matrix multiplication benchmark:
+If you're using an Intel CPU, it should autodetect ``haswell``. Other architectures available are ``sandybridge``, ``carrizo``, ``piledriver``, ``bulldozer``, ``knl`` and ``reference``. After installation, run a small matrix multiplication benchmark:
 
 .. code:: bash
 
@@ -36,12 +36,23 @@ After installation, run a small matrix multiplication benchmark:
     16.81 seconds
     Blis einsum ab,cb->ca
     8.10 seconds
-    Numpy (openblas) einsum ab,cb->ca
+    Numpy einsum ab,cb->ca
     Total: 5510596.19141
     83.18 seconds
+    
+The low ``numpy.einsum`` performance is
+expected, but the low `numpy.dot` performance is surprising. Linking numpy
+against MKL gives better performance:
 
-This is on a Dell XPS 13 i7-7500U. Running the same benchmark on a 2015 Macbook
-Air gives:
+.. code:: bash
+
+    Numpy (mkl_rt) gemm...
+    Total: 11032011.71875
+    5.21 seconds
+
+
+These figures refer to performance on a Dell XPS 13 i7-7500U.  Running the
+same benchmark on a 2015 Macbook Air gives:
 
 .. code:: bash
 
@@ -52,8 +63,13 @@ Air gives:
     Total: 11032012.6953
     6.68 seconds
 
-It might be that Openblas is performing poorly on the relatively small
-matrices (which are typically the sizes for neural network models).
+Clearly the Dell's numpy+OpenBLAS performance is the outlier, so possibly
+something has gone wrong in the compilation and architecture detection.
+However, numpy+OpenBLAS is exactly the configuration most Linux users are
+running --- and even after a lot of digging, we haven't been able to get
+consistent performance across our machines. By removing the system dependency,
+the `blis` library makes it much easier to get consistent performance.
+
 
 Usage
 -----
