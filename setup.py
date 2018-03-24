@@ -78,7 +78,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
 def get_c_sources(start_dir):
     c_sources = []
     excludes = ['old', 'attic', 'broken', 'tmp', 'test',
-                'cblas', 'other', 'thread']
+                'cblas', 'other', 'thread' ]
     for path, subdirs, files in os.walk(start_dir):
         for exc in excludes:
             if exc in path:
