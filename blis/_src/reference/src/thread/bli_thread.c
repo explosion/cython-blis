@@ -36,9 +36,9 @@
 
 static bool_t bli_thread_is_init         = FALSE;
 
-thrinfo_t     BLIS_PACKM_SINGLE_THREADED = {};
-thrinfo_t     BLIS_GEMM_SINGLE_THREADED  = {};
-thrcomm_t     BLIS_SINGLE_COMM           = {};
+thrinfo_t     BLIS_PACKM_SINGLE_THREADED = {0};
+thrinfo_t     BLIS_GEMM_SINGLE_THREADED  = {0};
+thrcomm_t     BLIS_SINGLE_COMM           = {0};
 
 // -----------------------------------------------------------------------------
 
