@@ -18,7 +18,7 @@ do
   mkdir -p $cyblis/_src/$arch/include
 
   cd $blis
-  ./configure -i64 $arch
+  ./configure --disable-threading -i64 $arch
   make
   make install
   cp -r frame/* $cyblis/_src/$arch/src
