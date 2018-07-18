@@ -63,12 +63,8 @@ same benchmark on a 2015 Macbook Air gives:
     Total: 11032012.6953
     6.68 seconds
 
-Clearly the Dell's numpy+OpenBLAS performance is the outlier, so possibly
+Clearly the Dell's numpy+OpenBLAS performance is the outlier, so it's likely
 something has gone wrong in the compilation and architecture detection.
-However, numpy+OpenBLAS is exactly the configuration most Linux users are
-running --- and even after a lot of digging, we haven't been able to get
-consistent performance across our machines. By removing the system dependency,
-the `blis` library makes it much easier to get consistent performance.
 
 
 Usage
