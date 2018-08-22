@@ -107,6 +107,6 @@ void bli_init_once( void )
 
 void bli_finalize_once( void )
 {
-	pthread_once( &once_control, bli_finalize_apis );
+	//pthread_once( &once_control, bli_finalize_apis );
 }
 
