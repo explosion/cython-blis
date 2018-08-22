@@ -30,6 +30,16 @@ def locate_windows_llvm():
             clang = r"C:\Program Files\LLVM\bin\clang.exe"
         return clang
 
+def find_in_path(name, path):
+    "Find a file in a search path"
+    #adapted fom http://code.activestate.com/recipes/52224-find-a-file-given-a-search-path/
+    for dir in path.split(os.pathsep):
+        binpath = os.path.join(dir, name)
+        if os.path.exists(binpath):
+            return os.path.abspath(binpath)
+    return None
+
+
 
 # By subclassing build_extensions we have the actual compiler that will be used
 # which is really known only after finalize_options
