@@ -7,15 +7,26 @@ environment:
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
 
-    - PYTHON: "C:\\Python27"
-    - PYTHON: "C:\\Python35"
-    - PYTHON: "C:\\Python27-x64"
-    - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36-x64"
 
+#- PYTHON: "C:\\Python27"
+#    - PYTHON: "C:\\Python35"
+#    - PYTHON: "C:\\Python27-x64"
+#    - PYTHON: "C:\\Python35-x64"
+
 install:
-  # We need wheel installed to build wheels
+  - set "CONDA_INSTALL_LOCN=C:\\Miniconda36-x64"
+  - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
+  - conda update --yes --quiet conda
+  - conda config --add channels conda-forge
+  - conda install --yes clangdev posix m2-make pthreads-win32
+  - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+  - set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
+  - set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
+
+build_script:
   - bash -lc "./bin/copy-source-files.sh x86_64"
+  # We need wheel installed to build wheels
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
