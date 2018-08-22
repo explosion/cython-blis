@@ -14,7 +14,8 @@
       "-m64",
       "-Wall",
       "-O3",
-      "-fno-stack-protector"
+      "-fno-stack-protector",
+      "-Wno-unused-function"
     ],
     "msvc": [
       "/DBLIS_VERSION_STRING=\"0.2.2.2-53\"",
