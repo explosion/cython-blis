@@ -94,15 +94,15 @@ void bli_finalize_apis( void )
 
 // -----------------------------------------------------------------------------
 
-#include <pthread.h>
+//#include <pthread.h>
 
 // A pthread structure used in pthread_once(). pthread_once() is guaranteed to
 // execute exactly once among all threads that pass in this control object.
-static pthread_once_t once_control = PTHREAD_ONCE_INIT;
+//static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
 void bli_init_once( void )
 {
-	pthread_once( &once_control, bli_init_apis );
+	//pthread_once( &once_control, bli_init_apis );
 }
 
 void bli_finalize_once( void )
