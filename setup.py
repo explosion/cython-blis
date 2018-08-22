@@ -58,6 +58,8 @@ class build_ext_options:
             self.compiler.compiler_so = list(self.compiler.compiler)
             self.compiler.preprocessor = list(self.compiler.compiler)
             self.compiler.linker = list(self.compiler.compiler)
+            self.compiler.linker_so = self.compiler.linker + ['-shared']
+            self.compiler.linker_exe = self.compiler.linker + ['-shared']
             self.compiler.library_dirs.extend(library_dirs)
             self.compiler.include_dirs = include_dirs
 
