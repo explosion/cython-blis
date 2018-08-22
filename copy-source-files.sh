@@ -18,6 +18,6 @@ do
   mkdir -p $cyblis/_src/$arch/include
 
   cd $blis
-  ./configure -i64 $arch
+  ./configure -i64 --disable-threading $arch
   cp -r frame/* $cyblis/_src/$arch/src
 done
