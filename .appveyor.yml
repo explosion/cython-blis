@@ -15,7 +15,8 @@ environment:
 #    - PYTHON: "C:\\Python35-x64"
 
 install:
-  - 
+  - git submodule init
+  - git submodule update
 
 build_script:
   - bash -lc "./copy-source-files.sh x86_64"
