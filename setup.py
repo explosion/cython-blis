@@ -17,9 +17,28 @@ try:
 except ImportError:
     use_cython = False
 
+# By subclassing build_extensions we have the actual compiler that will be used
+# which is really known only after finalize_options
+# http://stackoverflow.com/questions/724664/python-distutils-how-to-get-a-compiler-that-is-going-to-be-used
+class build_ext_options:
+    def build_options(self):
+         if hasattr(self.compiler, 'initialize'):
+            self.compiler.initialize()
+        self.compiler.platform = sys.platform[:6]
+        self.clang = None
+        if self.compiler.compiler_type == 'msvc':
+            self.compiler = new_compiler(plat='nt', compiler='unix')
+            self.compiler.platform = 'nt'
+            self.compiler.compiler = [locate_windows_llvm()]
+            self.compiler.compiler_so = clang.compiler
+            self.compiler.library_dirs.extend(self.compiler.library_dirs)
+            self.compiler.include_dirs = self.compiler.include_dirs
 
-class ExtensionBuilder(distutils.command.build_ext.build_ext):
+
+class ExtensionBuilder(distutils.command.build_ext.build_ext,
+        distutils.command.build_ext.build_ext_options):
     def build_extensions(self):
+        build_ext_options.build_options(self)
         if use_cython:
             subprocess.check_call([sys.executable, 'bin/cythonize.py'],
                                    env=os.environ)
