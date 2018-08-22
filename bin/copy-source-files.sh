@@ -7,7 +7,7 @@ cyblis="$PWD/blis"
 if [ "$1" != "" ]; then
   arches=$1
 else
-  arches='bulldozer carrizo cortex-a15 cortex-a9 haswell knl piledriver sandybridge reference'
+  arches='x86_64'
 fi
 
 for arch in $arches
