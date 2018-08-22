@@ -53,7 +53,7 @@ class build_ext_options:
             self.compiler = new_compiler(plat='nt', compiler='unix')
             self.compiler.platform = 'nt'
             self.compiler.compiler = [locate_windows_llvm()]
-            self.compiler.compiler_so = clang.compiler
+            self.compiler.compiler_so = self.compiler.compiler
             self.compiler.library_dirs.extend(self.compiler.library_dirs)
             self.compiler.include_dirs = self.compiler.include_dirs
 
