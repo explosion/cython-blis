@@ -1,6 +1,6 @@
 {
   "ldflags": {
-    "common": ["-lm"],
+    "common": [],
     "gcc": [],
     "icc": [],
     "clang": [],
