@@ -20,6 +20,5 @@ do
   cd $blis
   ./configure -i64 $arch
   cp -r frame/* $cyblis/_src/$arch/src
-  cd $cyblis
-  cp $headers/* $cyblis/_src/$arch/include
+  cp -r include/$arch/* $cyblis/_src/$arch/include
 done
