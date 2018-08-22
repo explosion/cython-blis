@@ -49,19 +49,19 @@ class build_ext_options:
         if hasattr(self.compiler, 'initialize'):
             self.compiler.initialize()
         self.compiler.platform = sys.platform[:6]
-        if self.compiler.compiler_type == 'msvc':
-            library_dirs = list(self.compiler.library_dirs)
-            include_dirs = list(self.compiler.include_dirs)
-            self.compiler = new_compiler(plat='nt', compiler='unix')
-            self.compiler.platform = 'nt'
-            self.compiler.compiler = [locate_windows_llvm()]
-            self.compiler.compiler_so = list(self.compiler.compiler)
-            self.compiler.preprocessor = list(self.compiler.compiler)
-            self.compiler.linker = list(self.compiler.compiler)
-            self.compiler.linker_so = self.compiler.linker + ['-shared']
-            self.compiler.linker_exe = self.compiler.linker + ['-shared']
-            self.compiler.library_dirs.extend(library_dirs)
-            self.compiler.include_dirs = include_dirs
+        #if self.compiler.compiler_type == 'msvc':
+        #    library_dirs = list(self.compiler.library_dirs)
+        #    include_dirs = list(self.compiler.include_dirs)
+        #    self.compiler = new_compiler(plat='nt', compiler='unix')
+        #    self.compiler.platform = 'nt'
+        #    self.compiler.compiler = [locate_windows_llvm()]
+        #    self.compiler.compiler_so = list(self.compiler.compiler)
+        #    self.compiler.preprocessor = list(self.compiler.compiler)
+        #    self.compiler.linker = list(self.compiler.compiler) + ['-shared']
+        #    self.compiler.linker_so = self.compiler.linker + ['-shared']
+        #    self.compiler.linker_exe = self.compiler.linker + ['-shared']
+        #    self.compiler.library_dirs.extend(library_dirs)
+        #    self.compiler.include_dirs = include_dirs
 
 
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
