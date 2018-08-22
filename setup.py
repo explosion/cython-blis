@@ -58,8 +58,8 @@ class build_ext_options:
             self.compiler.compiler_so = list(self.compiler.compiler)
             self.compiler.preprocessor = list(self.compiler.compiler)
             self.compiler.linker = list(self.compiler.compiler) + ['-shared']
-            self.compiler.linker_so = self.compiler.linker + ['-shared']
-            self.compiler.linker_exe = self.compiler.linker + ['-shared']
+            self.compiler.linker_so = list(self.compiler.linker)
+            self.compiler.linker_exe = list(self.compiler.linker)
             self.compiler.library_dirs.extend(library_dirs)
             self.compiler.include_dirs = include_dirs
 
@@ -85,7 +85,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(os.path.abspath(include_dir)),
             e.undef_macros.append("FORTIFY_SOURCE")
-            e.define_macros.append(("LIBM", ""))
+            e.undef_macros.append("LIBM")
         for key, value in self.compiler.__dict__.items():
             print(key, value)
         distutils.command.build_ext.build_ext.build_extensions(self)
