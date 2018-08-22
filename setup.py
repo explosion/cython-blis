@@ -18,6 +18,19 @@ try:
 except ImportError:
     use_cython = False
 
+def locate_windows_llvm():
+    # first check if the LLVM_HOME env variable is in use
+    if 'LLVM_HOME' in os.environ:
+        home = os.environ['LLVM_HOME']
+        return os.path.join(home, 'bin', 'clang.exe')
+    else:
+        # otherwise, search the PATH for NVCC
+        clang = find_in_path('clang.exe', os.environ['PATH'])
+        if clang is None:
+            clang = r"C:\Program Files\LLVM\bin\clang.exe"
+        return clang
+
+
 # By subclassing build_extensions we have the actual compiler that will be used
 # which is really known only after finalize_options
 # http://stackoverflow.com/questions/724664/python-distutils-how-to-get-a-compiler-that-is-going-to-be-used
