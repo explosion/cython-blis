@@ -24,7 +24,7 @@ install:
   - set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
 
 build_script:
-  - bash -lc "bin\\copy-source-files.sh x86_64"
+  - bash -lc "bin\copy-source-files.sh x86_64"
   # We need wheel installed to build wheels
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
