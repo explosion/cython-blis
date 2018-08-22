@@ -4,6 +4,7 @@ import os
 import os.path
 import json
 import distutils.command.build_ext
+from distutils.ccompiler import new_compiler
 import subprocess
 import sys
 from setuptools import Extension, setup
