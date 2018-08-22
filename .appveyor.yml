@@ -15,16 +15,15 @@ environment:
 #    - PYTHON: "C:\\Python35-x64"
 
 install:
+  - bash -lc "copy-source-files.sh x86_64"
   - set "CONDA_INSTALL_LOCN=C:\\Miniconda36-x64"
   - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
   - conda config --add channels conda-forge
   - conda install --yes clangdev posix m2-make pthreads-win32
   - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
   - set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
-  - set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
 
 build_script:
-  - bash -lc "copy-source-files.sh x86_64"
   # We need wheel installed to build wheels
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
