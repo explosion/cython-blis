@@ -81,6 +81,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(os.path.abspath(include_dir)),
             e.undef_macros.append("FORTIFY_SOURCE")
+            e.build_objects(self.compiler, src_dir)
         distutils.command.build_ext.build_ext.build_extensions(self)
     
     def get_arch_name(self):
