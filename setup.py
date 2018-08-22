@@ -97,7 +97,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         if processor == 'x86_64':
             return 'x86_64' # Best guess?
         else:
-            return 'reference'
+            return 'x86_64'
 
     def get_compiler_name(self):
         if 'BLIS_COMPILER' in os.environ:
