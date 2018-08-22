@@ -8,7 +8,7 @@
   },
   "cflags": {
     "common": [
-      "-DBLIS_VERSION_STRING=\"0.2.2-53\"",
+      "-DBLIS_VERSION_STRING=\"\\\"0.2.2-53\\\"\"",
       "-D_POSIX_C_SOURCE=200112L",
       "-std=c99",
       "-m64",
