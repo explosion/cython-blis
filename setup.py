@@ -55,7 +55,9 @@ class build_ext_options:
             self.compiler = new_compiler(plat='nt', compiler='unix')
             self.compiler.platform = 'nt'
             self.compiler.compiler = [locate_windows_llvm()]
-            self.compiler.compiler_so = self.compiler.compiler
+            self.compiler.compiler_so = list(self.compiler.compiler)
+            self.compiler.preprocessor = list(self.compiler.compiler)
+            self.compiler.linker = list(self.compiler.compiler)
             self.compiler.library_dirs.extend(library_dirs)
             self.compiler.include_dirs = include_dirs
 
@@ -81,7 +83,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(os.path.abspath(include_dir)),
             e.undef_macros.append("FORTIFY_SOURCE")
-            e.build_objects(self.compiler, src_dir)
+        for key, value in self.compiler.__dict__.items():
+            print(key, value)
         distutils.command.build_ext.build_ext.build_extensions(self)
     
     def get_arch_name(self):
