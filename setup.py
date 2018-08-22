@@ -50,12 +50,14 @@ class build_ext_options:
             self.compiler.initialize()
         self.compiler.platform = sys.platform[:6]
         if self.compiler.compiler_type == 'msvc':
+            library_dirs = list(self.compiler.library_dirs)
+            include_dirs = list(self.compiler.include_dirs)
             self.compiler = new_compiler(plat='nt', compiler='unix')
             self.compiler.platform = 'nt'
             self.compiler.compiler = [locate_windows_llvm()]
             self.compiler.compiler_so = self.compiler.compiler
-            self.compiler.library_dirs.extend(self.compiler.library_dirs)
-            self.compiler.include_dirs = self.compiler.include_dirs
+            self.compiler.library_dirs.extend(library_dirs)
+            self.compiler.include_dirs = include_dirs
 
 
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
