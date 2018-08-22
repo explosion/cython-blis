@@ -19,8 +19,6 @@ do
 
   cd $blis
   ./configure -i64 $arch
-  make
-  make install
   cp -r frame/* $cyblis/_src/$arch/src
   cd $cyblis
   cp $headers/* $cyblis/_src/$arch/include
