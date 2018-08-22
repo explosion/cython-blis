@@ -12,7 +12,6 @@
       "-D_POSIX_C_SOURCE=200112L",
       "-std=c99",
       "-m64",
-      "-fPIC",
       "-Wall",
       "-O3",
       "-fno-stack-protector"
