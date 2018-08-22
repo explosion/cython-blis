@@ -22,10 +22,9 @@ except ImportError:
 # http://stackoverflow.com/questions/724664/python-distutils-how-to-get-a-compiler-that-is-going-to-be-used
 class build_ext_options:
     def build_options(self):
-         if hasattr(self.compiler, 'initialize'):
+        if hasattr(self.compiler, 'initialize'):
             self.compiler.initialize()
         self.compiler.platform = sys.platform[:6]
-        self.clang = None
         if self.compiler.compiler_type == 'msvc':
             self.compiler = new_compiler(plat='nt', compiler='unix')
             self.compiler.platform = 'nt'
