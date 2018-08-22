@@ -19,7 +19,7 @@ install:
   - git submodule update
 
 build_script:
-  - bash -lc "./copy-source-files.sh haswell"
+  - bash -lc "./copy-source-files.sh x86_64"
   # We need wheel installed to build wheels
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
