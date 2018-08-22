@@ -42,8 +42,9 @@
 #include <stdarg.h>
 #include <float.h>
 #include <errno.h>
+#include <ctype.h>
 
-// Determine if we are on a 64-bit or 32-bit architecture
+// Determine if we are on a 64-bit or 32-bit architecture.
 #if defined(_M_X64) || defined(__x86_64) || defined(__aarch64__) || \
     defined(_ARCH_PPC64)
 #define BLIS_ARCH_64
@@ -51,7 +52,7 @@
 #define BLIS_ARCH_32
 #endif
 
-// Determine the target operating system
+// Determine the target operating system.
 #if defined(_WIN32) || defined(__CYGWIN__)
 #define BLIS_OS_WINDOWS 1
 #elif defined(__APPLE__) || defined(__MACH__)
@@ -73,6 +74,7 @@
 #error "Cannot determine operating system"
 #endif
 
+// A few changes that may be necessary in Windows environments.
 #if BLIS_OS_WINDOWS
 
   // Include Windows header file.
@@ -88,7 +90,7 @@
 
 #endif
 
-// gettimeofday() needs this.
+// time.h provides clock_gettime().
 #if BLIS_OS_WINDOWS
   #include <time.h>
 #elif BLIS_OS_OSX
@@ -97,5 +99,6 @@
   #include <sys/time.h>
   #include <time.h>
 #endif
+
 
 #endif

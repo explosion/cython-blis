@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2017, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -64,14 +65,46 @@
 #endif
 
 
-// -- Boolean values --
+// -- BLIS Thread Local Storage Keyword --
 
-#ifndef TRUE
-  #define TRUE  1
+// __thread for TLS is supported by GCC, CLANG, ICC, and IBMC.
+// There is a small risk here as __GNUC__ can also be defined by some other
+// compiler (other than ICC and CLANG which we know define it) that
+// doesn't support __thread, as __GNUC__ is not quite unique to GCC.
+// But the possibility of someone using such non-main-stream compiler
+// for building BLIS is low.
+#if defined(__GNUC__) || defined(__clang__) || defined(__ICC) || defined(__IBMC__)
+  #define BLIS_THREAD_LOCAL __thread
+#else
+  #define BLIS_THREAD_LOCAL
 #endif
 
-#ifndef FALSE
-  #define FALSE 0
+
+// -- BLIS constructor/destructor function attribute --
+
+// __attribute__((constructor/destructor)) is supported by GCC only.
+// There is a small risk here as __GNUC__ can also be defined by some other
+// compiler (other than ICC and CLANG which we know define it) that
+// doesn't support this, as __GNUC__ is not quite unique to GCC.
+// But the possibility of someone using such non-main-stream compiler
+// for building BLIS is low.
+
+#if defined(__ICC) || defined(__INTEL_COMPILER)
+  // ICC defines __GNUC__ but doesn't support this
+  #define BLIS_ATTRIB_CTOR
+  #define BLIS_ATTRIB_DTOR
+#elif defined(__clang__)
+  // CLANG supports __attribute__, but its documentation doesn't
+  // mention support for constructor/destructor. Compiling with
+  // clang and testing shows that it does support.
+  #define BLIS_ATTRIB_CTOR __attribute__((constructor))
+  #define BLIS_ATTRIB_DTOR __attribute__((destructor))
+#elif defined(__GNUC__)
+  #define BLIS_ATTRIB_CTOR __attribute__((constructor))
+  #define BLIS_ATTRIB_DTOR __attribute__((destructor))
+#else
+  #define BLIS_ATTRIB_CTOR
+  #define BLIS_ATTRIB_DTOR
 #endif
 
 
@@ -104,6 +137,9 @@
 #define PASTECH2_(ch1,ch2,op)      ch1 ## ch2 ## op
 #define PASTECH2(ch1,ch2,op)       PASTECH2_(ch1,ch2,op)
 
+#define PASTECH3_(ch1,ch2,ch3,op)  ch1 ## ch2 ## ch3 ## op
+#define PASTECH3(ch1,ch2,ch3,op)   PASTECH3_(ch1,ch2,ch3,op)
+
 #define MKSTR(s1)                  #s1
 #define STRINGIFY_INT( s )         MKSTR( s )
 
@@ -120,12 +156,16 @@
 #include "bli_gentfunc_macro_defs.h"
 #include "bli_gentprot_macro_defs.h"
 
-#include "bli_obj_macro_defs.h"
+#include "bli_misc_macro_defs.h"
 #include "bli_param_macro_defs.h"
+#include "bli_obj_macro_defs.h"
 #include "bli_complex_macro_defs.h"
 #include "bli_scalar_macro_defs.h"
 #include "bli_error_macro_defs.h"
 #include "bli_blas_macro_defs.h"
+
+#include "bli_oapi_macro_defs.h"
+#include "bli_tapi_macro_defs.h"
 
 
 #endif
