@@ -124,17 +124,6 @@ cdef void scalv(
 ) nogil
 
 
-cdef double dotv(
-    conj_t  conjx,
-    conj_t  conjy,
-    dim_t   m,
-    reals_ft x,
-    reals_ft y,
-    inc_t incx,
-    inc_t incy,
-) nogil
-
-
 cdef double norm_L1(
     dim_t n,
     reals_ft x, inc_t incx
@@ -153,7 +142,12 @@ cdef double norm_inf(
 ) nogil
 
 
-cdef void randv(
-    dim_t m,
-    reals_ft x, inc_t incx
+cdef double dotv(
+    conj_t  conjx,
+    conj_t  conjy,
+    dim_t   m,
+    reals_ft x,
+    reals_ft y,
+    inc_t incx,
+    inc_t incy,
 ) nogil
