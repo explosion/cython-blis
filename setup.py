@@ -136,6 +136,9 @@ def get_c_sources(start_dir):
         else:
             for name in files:
                 if name.endswith('.c'):
+                    if name.endswith('_ba.c'):
+                        continue
+                    elif name.endswith('_ex.c'):
                     c_sources.append(os.path.join(path, name))
     return c_sources
 
@@ -143,7 +146,7 @@ def get_c_sources(start_dir):
 PWD = os.path.join(os.path.dirname(__file__))
 ARCH = os.environ.get('BLIS_ARCH', 'x86_64')
 SRC = os.path.join(PWD, 'blis', '_src')
-INCLUDE = os.path.join(PWD, 'blis', '_src', ARCH)
+INCLUDE = os.path.join(PWD, 'blis', '_src', ARCH, 'include')
 COMPILER = os.environ.get('BLIS_COMPILER', 'gcc')
 
 c_files = get_c_sources(SRC)
