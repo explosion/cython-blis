@@ -1,7 +1,7 @@
 {
   "ldflags": {
     "common": [],
-    "gcc": [],
+    "gcc": ["-lm"],
     "icc": [],
     "clang": [],
     "msvc": []
@@ -11,9 +11,9 @@
       "-DBLIS_VERSION_STRING=\"\\\"0.2.2-53\\\"\"",
       "-D_POSIX_C_SOURCE=200112L",
       "-std=c99",
-      "-m64",
       "-Wall",
       "-O3",
+      "-fPIC",
       "-fno-stack-protector",
       "-Wno-unused-function"
     ],
@@ -24,19 +24,22 @@
       "/EHsc"
     ],
     "gcc": {
-      "reference": ["-O2"],
+      "reference": ["-O2", "-m64"],
       "haswell": [
+        "-m64",
         "-mavx2",
         "-mfma",
         "-mfpmath=sse",
         "-march=core-avx2"
       ],
       "sandybridge": [
+        "-m64",
         "-mavx",
         "-mfpmath=sse",
         "-march=corei7-avx2"
       ],
       "carrizo": [
+        "-m64",
         "-02",
         "-fomit-frame-pointer",
         "-mavx", 
@@ -45,6 +48,7 @@
         "-fmpath=sse"
       ],
       "knl": [
+        "-m64",
         "-mavx512f",
         "-mavx512pf",
         "-mfpmath=sse",
