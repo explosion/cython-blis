@@ -34,13 +34,13 @@
 
 #include "blis.h"
 
-// Include cpp macros that instantiate the API definition templates as
-// omitting expert parameters.
-#include "bli_tapi_ba.h"
-
-// Define the macro protecting the typed API definitions.
-#define BLIS_ENABLE_TAPI
-
-// Include the typed API definitions here.
-#include "bli_l1v_tapi.c"
-
+//// Include cpp macros that instantiate the API definition templates as
+//// omitting expert parameters.
+//#include "bli_tapi_ba.h"
+//
+//// Define the macro protecting the typed API definitions.
+//#define BLIS_ENABLE_TAPI
+//
+//// Include the typed API definitions here.
+//#include "bli_l1v_tapi.c"
+//
