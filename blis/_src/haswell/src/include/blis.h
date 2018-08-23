@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2016, Hewlett Packard Enterprise Development LP
+   Copyright (C) 2016 Hewlett Packard Enterprise Development LP
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -44,16 +44,20 @@
 extern "C" {
 #endif
 
-// NOTE: PLEASE DON'T CHANGE THE ORDER IN WHICH HEADERS ARE INCLUDED UNLESS
-// YOU ARE SURE THAT IT DOESN'T BREAK INTER-HEADER MACRO DEPENDENCIES.
 
 // -- System headers --
-// NOTE: This header must be included before bli_config_macro_defs.h.
 
 #include "bli_system.h"
 
 
-// -- configure definitions --
+// -- BLIS configuration definition --
+
+// NOTE: We include bli_config.h first because there might be something
+// defined there that is needed within one of the system headers. A good
+// example: posix_memalign() needs _GNU_SOURCE on GNU systems (I think).
+// 
+// PLEASE DON'T CHANGE THE ORDER IN WHICH HEADERS ARE INCLUDED UNLESS YOU
+// KNOW WHAT YOU ARE DOING.
 
 #include "bli_config.h"
 #include "bli_config_macro_defs.h"
@@ -75,17 +79,17 @@ extern "C" {
 #include "bli_extern_defs.h"
 
 
-// -- BLIS architecture/kernel definitions --
+// -- BLIS kernel definitions --
 
-#include "bli_l1v_ker_prot.h"
-#include "bli_l1f_ker_prot.h"
-#include "bli_l1m_ker_prot.h"
-#include "bli_l3_ukr_prot.h"
+#include "bli_kernel.h"
 
-#include "bli_arch_config_pre.h"
-#include "bli_arch_config.h"
+#include "bli_kernel_pre_macro_defs.h"
+#include "bli_kernel_ind_pre_macro_defs.h"
 
 #include "bli_kernel_macro_defs.h"
+#include "bli_kernel_ind_macro_defs.h"
+
+#include "bli_kernel_prototypes.h"
 
 
 // -- Base operation prototypes --
@@ -94,11 +98,7 @@ extern "C" {
 #include "bli_const.h"
 #include "bli_obj.h"
 #include "bli_obj_scalar.h"
-#include "bli_blksz.h"
-#include "bli_func.h"
-#include "bli_mbool.h"
 #include "bli_cntx.h"
-#include "bli_rntm.h"
 #include "bli_gks.h"
 #include "bli_ind.h"
 #include "bli_membrk.h"
@@ -108,6 +108,9 @@ extern "C" {
 #include "bli_part.h"
 #include "bli_prune.h"
 #include "bli_query.h"
+#include "bli_blksz.h"
+#include "bli_func.h"
+#include "bli_mbool.h"
 #include "bli_auxinfo.h"
 #include "bli_param_map.h"
 #include "bli_clock.h"
@@ -119,16 +122,6 @@ extern "C" {
 #include "bli_opid.h"
 #include "bli_cntl.h"
 #include "bli_info.h"
-#include "bli_arch.h"
-#include "bli_cpuid.h"
-#include "bli_string.h"
-#include "bli_setgetij.h"
-#include "bli_setri.h"
-
-#include "bli_castm.h"
-#include "bli_castv.h"
-#include "bli_projm.h"
-#include "bli_projv.h"
 
 
 // -- Level-0 operations --
@@ -171,11 +164,6 @@ extern "C" {
 #include "bli_util.h"
 
 
-// -- sandbox implementation --
-
-#include "bli_sbox.h"
-
-
 // -- BLAS compatibility layer --
 
 #include "bli_blas.h"
@@ -184,10 +172,6 @@ extern "C" {
 // -- CBLAS compatibility layer --
 
 #include "bli_cblas.h"
-
-// -- Windows definitions
-
-#include "bli_winsys.h"
 
 
 // End extern "C" construct block.

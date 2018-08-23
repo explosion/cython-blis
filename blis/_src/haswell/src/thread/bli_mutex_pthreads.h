@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2016, Hewlett Packard Enterprise Development LP
+   Copyright (C) 2016 Hewlett Packard Enterprise Development LP
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -42,32 +42,28 @@
 #include <pthread.h>
 
 // Define mtx_t.
-
 typedef struct mtx_s
 {
 	pthread_mutex_t mutex;
 } mtx_t;
 
 // Define macros to operate on pthread-based mtx_t.
-
-static void bli_mutex_init( mtx_t* m )
-{
-	pthread_mutex_init( &(m->mutex), NULL ); \
+#define bli_mutex_init( mtx_p ) \
+{ \
+	pthread_mutex_init( &((mtx_p)->mutex), NULL ); \
+}
+#define bli_mutex_finalize( mtx_p ) \
+{ \
+	pthread_mutex_destroy( &((mtx_p)->mutex) ); \
 }
 
-static void bli_mutex_finalize( mtx_t* m )
-{
-	pthread_mutex_destroy( &(m->mutex) ); \
+#define bli_mutex_lock( mtx_p ) \
+{ \
+	pthread_mutex_lock( &((mtx_p)->mutex) ); \
 }
-
-static void bli_mutex_lock( mtx_t* m )
-{
-	pthread_mutex_lock( &(m->mutex) ); \
-}
-
-static void bli_mutex_unlock( mtx_t* m )
-{
-	pthread_mutex_unlock( &(m->mutex) ); \
+#define bli_mutex_unlock( mtx_p ) \
+{ \
+	pthread_mutex_unlock( &((mtx_p)->mutex) ); \
 }
 
 #endif

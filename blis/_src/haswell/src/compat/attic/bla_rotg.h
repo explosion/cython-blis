@@ -46,7 +46,7 @@ void PASTEF77(chxy,blasname)( \
                               ftype_r*   s  \
                             );
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTPROTR_BLAS( rotg, rotg )
 #endif
 

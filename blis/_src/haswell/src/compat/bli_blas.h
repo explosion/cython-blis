@@ -36,13 +36,13 @@
 
 // If the BLAS compatibility layer was not explicitly enabled, we must
 // enable it here.
-#ifndef BLIS_ENABLE_BLAS
-#define BLIS_ENABLE_BLAS
+#ifndef BLIS_ENABLE_BLAS2BLIS
+#define BLIS_ENABLE_BLAS2BLIS
 #endif
 
 #endif // BLIS_ENABLE_CBLAS
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 
 
 // -- System headers needed by BLAS compatibility layer --
@@ -52,7 +52,7 @@
 
 // -- Constants --
 
-#define BLIS_MAX_BLAS_FUNC_STR_LENGTH (7+1)
+#define BLIS_MAX_BLAS_FUNC_STR_LENGTH (6+1)
 
 
 // -- Utility macros --
@@ -174,4 +174,4 @@
 #include "bla_trsm_check.h"
 
 
-#endif // BLIS_ENABLE_BLAS
+#endif // BLIS_ENABLE_BLAS2BLIS

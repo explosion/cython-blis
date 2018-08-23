@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2016, Hewlett Packard Enterprise Development LP
+   Copyright (C) 2016 Hewlett Packard Enterprise Development LP
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -36,64 +36,52 @@
 #ifndef BLIS_MEMBRK_H
 #define BLIS_MEMBRK_H
 
-// membrk query
 
-static pool_t* bli_membrk_pool( dim_t pool_index, membrk_t* membrk )
-{
-	return &(membrk->pools[ pool_index ]);
+#define bli_membrk_pool( pool_index, membrk_p ) \
+\
+	( (membrk_p)->pools + (pool_index) )
+
+#define bli_membrk_mutex( membrk_p ) \
+\
+	( &( (membrk_p)->mutex ) )
+
+#define bli_membrk_malloc_fp( membrk_p ) \
+\
+	( (membrk_p)->malloc_fp )
+
+#define bli_membrk_free_fp( membrk_p ) \
+\
+	( (membrk_p)->free_fp )
+
+#define bli_membrk_set_malloc_fp( _malloc_fp, membrk_p ) \
+{\
+	(membrk_p)->malloc_fp = _malloc_fp; \
 }
 
-static mtx_t* bli_membrk_mutex( membrk_t* membrk )
-{
-	return &(membrk->mutex);
+#define bli_membrk_set_free_fp( _free_fp, membrk_p ) \
+{\
+	(membrk_p)->free_fp = _free_fp; \
 }
 
-static malloc_ft bli_membrk_malloc_fp( membrk_t* membrk )
-{
-	return membrk->malloc_fp;
+#define bli_membrk_lock( membrk_p ) \
+{\
+	bli_mutex_lock( &((membrk_p)->mutex) ); \
 }
 
-static free_ft bli_membrk_free_fp( membrk_t* membrk )
-{
-	return membrk->free_fp;
+#define bli_membrk_unlock( membrk_p ) \
+{\
+	bli_mutex_unlock( &((membrk_p)->mutex) ); \
 }
 
-// membrk modification
+#define bli_membrk_malloc( size, membrk ) \
+\
+	/* Call the malloc()-style function in membrk. */ \
+	((membrk)->malloc_fp)( size )
 
-static void bli_membrk_set_malloc_fp( malloc_ft malloc_fp, membrk_t* membrk )
-{
-	membrk->malloc_fp = malloc_fp;
-}
-
-static void bli_membrk_set_free_fp( free_ft free_fp, membrk_t* membrk )
-{
-	membrk->free_fp = free_fp;
-}
-
-// membrk action
-
-static void bli_membrk_lock( membrk_t* membrk )
-{
-	bli_mutex_lock( &(membrk->mutex) );
-}
-
-static void bli_membrk_unlock( membrk_t* membrk )
-{
-	bli_mutex_unlock( &(membrk->mutex) );
-}
-
-static void* bli_membrk_malloc( size_t size, membrk_t* membrk )
-{
-	// Call the malloc()-style function in membrk.
-	return ( void* )
-	       ( (membrk)->malloc_fp )( size );
-}
-
-static void bli_membrk_free( void* p, membrk_t* membrk )
-{
-	// Call the free()-style function in membrk.
-	((membrk)->free_fp)( p );
-}
+#define bli_membrk_free( buf_p, membrk ) \
+\
+	/* Call the free()-style function in membrk. */ \
+	((membrk)->free_fp)( buf_p )
 
 
 // -----------------------------------------------------------------------------
@@ -137,6 +125,11 @@ siz_t bli_membrk_pool_size
 // ----------------------------------------------------------------------------
 
 void bli_membrk_init_pools
+     (
+       cntx_t*   cntx,
+       membrk_t* membrk
+     );
+void bli_membrk_reinit_pools
      (
        cntx_t*   cntx,
        membrk_t* membrk

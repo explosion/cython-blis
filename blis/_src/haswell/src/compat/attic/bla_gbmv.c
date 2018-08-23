@@ -71,7 +71,7 @@ void PASTEF77(ch,blasname)( \
 \
 	/* Determine the dimensions of x and y so we can adjust the increments,
 	   if necessary.*/ \
-	bli_set_dims_with_trans( blis_transa, m0, n0, &m_y, &n_x ); \
+	bli_set_dims_with_trans( blis_transa, m0, n0, m_y, n_x ); \
 \
 	/* If the input increments are negative, adjust the pointers so we can
 	   use positive increments instead. */ \
@@ -81,7 +81,7 @@ void PASTEF77(ch,blasname)( \
 	bli_check_error_code( BLIS_NOT_YET_IMPLEMENTED ); \
 }
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTFUNC_BLAS( gbmv, gbmv )
 #endif
 

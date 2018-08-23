@@ -81,14 +81,13 @@ void PASTEMAC(ch,varname) \
 	conja = bli_extract_conj( transa ); \
 \
 	/* x = alpha * x; */ \
-	PASTEMAC2(ch,scalv,BLIS_TAPI_EX_SUF) \
+	PASTEMAC(ch,scalv) \
 	( \
 	  BLIS_NO_CONJUGATE, \
 	  m, \
 	  alpha, \
 	  x, incx, \
-	  cntx, \
-	  NULL  \
+	  cntx  \
 	); \
 \
 	PASTECH(ch,dotv_ft) kfp_tv; \

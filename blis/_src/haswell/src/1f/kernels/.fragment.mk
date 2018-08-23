@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := kernels
 CURRENT_SUB_DIRS := 
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := 
+LOCAL_SRC_FILES  := bli_axpy2v_ref.c bli_axpyf_ref.c bli_dotaxpyv_ref.c bli_dotxaxpyf_ref_var2.c bli_dotxf_ref.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

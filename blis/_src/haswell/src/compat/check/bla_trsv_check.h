@@ -32,8 +32,18 @@
 
 */
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 
-#define bla_trsv_check bla_trmv_check
+void bla_trsv_check
+     (
+       const char*     dt_str,
+       const char*     op_str,
+       const f77_char* uploa,
+       const f77_char* transa,
+       const f77_char* diaga,
+       const f77_int*  m,
+       const f77_int*  lda,
+       const f77_int*  incx
+     );
 
 #endif

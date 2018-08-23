@@ -74,8 +74,8 @@ void bli_obj_alloc_buffer_check( inc_t  rs,
 {
 	err_t e_val;
 
-	e_val = bli_check_matrix_strides( bli_obj_length( obj ),
-	                                  bli_obj_width( obj ),
+	e_val = bli_check_matrix_strides( bli_obj_length( *obj ),
+	                                  bli_obj_width( *obj ),
 	                                  rs, cs, is );
 	bli_check_error_code( e_val );
 
@@ -100,8 +100,8 @@ void bli_obj_attach_buffer_check( void*  p,
 	//e_val = bli_check_null_pointer( p );
 	//bli_check_error_code( e_val );
 
-	e_val = bli_check_matrix_strides( bli_obj_length( obj ),
-	                                  bli_obj_width( obj ),
+	e_val = bli_check_matrix_strides( bli_obj_length( *obj ),
+	                                  bli_obj_width( *obj ),
 	                                  rs, cs, is );
 	bli_check_error_code( e_val );
 
@@ -139,7 +139,6 @@ void bli_obj_create_const_check( double value, obj_t* obj )
 	bli_check_error_code( e_val );
 }
 
-#if 0
 void bli_obj_create_const_copy_of_check( obj_t* a, obj_t* b )
 {
 	err_t e_val;
@@ -156,9 +155,8 @@ void bli_obj_create_const_copy_of_check( obj_t* a, obj_t* b )
 	e_val = bli_check_object_buffer( a );
 	bli_check_error_code( e_val );
 }
-#endif
 
-void bli_dt_size_check( num_t dt )
+void bli_datatype_size_check( num_t dt )
 {
 	err_t e_val;
 
@@ -166,15 +164,7 @@ void bli_dt_size_check( num_t dt )
 	bli_check_error_code( e_val );
 }
 
-void bli_dt_string_check( num_t dt )
-{
-	err_t e_val;
-
-	e_val = bli_check_nonconstant_datatype( dt );
-	bli_check_error_code( e_val );
-}
-
-void bli_dt_union_check( num_t dt1, num_t dt2 )
+void bli_datatype_union_check( num_t dt1, num_t dt2 )
 {
 	err_t e_val;
 

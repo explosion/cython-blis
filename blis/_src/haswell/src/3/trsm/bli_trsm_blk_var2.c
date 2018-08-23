@@ -40,7 +40,6 @@ void bli_trsm_blk_var2
        obj_t*  b,
        obj_t*  c,
        cntx_t* cntx,
-       rntm_t* rntm,
        cntl_t* cntl,
        thrinfo_t* thread
      )
@@ -88,7 +87,6 @@ void bli_trsm_blk_var2
 		  &BLIS_ONE,
 		  &c1,
 		  cntx,
-		  rntm,
 		  bli_cntl_sub_node( cntl ),
 		  bli_thrinfo_sub_node( thread )
 		);

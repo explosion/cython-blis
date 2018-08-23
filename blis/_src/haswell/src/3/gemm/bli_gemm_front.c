@@ -5,7 +5,6 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2017, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -43,20 +42,12 @@ void bli_gemm_front
        obj_t*  beta,
        obj_t*  c,
        cntx_t* cntx,
-       rntm_t* rntm,
        cntl_t* cntl
      )
 {
-	bli_init_once();
-
 	obj_t   a_local;
 	obj_t   b_local;
 	obj_t   c_local;
-
-#ifdef BLIS_ENABLE_SMALL_MATRIX
-	gint_t status = bli_gemm_small( alpha, a, b, beta, c, cntx, cntl );
-	if ( status == BLIS_SUCCESS ) return;
-#endif
 
 	// Check parameters.
 	if ( bli_error_checking_is_enabled() )
@@ -69,57 +60,33 @@ void bli_gemm_front
 		return;
 	}
 
+	// Reinitialize the memory allocator to accommodate the blocksizes
+	// in the current context.
+	bli_memsys_reinit( cntx );
+
 	// Alias A, B, and C in case we need to apply transformations.
-	bli_obj_alias_to( a, &a_local );
-	bli_obj_alias_to( b, &b_local );
-	bli_obj_alias_to( c, &c_local );
+	bli_obj_alias_to( *a, a_local );
+	bli_obj_alias_to( *b, b_local );
+	bli_obj_alias_to( *c, c_local );
 
 	// An optimization: If C is stored by rows and the micro-kernel prefers
 	// contiguous columns, or if C is stored by columns and the micro-kernel
 	// prefers contiguous rows, transpose the entire operation to allow the
 	// micro-kernel to access elements of C in its preferred manner.
-	if ( bli_cntx_l3_vir_ukr_dislikes_storage_of( &c_local, BLIS_GEMM_UKR, cntx ) )
+	if ( bli_cntx_l3_ukr_eff_dislikes_storage_of( &c_local, BLIS_GEMM_UKR, cntx ) )
 	{
-		bli_obj_swap( &a_local, &b_local );
+		bli_obj_swap( a_local, b_local );
 
-		bli_obj_induce_trans( &a_local );
-		bli_obj_induce_trans( &b_local );
-		bli_obj_induce_trans( &c_local );
+		bli_obj_induce_trans( a_local );
+		bli_obj_induce_trans( b_local );
+		bli_obj_induce_trans( c_local );
 	}
 
-	// Parse and interpret the contents of the rntm_t object to properly
-	// set the ways of parallelism for each loop, and then make any
-	// additional modifications necessary for the current operation.
-	bli_rntm_set_ways_for_op
-	(
-	  BLIS_GEMM,
-	  BLIS_LEFT, // ignored for gemm/hemm/symm
-	  bli_obj_length( &c_local ),
-	  bli_obj_width( &c_local ),
-	  bli_obj_width( &a_local ),
-	  rntm
-	);
-
-	{
-		// A sort of hack for communicating the desired pach schemas for A and B
-		// to bli_gemm_cntl_create() (via bli_l3_thread_decorator() and
-		// bli_l3_cntl_create_if()). This allows us to access the schemas from
-		// the control tree, which hopefully reduces some confusion, particularly
-		// in bli_packm_init().
-		if ( bli_cntx_method( cntx ) == BLIS_NAT )
-		{
-			bli_obj_set_pack_schema( BLIS_PACKED_ROW_PANELS, &a_local );
-			bli_obj_set_pack_schema( BLIS_PACKED_COL_PANELS, &b_local );
-		}
-		else // if ( bli_cntx_method( cntx ) != BLIS_NAT )
-		{
-			pack_t schema_a = bli_cntx_schema_a_block( cntx );
-			pack_t schema_b = bli_cntx_schema_b_panel( cntx );
-
-			bli_obj_set_pack_schema( schema_a, &a_local );
-			bli_obj_set_pack_schema( schema_b, &b_local );
-		}
-	}
+	// Record the threading for each level within the context.
+	bli_cntx_set_thrloop_from_env( BLIS_GEMM, BLIS_LEFT, cntx,
+                                   bli_obj_length( c_local ),
+                                   bli_obj_width( c_local ),
+                                   bli_obj_width( a_local ) );
 
 	// Invoke the internal back-end via the thread handler.
 	bli_l3_thread_decorator
@@ -132,7 +99,6 @@ void bli_gemm_front
 	  beta,
 	  &c_local,
 	  cntx,
-	  rntm,
 	  cntl
 	);
 }

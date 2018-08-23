@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := 1m
 CURRENT_SUB_DIRS := packm scalm unpackm
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := bli_l1m_check.c bli_l1m_oapi_ba.c bli_l1m_oapi.c bli_l1m_oapi_ex.c bli_l1m_tapi_ba.c bli_l1m_tapi.c bli_l1m_tapi_ex.c bli_l1m_unb_var1.c
+LOCAL_SRC_FILES  := bli_l1m_check.c bli_l1m_cntx.c bli_l1m_oapi.c bli_l1m_oapi_wc.c bli_l1m_oapi_woc.c bli_l1m_tapi.c bli_l1m_unb_var1.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

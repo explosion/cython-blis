@@ -47,7 +47,7 @@ void PASTEMAC(opname,EX_SUF) \
        obj_t*  x, \
        obj_t*  beta, \
        obj_t*  y  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      );
 
 GENPROT( gemv )
@@ -64,7 +64,7 @@ void PASTEMAC(opname,EX_SUF) \
        obj_t*  x, \
        obj_t*  y, \
        obj_t*  a  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      );
 
 GENPROT( ger )
@@ -80,7 +80,7 @@ void PASTEMAC(opname,EX_SUF) \
        obj_t*  alpha, \
        obj_t*  x, \
        obj_t*  a  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      );
 
 GENPROT( her )
@@ -95,7 +95,7 @@ void PASTEMAC(opname,EX_SUF) \
        obj_t*  alpha, \
        obj_t*  a, \
        obj_t*  x  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      );
 
 GENPROT( trmv )

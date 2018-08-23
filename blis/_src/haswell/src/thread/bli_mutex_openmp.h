@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2016, Hewlett Packard Enterprise Development LP
+   Copyright (C) 2016 Hewlett Packard Enterprise Development LP
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -42,32 +42,28 @@
 #include <omp.h>
 
 // Define mtx_t.
-
 typedef struct mtx_s
 {
 	omp_lock_t mutex;
 } mtx_t;
 
-// Define functions to operate on OpenMP-based mtx_t.
-
-static void bli_mutex_init( mtx_t* m )
-{
-	omp_init_lock( &(m->mutex) );
+// Define macros to operate on OpenMP-based mtx_t.
+#define bli_mutex_init( mtx_p ) \
+{ \
+	omp_init_lock( &((mtx_p)->mutex) ); \
+}
+#define bli_mutex_finalize( mtx_p ) \
+{ \
+	omp_destroy_lock( &((mtx_p)->mutex) ); \
 }
 
-static void bli_mutex_finalize( mtx_t* m )
-{
-	omp_destroy_lock( &(m->mutex) );
+#define bli_mutex_lock( mtx_p ) \
+{ \
+	omp_set_lock( &((mtx_p)->mutex) ); \
 }
-
-static void bli_mutex_lock( mtx_t* m )
-{
-	omp_set_lock( &(m->mutex) );
-}
-
-static void bli_mutex_unlock( mtx_t* m )
-{
-	omp_unset_lock( &(m->mutex) );
+#define bli_mutex_unlock( mtx_p ) \
+{ \
+	omp_unset_lock( &((mtx_p)->mutex) ); \
 }
 
 #endif

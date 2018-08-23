@@ -62,8 +62,6 @@ err_t bli_check_consistent_object_datatypes( obj_t* a, obj_t* b );
 err_t bli_check_datatype_real_proj_of( num_t dt_c, num_t dt_r );
 err_t bli_check_object_real_proj_of( obj_t* c, obj_t* r );
 err_t bli_check_real_valued_object( obj_t* a );
-err_t bli_check_consistent_precisions( num_t dt_a, num_t dt_b );
-err_t bli_check_consistent_object_precisions( obj_t* a, obj_t* b );
 
 err_t bli_check_conformal_dims( obj_t* a, obj_t* b );
 err_t bli_check_level3_dims( obj_t* a, obj_t* b, obj_t* c );
@@ -99,16 +97,11 @@ err_t bli_check_packv_schema_on_unpack( obj_t* a );
 err_t bli_check_object_buffer( obj_t* a );
 
 err_t bli_check_valid_packbuf( packbuf_t buf_type );
+err_t bli_check_requested_block_size_for_pool( siz_t req_size, pool_t* pool );
 err_t bli_check_if_exhausted_pool( pool_t* pool );
 err_t bli_check_sufficient_stack_buf_size( num_t dt, cntx_t* cntx );
 err_t bli_check_alignment_is_power_of_two( size_t align_size );
 err_t bli_check_alignment_is_mult_of_ptr_size( size_t align_size );
 
 err_t bli_check_object_alias_of( obj_t* a, obj_t* b );
-
-err_t bli_check_valid_arch_id( arch_t id );
-
-err_t bli_check_valid_mc_mod_mult( blksz_t* mc, blksz_t* mr );
-err_t bli_check_valid_nc_mod_mult( blksz_t* nc, blksz_t* nr );
-err_t bli_check_valid_kc_mod_mult( blksz_t* kc, blksz_t* kr );
 

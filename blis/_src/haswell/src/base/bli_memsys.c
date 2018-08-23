@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2016, Hewlett Packard Enterprise Development LP
+   Copyright (C) 2016 Hewlett Packard Enterprise Development LP
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,6 +35,10 @@
 
 #include "blis.h"
 
+#ifdef BLIS_ENABLE_PTHREADS
+static pthread_mutex_t mem_manager_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 static membrk_t global_membrk;
 
 // -----------------------------------------------------------------------------
@@ -46,24 +50,127 @@ membrk_t* bli_memsys_global_membrk( void )
 
 // -----------------------------------------------------------------------------
 
+static bool_t bli_memsys_is_init = FALSE;
+
 void bli_memsys_init( void )
 {
-	// Query a native context so we have something to pass into
-	// bli_membrk_init_pools(). We use BLIS_DOUBLE for the datatype,
-	// but the dt argument is actually only used when initializing
-	// contexts for induced methods.
+	cntx_t cntx;
 
-	// NOTE: Instead of calling bli_gks_query_cntx(), we call
-	// bli_gks_query_cntx_noinit() to avoid the call to bli_init_once().
-	cntx_t* cntx_p = bli_gks_query_cntx_noinit();
+	// If the initialization flag is TRUE, we know the API is already
+	// initialized, so we can return early.
+	if ( bli_memsys_is_init == TRUE ) return;
 
-	// Initialize the global membrk_t object and its memory pools.
-	bli_membrk_init( cntx_p, &global_membrk );
+	// Create and initialize a context for gemm so we have something
+	// to pass into bli_membrk_init_pools(). We use BLIS_DOUBLE for
+	// the datatype, but the dt argument is actually only used when
+	// initializing contexts for induced methods.
+	bli_gemm_cntx_init( BLIS_DOUBLE, &cntx );
+
+#ifdef BLIS_ENABLE_OPENMP
+	_Pragma( "omp critical (mem)" )
+#endif
+#ifdef BLIS_ENABLE_PTHREADS
+	pthread_mutex_lock( &mem_manager_mutex );
+#endif
+
+	// BEGIN CRITICAL SECTION
+	{
+		// Here, we test the initialization flag again. NOTE: THIS IS NOT
+		// REDUNDANT. This additional test is needed so that other threads
+		// that may be waiting to acquire the lock do not perform any
+		// initialization actions once they are finally allowed into this
+		// critical section.
+		if ( bli_memsys_is_init == FALSE )
+		{
+			// Initialize the global membrk_t object and its memory pools.
+			bli_membrk_init( &cntx, &global_membrk );
+
+			// After initialization, mark the API as initialized.
+			bli_memsys_is_init = TRUE;
+		}
+	}
+	// END CRITICAL SECTION
+
+#ifdef BLIS_ENABLE_PTHREADS
+	pthread_mutex_unlock( &mem_manager_mutex );
+#endif
+
+	// Finalize the temporary gemm context.
+	bli_gemm_cntx_finalize( &cntx );
+}
+
+void bli_memsys_reinit( cntx_t* cntx )
+{
+#ifdef BLIS_ENABLE_OPENMP
+	_Pragma( "omp critical (mem)" )
+#endif
+#ifdef BLIS_ENABLE_PTHREADS
+	pthread_mutex_lock( &mem_manager_mutex );
+#endif
+
+	// BEGIN CRITICAL SECTION
+	{
+		// If for some reason the memory pools have not yet been
+		// initialized (unlikely), we emulate the body of bli_memsys_init().
+		if ( bli_memsys_is_init == FALSE )
+		{
+			// Initialize the global membrk_t object and its memory pools.
+			bli_membrk_init( cntx, &global_membrk );
+
+			// After initialization, mark the API as initialized.
+			bli_memsys_is_init = TRUE;
+		}
+		else
+		{
+			// Reinitialize the global membrk_t object's memory pools.
+			bli_membrk_reinit_pools( cntx, &global_membrk );
+		}
+	}
+	// END CRITICAL SECTION
+
+#ifdef BLIS_ENABLE_PTHREADS
+	pthread_mutex_unlock( &mem_manager_mutex );
+#endif
 }
 
 void bli_memsys_finalize( void )
 {
-	// Finalize the global membrk_t object and its memory pools.
-	bli_membrk_finalize( &global_membrk );
+	// If the initialization flag is FALSE, we know the API is already
+	// uninitialized, so we can return early.
+	if ( bli_memsys_is_init == FALSE ) return;
+
+#ifdef BLIS_ENABLE_OPENMP
+	_Pragma( "omp critical (mem)" )
+#endif
+#ifdef BLIS_ENABLE_PTHREADS
+	pthread_mutex_lock( &mem_manager_mutex );
+#endif
+
+	// BEGIN CRITICAL SECTION
+	{
+		// Here, we test the initialization flag again. NOTE: THIS IS NOT
+		// REDUNDANT. This additional test is needed so that other threads
+		// that may be waiting to acquire the lock do not perform any
+		// finalization actions once they are finally allowed into this
+		// critical section.
+		if ( bli_memsys_is_init == TRUE )
+		{
+			// Finalize the global membrk_t object and its memory pools.
+			bli_membrk_finalize( &global_membrk );
+
+			// After finalization, mark the API as uninitialized.
+			bli_memsys_is_init = FALSE;
+		}
+	}
+	// END CRITICAL SECTION
+
+#ifdef BLIS_ENABLE_PTHREADS
+	pthread_mutex_unlock( &mem_manager_mutex );
+#endif
+}
+
+bool_t bli_memsys_is_initialized( void )
+{
+	return bli_memsys_is_init;
 }
 

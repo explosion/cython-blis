@@ -32,9 +32,7 @@
 
 */
 
-// Guard the function definitions so that they are only compiled when
-// #included from files that define the typed API macros.
-#ifdef BLIS_ENABLE_TAPI
+#include "blis.h"
 
 //
 // Define BLAS-like interfaces with typed operands.
@@ -43,17 +41,15 @@
 #undef  GENTFUNCR
 #define GENTFUNCR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        dim_t    n, \
        ctype*   x, inc_t incx, \
-       ctype_r* asum  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype_r* asum, \
+       cntx_t*  cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
+	cntx_t*  cntx_p = cntx; \
 \
 	/* If the vector length is zero, set the absolute sum return value to
 	   zero and return early. */ \
@@ -63,8 +59,8 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 		return; \
 	} \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
+	/* Initialize a local context if the given context is NULL. */ \
+	/*bli_cntx_init_local_if( opname, dt, cntx, cntx_p );*/ \
 \
 	/* Invoke the helper variant, which loops over the appropriate kernel
 	   to implement the current operation. */ \
@@ -73,9 +69,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  n, \
 	  x, incx, \
 	  asum, \
-	  cntx, \
-	  rntm  \
+	  cntx_p  \
 	); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	/*bli_cntx_finalize_local_if( opname, cntx );*/ \
 }
 
 INSERT_GENTFUNCR_BASIC0( asumv )
@@ -84,23 +82,21 @@ INSERT_GENTFUNCR_BASIC0( asumv )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        uplo_t  uploa, \
        dim_t   m, \
-       ctype*  a, inc_t rs_a, inc_t cs_a  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  a, inc_t rs_a, inc_t cs_a, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
+	cntx_t*  cntx_p = cntx; \
 \
 	/* If either dimension is zero, return early. */ \
 	if ( bli_zero_dim2( m, m ) ) return; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	/* Initialize a local context if the given context is NULL. */ \
+	/*bli_cntx_init_local_if( opname, dt, cntx, cntx_p );*/ \
 \
 	/* Invoke the helper variant, which loops over the appropriate kernel
 	   to implement the current operation. */ \
@@ -109,9 +105,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  uploa, \
 	  m, \
 	  a, rs_a, cs_a, \
-	  cntx, \
-	  rntm  \
+	  cntx_p  \
 	); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	/*bli_cntx_finalize_local_if( opname, cntx );*/ \
 }
 
 INSERT_GENTFUNC_BASIC0( mkherm )
@@ -122,17 +120,15 @@ INSERT_GENTFUNC_BASIC0( mktrim )
 #undef  GENTFUNCR
 #define GENTFUNCR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        dim_t    n, \
        ctype*   x, inc_t incx, \
-       ctype_r* norm  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype_r* norm, \
+       cntx_t*  cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
+	cntx_t*  cntx_p = cntx; \
 \
 	/* If the vector length is zero, set the norm to zero and return
 	   early. */ \
@@ -142,8 +138,8 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 		return; \
 	} \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	/* Initialize a local context if the given context is NULL. */ \
+	/*bli_cntx_init_local_if( opname, dt, cntx, cntx_p );*/ \
 \
 	/* Invoke the helper variant, which loops over the appropriate kernel
 	   to implement the current operation. */ \
@@ -152,9 +148,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  n, \
 	  x, incx, \
 	  norm, \
-	  cntx, \
-	  rntm  \
+	  cntx_p  \
 	); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	/*bli_cntx_finalize_local_if( opname, cntx );*/ \
 }
 
 INSERT_GENTFUNCR_BASIC0( norm1v )
@@ -165,7 +163,7 @@ INSERT_GENTFUNCR_BASIC0( normiv )
 #undef  GENTFUNCR
 #define GENTFUNCR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        doff_t   diagoffx, \
        diag_t   diagx, \
@@ -173,13 +171,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        dim_t    m, \
        dim_t    n, \
        ctype*   x, inc_t rs_x, inc_t cs_x, \
-       ctype_r* norm  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype_r* norm, \
+       cntx_t*  cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
+	cntx_t*  cntx_p = cntx; \
 \
 	/* If either dimension is zero, set the norm to zero and return
 	   early. */ \
@@ -189,8 +185,8 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 		return; \
 	} \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	/* Initialize a local context if the given context is NULL. */ \
+	/*bli_cntx_init_local_if( opname, dt, cntx, cntx_p );*/ \
 \
 	/* Invoke the helper variant, which loops over the appropriate kernel
 	   to implement the current operation. */ \
@@ -203,9 +199,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  n, \
 	  x, rs_x, cs_x, \
 	  norm, \
-	  cntx, \
-	  rntm  \
+	  cntx_p  \
 	); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	/*bli_cntx_finalize_local_if( opname, cntx );*/ \
 }
 
 INSERT_GENTFUNCR_BASIC0( norm1m )
@@ -216,7 +214,7 @@ INSERT_GENTFUNCR_BASIC0( normim )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, varname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        char*  s1, \
        dim_t  n, \
@@ -225,8 +223,6 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        char*  s2  \
      ) \
 { \
-	bli_init_once(); \
-\
 	PASTEMAC(ch,varname) \
 	( \
 	  stdout, \
@@ -244,7 +240,7 @@ INSERT_GENTFUNC_BASIC_I( printv, fprintv )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, varname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        char*  s1, \
        dim_t  m, \
@@ -254,8 +250,6 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        char*  s2  \
      ) \
 { \
-	bli_init_once(); \
-\
 	PASTEMAC(ch,varname) \
 	( \
 	  stdout, \
@@ -274,22 +268,20 @@ INSERT_GENTFUNC_BASIC_I( printm, fprintm )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        dim_t    n, \
-       ctype*   x, inc_t incx  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*   x, inc_t incx, \
+       cntx_t*  cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
+	cntx_t*  cntx_p = cntx; \
 \
 	/* If the vector length is zero, return early. */ \
 	if ( bli_zero_dim1( n ) ) return; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
+	/* Initialize a local context if the given context is NULL. */ \
+	/*bli_cntx_init_local_if( opname, dt, cntx, cntx_p );*/ \
 \
 	/* Invoke the helper variant, which loops over the appropriate kernel
 	   to implement the current operation. */ \
@@ -297,9 +289,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	( \
 	  n, \
 	  x, incx, \
-	  cntx, \
-	  rntm  \
+	  cntx_p  \
 	); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	/*bli_cntx_finalize_local_if( opname, cntx );*/ \
 }
 
 INSERT_GENTFUNC_BASIC0( randv )
@@ -309,25 +303,23 @@ INSERT_GENTFUNC_BASIC0( randnv )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        doff_t  diagoffx, \
        uplo_t  uplox, \
        dim_t   m, \
        dim_t   n, \
-       ctype*  x, inc_t rs_x, inc_t cs_x  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  x, inc_t rs_x, inc_t cs_x, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
+	cntx_t*  cntx_p = cntx; \
 \
 	/* If either dimension is zero, return early. */ \
 	if ( bli_zero_dim2( m, n ) ) return; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
+	/* Initialize a local context if the given context is NULL. */ \
+	/*bli_cntx_init_local_if( opname, dt, cntx, cntx_p );*/ \
 \
 	/* Invoke the helper variant, which loops over the appropriate kernel
 	   to implement the current operation. */ \
@@ -338,9 +330,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  m, \
 	  n, \
 	  x, rs_x, cs_x, \
-	  cntx, \
-	  rntm  \
+	  cntx_p  \
 	); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	/*bli_cntx_finalize_local_if( opname, cntx );*/ \
 }
 
 INSERT_GENTFUNC_BASIC0( randm )
@@ -350,24 +344,22 @@ INSERT_GENTFUNC_BASIC0( randnm )
 #undef  GENTFUNCR
 #define GENTFUNCR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        dim_t    n, \
        ctype*   x, inc_t incx, \
        ctype_r* scale, \
-       ctype_r* sumsq  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype_r* sumsq, \
+       cntx_t*  cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
+	cntx_t*  cntx_p = cntx; \
 \
 	/* If x is zero length, return with scale and sumsq unchanged. */ \
 	if ( bli_zero_dim1( n ) ) return; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
+	/* Initialize a local context if the given context is NULL. */ \
+	/*bli_cntx_init_local_if( opname, dt, cntx, cntx_p );*/ \
 \
 	/* Invoke the helper variant, which loops over the appropriate kernel
 	   to implement the current operation. */ \
@@ -377,13 +369,13 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  x, incx, \
 	  scale, \
 	  sumsq, \
-	  cntx, \
-	  rntm  \
+	  cntx_p  \
 	); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	/*bli_cntx_finalize_local_if( opname, cntx );*/ \
 }
 
 INSERT_GENTFUNCR_BASIC0( sumsqv )
 
-
-#endif
 

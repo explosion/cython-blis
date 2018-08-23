@@ -44,7 +44,7 @@ void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ); 
 
 GENTPROT( addd )
@@ -60,7 +60,7 @@ void PASTEMAC(opname,EX_SUF) \
        obj_t*  alpha, \
        obj_t*  x, \
        obj_t*  y  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ); 
 
 GENTPROT( axpyd )
@@ -73,7 +73,7 @@ GENTPROT( scal2d )
 void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ); 
 
 GENTPROT( invertd )
@@ -86,7 +86,7 @@ void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ); 
 
 GENTPROT( scald )

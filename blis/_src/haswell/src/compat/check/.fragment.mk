@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := check
 CURRENT_SUB_DIRS := 
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := 
+LOCAL_SRC_FILES  := bla_gemm_check.c bla_gemv_check.c bla_ger_check.c bla_hemm_check.c bla_hemv_check.c bla_her2_check.c bla_her2k_check.c bla_her_check.c bla_herk_check.c bla_symm_check.c bla_symv_check.c bla_syr2_check.c bla_syr2k_check.c bla_syr_check.c bla_syrk_check.c bla_trmm_check.c bla_trmv_check.c bla_trsm_check.c bla_trsv_check.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

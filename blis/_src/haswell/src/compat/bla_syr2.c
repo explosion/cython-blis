@@ -58,9 +58,10 @@ void PASTEF77(ch,blasname) \
 	inc_t   incx0; \
 	inc_t   incy0; \
 	inc_t   rs_a, cs_a; \
+	err_t   init_result; \
 \
-	/* Initialize BLIS. */ \
-	bli_init_auto(); \
+	/* Initialize BLIS (if it is not already initialized). */ \
+	bli_init_auto( &init_result ); \
 \
 	/* Perform BLAS parameter checking. */ \
 	PASTEBLACHK(blasname) \
@@ -91,7 +92,7 @@ void PASTEF77(ch,blasname) \
 	cs_a = *lda; \
 \
 	/* Call BLIS interface. */ \
-	PASTEMAC2(ch,blisname,BLIS_TAPI_EX_SUF) \
+	PASTEMAC(ch,blisname) \
 	( \
 	  blis_uploa, \
 	  BLIS_NO_CONJUGATE, \
@@ -101,15 +102,14 @@ void PASTEF77(ch,blasname) \
 	  x0, incx0, \
 	  y0, incy0, \
 	  (ftype*)a,  rs_a, cs_a, \
-	  NULL, \
 	  NULL  \
 	); \
 \
-	/* Finalize BLIS. */ \
-	bli_finalize_auto(); \
+	/* Finalize BLIS (if it was initialized above). */ \
+	bli_finalize_auto( init_result ); \
 }
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTFUNCRO_BLAS( syr2, syr2 )
 #endif
 

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2016, Hewlett Packard Enterprise Development LP
+   Copyright (C) 2016 Hewlett Packard Enterprise Development LP
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -42,8 +42,10 @@ membrk_t* bli_memsys_global_membrk( void );
 
 // -----------------------------------------------------------------------------
 
-void bli_memsys_init( void );
-void bli_memsys_finalize( void );
+void   bli_memsys_init( void );
+void   bli_memsys_reinit( cntx_t* cntx );
+void   bli_memsys_finalize( void );
+bool_t bli_memsys_is_initialized( void );
 
 
 #endif

@@ -49,7 +49,7 @@ GENFRONT( copysc )
 
 
 //
-// Prototype BLAS-like interfaces with heterogeneous-typed operands.
+// Define BLAS-like interfaces with heterogeneous-typed operands.
 //
 
 #undef  GENTPROT2
@@ -62,7 +62,7 @@ void PASTEMAC2(chx,chy,varname) \
        void*  psi \
      );
 
-INSERT_GENTPROT2_BASIC0( copysc )
-INSERT_GENTPROT2_MIX_D0( copysc )
-INSERT_GENTPROT2_MIX_P0( copysc )
+INSERT_GENTPROT2_BASIC( copysc )
+INSERT_GENTPROT2_MIX_D( copysc )
+INSERT_GENTPROT2_MIX_P( copysc )
 

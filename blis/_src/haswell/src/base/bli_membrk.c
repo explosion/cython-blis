@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2016, Hewlett Packard Enterprise Development LP
+   Copyright (C) 2016 Hewlett Packard Enterprise Development LP
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -42,9 +42,7 @@ void bli_membrk_init
      )
 {
 	bli_mutex_init( bli_membrk_mutex( membrk ) );
-#ifdef BLIS_ENABLE_PACKBUF_POOLS
 	bli_membrk_init_pools( cntx, membrk );
-#endif
 	bli_membrk_set_malloc_fp( bli_malloc_pool, membrk );
 	bli_membrk_set_free_fp( bli_free_pool, membrk );
 }
@@ -55,10 +53,7 @@ void bli_membrk_finalize
      )
 {
 	bli_membrk_set_malloc_fp( NULL, membrk );
-	bli_membrk_set_free_fp( NULL, membrk );
-#ifdef BLIS_ENABLE_PACKBUF_POOLS
 	bli_membrk_finalize_pools( membrk );
-#endif
 	bli_mutex_finalize( bli_membrk_mutex( membrk ) );
 }
 
@@ -74,13 +69,6 @@ void bli_membrk_acquire_m
 	pblk_t* pblk;
 	dim_t   pi;
 	siz_t   block_size;
-
-	// If the internal memory pools for pack buffers are disabled, we
-	// spoof the buffer type as BLIS_BUFFER_FOR_GEN_USE to induce the
-	// immediate usage of bli_membrk_malloc().
-#ifndef BLIS_ENABLE_PACKBUF_POOLS
-	buf_type = BLIS_BUFFER_FOR_GEN_USE;
-#endif
 
 	// Make sure the API is initialized.
 	//assert( membrk ); //??
@@ -98,12 +86,11 @@ void bli_membrk_acquire_m
 		// - the buffer type (a packbuf_t value),
 		// - the size of the requested region,
 		// - the membrk_t from which the mem_t entry was acquired.
-		// NOTE: We initialize the pool field to NULL since this block did not
+		// NOTE: We do not initialize the pool field since this block did not
 		// come from a memory pool.
 		bli_mem_set_buffer( buf_sys, mem );
 		bli_mem_set_buf_sys( buf_sys, mem );
 		bli_mem_set_buf_type( buf_type, mem );
-		bli_mem_set_pool( NULL, mem );
 		bli_mem_set_size( req_size, mem );
 		bli_mem_set_membrk( membrk, mem );
 	}
@@ -118,6 +105,17 @@ void bli_membrk_acquire_m
 		pi   = bli_packbuf_index( buf_type );
 		pool = bli_membrk_pool( pi, membrk );
 
+		// Unconditionally perform error checking on the memory pool.
+		{
+			err_t e_val;
+
+			// Make sure that the requested matrix size fits inside of a block
+			// of the corresponding pool. If it does not, the pool was somehow
+			// initialized improperly.
+			e_val = bli_check_requested_block_size_for_pool( req_size, pool );
+			bli_check_error_code( e_val );
+		}
+
 		// Extract the address of the pblk_t struct within the mem_t.
 		pblk = bli_mem_pblk( mem );
 
@@ -125,21 +123,19 @@ void bli_membrk_acquire_m
 		bli_membrk_lock( membrk );
 		{
 
-			// Checkout a block from the pool. If the pool's blocks are too
-			// small, it will be reinitialized with blocks large enough to
-			// accommodate the requested block size. If the pool is exhausted,
+			// Checkout a block from the pool. If the pool is exhausted,
 			// either because it is still empty or because all blocks have
 			// been checked out already, additional blocks will be allocated
 			// automatically, as-needed. Note that the addresses are stored
 			// directly into the mem_t struct since pblk is the address of
 			// the struct's pblk_t field.
-			bli_pool_checkout_block( req_size, pblk, pool );
+			bli_pool_checkout_block( pblk, pool );
 
 			// Query the size of the blocks in the pool so we can store it in
 			// the mem_t object. At this point, it is guaranteed to be at
 			// least as large as req_size. (NOTE: We must perform the query
 			// within the critical section to ensure that the pool hasn't
-			// changed.)
+			// changed, as unlikely as that would be.)
 			block_size = bli_pool_block_size( pool );
 
 		}
@@ -333,6 +329,49 @@ void bli_membrk_init_pools
 	bli_pool_init( num_blocks_c, block_size_c, align_size, pool_c );
 }
 
+void bli_membrk_reinit_pools
+     (
+       cntx_t*   cntx,
+       membrk_t* membrk
+     )
+{
+	// Map each of the packbuf_t values to an index starting at zero.
+	const dim_t index_a      = bli_packbuf_index( BLIS_BUFFER_FOR_A_BLOCK );
+	const dim_t index_b      = bli_packbuf_index( BLIS_BUFFER_FOR_B_PANEL );
+	const dim_t index_c      = bli_packbuf_index( BLIS_BUFFER_FOR_C_PANEL );
+
+	const siz_t align_size   = BLIS_POOL_ADDR_ALIGN_SIZE;
+
+	// Alias the pool addresses to convenient identifiers.
+	pool_t*     pool_a       = bli_membrk_pool( index_a, membrk );
+	pool_t*     pool_b       = bli_membrk_pool( index_b, membrk );
+	pool_t*     pool_c       = bli_membrk_pool( index_c, membrk );
+
+	// Query the number of blocks currently allocated in each pool.
+	const dim_t num_blocks_a = bli_pool_num_blocks( pool_a );
+	const dim_t num_blocks_b = bli_pool_num_blocks( pool_b );
+	const dim_t num_blocks_c = bli_pool_num_blocks( pool_c );
+
+	siz_t       block_size_a_new = 0;
+	siz_t       block_size_b_new = 0;
+	siz_t       block_size_c_new = 0;
+
+	// Determine the context-implied block size needed for each pool.
+	bli_membrk_compute_pool_block_sizes( &block_size_a_new,
+	                                     &block_size_b_new,
+	                                     &block_size_c_new,
+	                                     cntx );
+
+	// Reinitialize the pool, but only if one of the parameters has
+	// changed in such a way that reinitialization would be required.
+	// In this case, the align_size is constant, as is num_blocks, so
+	// what this actually boils down to is that reinitialization of a
+	// pool occurs only if the block size for that pool has increased.
+	bli_pool_reinit_if( num_blocks_a, block_size_a_new, align_size, pool_a );
+	bli_pool_reinit_if( num_blocks_b, block_size_b_new, align_size, pool_b );
+	bli_pool_reinit_if( num_blocks_c, block_size_c_new, align_size, pool_c );
+}
+
 void bli_membrk_finalize_pools
      (
        membrk_t* membrk
@@ -364,7 +403,7 @@ void bli_membrk_compute_pool_block_sizes
        cntx_t* cntx
      )
 {
-	const ind_t im = bli_cntx_method( cntx );
+	const ind_t im = bli_cntx_get_ind_method( cntx );
 
 	siz_t bs_cand_a = 0;
 	siz_t bs_cand_b = 0;
@@ -412,7 +451,7 @@ void bli_membrk_compute_pool_block_sizes_dt
        cntx_t* cntx
      )
 {
-	siz_t    size_dt = bli_dt_size( dt );
+	siz_t    size_dt = bli_datatype_size( dt );
 
 	blksz_t* mr;
 	blksz_t* nr;

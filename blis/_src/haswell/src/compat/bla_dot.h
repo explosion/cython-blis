@@ -37,16 +37,16 @@
 // Prototype BLAS-to-BLIS interfaces.
 //
 #undef  GENTPROTDOT
-#define GENTPROTDOT( ftype, ch, chc, blasname ) \
+#define GENTPROTDOT( ftype, chxy, chc, blasname ) \
 \
-ftype PASTEF772(ch,blasname,chc) \
+ftype PASTEF772(chxy,blasname,chc) \
      ( \
        const f77_int* n, \
        const ftype*   x, const f77_int* incx, \
        const ftype*   y, const f77_int* incy  \
      );
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTPROTDOT_BLAS( dot )
 
 
@@ -55,7 +55,6 @@ INSERT_GENTPROTDOT_BLAS( dot )
 float PASTEF77(sd,sdot)
      (
        const f77_int* n,
-       const float*   sb,
        const float*   x, const f77_int* incx,
        const float*   y, const f77_int* incy
      );

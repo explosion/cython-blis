@@ -34,7 +34,7 @@
 
 #include "blis.h"
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 
 void bla_d_cnjg(bla_dcomplex *dest, const bla_dcomplex *src)
 {

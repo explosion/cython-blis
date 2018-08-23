@@ -43,8 +43,6 @@ void bli_unpackm_int
        thrinfo_t* thread
      )
 {
-	bli_init_once();
-
 	unpackm_voft f;
 
 	// Check parameters.
@@ -54,7 +52,7 @@ void bli_unpackm_int
 	// If p was aliased to a during the pack stage (because it was already
 	// in an acceptable packed/contiguous format), then no unpack is actually
 	// necessary, so we return.
-	if ( bli_obj_is_alias_of( p, a ) ) return;
+	if ( bli_obj_is_alias_of( *p, *a ) ) return;
 
 	// Extract the function pointer from the current control tree node.
 	f = bli_cntl_unpackm_params_var_func( cntl );

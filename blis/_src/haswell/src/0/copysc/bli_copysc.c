@@ -39,12 +39,11 @@
 // an operation that can be used to typecast (copy-cast) a scalar
 // of one datatype to a scalar of another datatype.
 
-typedef void (*FUNCPTR_T)
-     (
-       conj_t conjchi,
-       void*  chi,
-       void*  psi
-     );
+typedef void (*FUNCPTR_T)(
+                           conj_t conjchi,
+                           void*  chi,
+                           void*  psi
+                         );
 
 static FUNCPTR_T GENARRAY2_ALL(ftypes,copysc);
 
@@ -61,12 +60,10 @@ void PASTEMAC0(opname) \
        obj_t*  psi  \
      ) \
 { \
-	bli_init_once(); \
+	conj_t    conjchi   = bli_obj_conj_status( *chi ); \
 \
-	conj_t    conjchi   = bli_obj_conj_status( chi ); \
-\
-	num_t     dt_psi    = bli_obj_dt( psi ); \
-	void*     buf_psi   = bli_obj_buffer_at_off( psi ); \
+	num_t     dt_psi    = bli_obj_datatype( *psi ); \
+    void*     buf_psi   = bli_obj_buffer_at_off( *psi ); \
 \
 	num_t     dt_chi; \
 	void*     buf_chi; \
@@ -79,7 +76,7 @@ void PASTEMAC0(opname) \
 	/* If chi is a scalar constant, use dt_psi to extract the address of the
 	   corresponding constant value; otherwise, use the datatype encoded
 	   within the chi object and extract the buffer at the chi offset. */ \
-	bli_obj_scalar_set_dt_buffer( chi, dt_psi, &dt_chi, &buf_chi ); \
+	bli_set_scalar_dt_buffer( chi, dt_psi, dt_chi, buf_chi ); \
 \
 	/* Index into the type combination array to extract the correct
 	   function pointer. */ \
@@ -110,8 +107,6 @@ void PASTEMAC2(chx,chy,varname) \
        void*  psi \
      ) \
 { \
-	bli_init_once(); \
-\
 	ctype_x* chi_cast = chi; \
 	ctype_y* psi_cast = psi; \
 \

@@ -34,6 +34,7 @@
 
 #include "blis.h"
 
+
 blksz_t* bli_blksz_create_ed
      (
        dim_t b_s, dim_t be_s,
@@ -42,7 +43,9 @@ blksz_t* bli_blksz_create_ed
        dim_t b_z, dim_t be_z
      )
 {
-	blksz_t* b = bli_malloc_intl( sizeof( blksz_t ) );
+	blksz_t* b;
+
+	b = ( blksz_t* ) bli_malloc_intl( sizeof(blksz_t) );
 
 	bli_blksz_init_ed
 	(
@@ -62,7 +65,9 @@ blksz_t* bli_blksz_create
        dim_t be_s, dim_t be_d, dim_t be_c, dim_t be_z
      )
 {
-	blksz_t* b = bli_malloc_intl( sizeof( blksz_t ) );
+	blksz_t* b;
+
+	b = ( blksz_t* ) bli_malloc_intl( sizeof(blksz_t) );
 
 	bli_blksz_init
 	(
@@ -87,7 +92,6 @@ void bli_blksz_init_ed
 	b->v[BLIS_DOUBLE]   = b_d;
 	b->v[BLIS_SCOMPLEX] = b_c;
 	b->v[BLIS_DCOMPLEX] = b_z;
-
 	b->e[BLIS_FLOAT]    = be_s;
 	b->e[BLIS_DOUBLE]   = be_d;
 	b->e[BLIS_SCOMPLEX] = be_c;
@@ -106,10 +110,11 @@ void bli_blksz_init
 	b->v[BLIS_SCOMPLEX] = b_c;
 	b->v[BLIS_DCOMPLEX] = b_z;
 
-	b->e[BLIS_FLOAT]    = be_s;
-	b->e[BLIS_DOUBLE]   = be_d;
-	b->e[BLIS_SCOMPLEX] = be_c;
-	b->e[BLIS_DCOMPLEX] = be_z;
+	// Interpret a zero as a request for the default value.
+	b->e[BLIS_FLOAT]    = ( be_s == 0 ? b_s : be_s );
+	b->e[BLIS_DOUBLE]   = ( be_d == 0 ? b_d : be_d );
+	b->e[BLIS_SCOMPLEX] = ( be_c == 0 ? b_c : be_c );
+	b->e[BLIS_DCOMPLEX] = ( be_z == 0 ? b_z : be_z );
 }
 
 void bli_blksz_init_easy
@@ -118,10 +123,17 @@ void bli_blksz_init_easy
        dim_t b_s,  dim_t b_d,  dim_t b_c,  dim_t b_z
      )
 {
-	b->v[BLIS_FLOAT]    = b->e[BLIS_FLOAT]    = b_s;
-	b->v[BLIS_DOUBLE]   = b->e[BLIS_DOUBLE]   = b_d;
-	b->v[BLIS_SCOMPLEX] = b->e[BLIS_SCOMPLEX] = b_c;
-	b->v[BLIS_DCOMPLEX] = b->e[BLIS_DCOMPLEX] = b_z;
+	b->v[BLIS_FLOAT]    = b_s;
+	b->v[BLIS_DOUBLE]   = b_d;
+	b->v[BLIS_SCOMPLEX] = b_c;
+	b->v[BLIS_DCOMPLEX] = b_z;
+
+	// Here we assume the maximum blocksize values can be the same as the
+	// default values.
+	b->e[BLIS_FLOAT]    = b_s;
+	b->e[BLIS_DOUBLE]   = b_d;
+	b->e[BLIS_SCOMPLEX] = b_c;
+	b->e[BLIS_DCOMPLEX] = b_z;
 }
 
 void bli_blksz_free
@@ -261,7 +273,7 @@ dim_t bli_determine_blocksize_f
 
 	// Extract the execution datatype and use it to query the corresponding
 	// blocksize and blocksize maximum values from the blksz_t object.
-	dt    = bli_obj_exec_dt( obj );
+	dt    = bli_obj_execution_datatype( *obj );
 	bsize = bli_cntx_get_blksz( bszid, cntx );
 	b_alg = bli_blksz_get_def( dt, bsize );
 	b_max = bli_blksz_get_max( dt, bsize );
@@ -287,7 +299,7 @@ dim_t bli_determine_blocksize_b
 
 	// Extract the execution datatype and use it to query the corresponding
 	// blocksize and blocksize maximum values from the blksz_t object.
-	dt    = bli_obj_exec_dt( obj );
+	dt    = bli_obj_execution_datatype( *obj );
 	bsize = bli_cntx_get_blksz( bszid, cntx );
 	b_alg = bli_blksz_get_def( dt, bsize );
 	b_max = bli_blksz_get_max( dt, bsize );

@@ -32,6 +32,8 @@
 
 */
 
+#include "bli_packm_cxk_rih_ref.h"
+
 
 #undef  GENTPROTCO
 #define GENTPROTCO( ctype, ctype_r, ch, chr, varname ) \
@@ -42,11 +44,11 @@ void PASTEMAC(ch,varname) \
        pack_t  schema, \
        dim_t   panel_dim, \
        dim_t   panel_len, \
-       ctype*  kappa, \
-       ctype*  a, inc_t inca, inc_t lda, \
-       ctype*  p,             inc_t ldp, \
+       void*   kappa, \
+       void*   a, inc_t inca, inc_t lda, \
+       void*   p,             inc_t ldp, \
        cntx_t* cntx  \
      );
 
-INSERT_GENTPROTCO_BASIC0( packm_cxk_rih )
+INSERT_GENTPROTCO_BASIC( packm_cxk_rih )
 

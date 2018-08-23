@@ -47,7 +47,7 @@ void PASTEF77(ch,blasname)( \
                             ftype*  dparam  \
                           );
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTPROTRO_BLAS( rotmg )
 #endif
 

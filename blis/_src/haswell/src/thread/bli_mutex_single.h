@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2016, Hewlett Packard Enterprise Development LP
+   Copyright (C) 2016 Hewlett Packard Enterprise Development LP
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -40,27 +40,23 @@
 #ifndef BLIS_ENABLE_MULTITHREADING
 
 // Define mtx_t.
-
 typedef struct mtx_s
 {
 } mtx_t;
 
 // Define macros to operate on pthread-based mtx_t.
-
-static void bli_mutex_init( mtx_t* m )
-{
+#define bli_mutex_init( mtx_p ) \
+{ \
+}
+#define bli_mutex_finalize( mtx_p ) \
+{ \
 }
 
-static void bli_mutex_finalize( mtx_t* m )
-{
+#define bli_mutex_lock( mtx_p ) \
+{ \
 }
-
-static void bli_mutex_lock( mtx_t* m )
-{
-}
-
-static void bli_mutex_unlock( mtx_t* m )
-{
+#define bli_mutex_unlock( mtx_p ) \
+{ \
 }
 
 #endif

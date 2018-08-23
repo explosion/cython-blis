@@ -53,14 +53,6 @@ void bli_gemv_check
 
 	e_val = bli_check_general_object( a );
 	bli_check_error_code( e_val );
-
-	// Check for consistent datatypes.
-
-	e_val = bli_check_consistent_object_datatypes( a, x );
-	bli_check_error_code( e_val );
-
-	e_val = bli_check_consistent_object_datatypes( a, y );
-	bli_check_error_code( e_val );
 }
 
 
@@ -87,14 +79,6 @@ void bli_hemv_check
 	// Check object structure.
 
 	e_val = bli_check_hermitian_object( a );
-	bli_check_error_code( e_val );
-
-	// Check for consistent datatypes.
-
-	e_val = bli_check_consistent_object_datatypes( a, x );
-	bli_check_error_code( e_val );
-
-	e_val = bli_check_consistent_object_datatypes( a, y );
 	bli_check_error_code( e_val );
 }
 
@@ -123,14 +107,6 @@ void bli_symv_check
 
 	e_val = bli_check_symmetric_object( a );
 	bli_check_error_code( e_val );
-
-	// Check for consistent datatypes.
-
-	e_val = bli_check_consistent_object_datatypes( a, x );
-	bli_check_error_code( e_val );
-
-	e_val = bli_check_consistent_object_datatypes( a, y );
-	bli_check_error_code( e_val );
 }
 
 
@@ -155,11 +131,6 @@ void bli_trmv_check
 	// Check object structure.
 
 	e_val = bli_check_triangular_object( a );
-	bli_check_error_code( e_val );
-
-	// Check for consistent datatypes.
-
-	e_val = bli_check_consistent_object_datatypes( a, x );
 	bli_check_error_code( e_val );
 }
 
@@ -186,11 +157,6 @@ void bli_trsv_check
 
 	e_val = bli_check_triangular_object( a );
 	bli_check_error_code( e_val );
-
-	// Check for consistent datatypes.
-
-	e_val = bli_check_consistent_object_datatypes( a, x );
-	bli_check_error_code( e_val );
 }
 
 
@@ -211,14 +177,6 @@ void bli_ger_check
 	// Check object structure.
 
 	e_val = bli_check_general_object( a );
-	bli_check_error_code( e_val );
-
-	// Check for consistent datatypes.
-
-	e_val = bli_check_consistent_object_datatypes( a, x );
-	bli_check_error_code( e_val );
-
-	e_val = bli_check_consistent_object_datatypes( a, y );
 	bli_check_error_code( e_val );
 }
 
@@ -244,11 +202,6 @@ void bli_her_check
 	// Check object structure.
 
 	e_val = bli_check_hermitian_object( a );
-	bli_check_error_code( e_val );
-
-	// Check for consistent datatypes.
-
-	e_val = bli_check_consistent_object_datatypes( a, x );
 	bli_check_error_code( e_val );
 }
 
@@ -276,14 +229,6 @@ void bli_her2_check
 
 	e_val = bli_check_hermitian_object( a );
 	bli_check_error_code( e_val );
-
-	// Check for consistent datatypes.
-
-	e_val = bli_check_consistent_object_datatypes( a, x );
-	bli_check_error_code( e_val );
-
-	e_val = bli_check_consistent_object_datatypes( a, y );
-	bli_check_error_code( e_val );
 }
 
 
@@ -308,11 +253,6 @@ void bli_syr_check
 	// Check object structure.
 
 	e_val = bli_check_symmetric_object( a );
-	bli_check_error_code( e_val );
-
-	// Check for consistent datatypes.
-
-	e_val = bli_check_consistent_object_datatypes( a, x );
 	bli_check_error_code( e_val );
 }
 
@@ -339,14 +279,6 @@ void bli_syr2_check
 	// Check object structure.
 
 	e_val = bli_check_symmetric_object( a );
-	bli_check_error_code( e_val );
-
-	// Check for consistent datatypes.
-
-	e_val = bli_check_consistent_object_datatypes( a, x );
-	bli_check_error_code( e_val );
-
-	e_val = bli_check_consistent_object_datatypes( a, y );
 	bli_check_error_code( e_val );
 }
 
@@ -398,10 +330,10 @@ void bli_xxmv_check
 	e_val = bli_check_vector_object( y );
 	bli_check_error_code( e_val );
 
-	e_val = bli_check_vector_dim_equals( x, bli_obj_width_after_trans( a ) );
+	e_val = bli_check_vector_dim_equals( x, bli_obj_width_after_trans( *a ) );
 	bli_check_error_code( e_val );
 
-	e_val = bli_check_vector_dim_equals( y, bli_obj_length_after_trans( a ) );
+	e_val = bli_check_vector_dim_equals( y, bli_obj_length_after_trans( *a ) );
 	bli_check_error_code( e_val );
 
 	// Check object buffers (for non-NULLness).
@@ -460,10 +392,10 @@ void bli_xxr_check
 	e_val = bli_check_matrix_object( a );
 	bli_check_error_code( e_val );
 
-	e_val = bli_check_vector_dim_equals( x, bli_obj_length_after_trans( a ) );
+	e_val = bli_check_vector_dim_equals( x, bli_obj_length_after_trans( *a ) );
 	bli_check_error_code( e_val );
 
-	e_val = bli_check_vector_dim_equals( y, bli_obj_width_after_trans( a ) );
+	e_val = bli_check_vector_dim_equals( y, bli_obj_width_after_trans( *a ) );
 	bli_check_error_code( e_val );
 
 	// Check object buffers (for non-NULLness).

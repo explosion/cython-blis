@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := util
 CURRENT_SUB_DIRS := 
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := bli_util_check.c bli_util_oapi_ba.c bli_util_oapi.c bli_util_oapi_ex.c bli_util_tapi_ba.c bli_util_tapi.c bli_util_tapi_ex.c bli_util_unb_var1.c
+LOCAL_SRC_FILES  := bli_util_check.c bli_util_oapi.c bli_util_oapi_wc.c bli_util_oapi_woc.c bli_util_tapi.c bli_util_unb_var1.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

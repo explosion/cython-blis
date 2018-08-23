@@ -46,7 +46,6 @@ void PASTEMAC0(opname) \
        obj_t*  b, \
        obj_t*  c, \
        cntx_t* cntx, \
-       rntm_t* rntm, \
        cntl_t* cntl, \
        thrinfo_t* thread  \
      );
@@ -85,12 +84,11 @@ void PASTEMAC(ch,varname) \
        void*   beta, \
        void*   c, inc_t rs_c, inc_t cs_c, \
        cntx_t* cntx, \
-       rntm_t* rntm, \
        thrinfo_t* thread  \
      );
 
-INSERT_GENTPROT_BASIC0( trmm_ll_ker_var2 )
-INSERT_GENTPROT_BASIC0( trmm_lu_ker_var2 )
-INSERT_GENTPROT_BASIC0( trmm_rl_ker_var2 )
-INSERT_GENTPROT_BASIC0( trmm_ru_ker_var2 )
+INSERT_GENTPROT_BASIC( trmm_ll_ker_var2 )
+INSERT_GENTPROT_BASIC( trmm_lu_ker_var2 )
+INSERT_GENTPROT_BASIC( trmm_rl_ker_var2 )
+INSERT_GENTPROT_BASIC( trmm_ru_ker_var2 )
 

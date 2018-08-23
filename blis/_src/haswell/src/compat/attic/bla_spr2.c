@@ -71,7 +71,7 @@ void PASTEF77(ch,blasname)( \
 	bli_check_error_code( BLIS_NOT_YET_IMPLEMENTED ); \
 }
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTFUNCRO_BLAS( spr2, spr2 )
 #endif
 

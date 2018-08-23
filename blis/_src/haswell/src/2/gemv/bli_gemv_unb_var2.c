@@ -65,7 +65,7 @@ void PASTEMAC(ch,varname) \
 \
 	bli_set_dims_incs_with_trans( transa, \
 	                              m, n, rs_a, cs_a, \
-	                              &n_elem, &n_iter, &rs_at, &cs_at ); \
+	                              n_elem, n_iter, rs_at, cs_at ); \
 \
 	conja = bli_extract_conj( transa ); \
 \
@@ -73,27 +73,25 @@ void PASTEMAC(ch,varname) \
 	if ( PASTEMAC(ch,eq0)( *beta ) ) \
 	{ \
 		/* y = 0; */ \
-		PASTEMAC2(ch,setv,BLIS_TAPI_EX_SUF) \
+		PASTEMAC(ch,setv) \
 		( \
 		  BLIS_NO_CONJUGATE, \
 		  n_elem, \
 		  zero, \
 		  y, incy, \
-		  cntx, \
-		  NULL  \
+		  cntx  \
 		); \
 	} \
 	else \
 	{ \
 		/* y = beta * y; */ \
-		PASTEMAC2(ch,scalv,BLIS_TAPI_EX_SUF) \
+		PASTEMAC(ch,scalv) \
 		( \
 		  BLIS_NO_CONJUGATE, \
 		  n_elem, \
 		  beta, \
 		  y, incy, \
-		  cntx, \
-		  NULL  \
+		  cntx  \
 		); \
 	} \
 \

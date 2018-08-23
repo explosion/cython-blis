@@ -49,11 +49,10 @@ void bli_machval( machval_t mval,
 #undef  GENTPROTR
 #define GENTPROTR( ctype_v, ctype_vr, chv, chvr, opname ) \
 \
-void PASTEMAC(chv,opname) \
-     ( \
-       machval_t mval, \
-       void*     v     \
-     );
+void PASTEMAC(chv,opname)( \
+                           machval_t mval, \
+                           void*     v \
+                         );
 
-INSERT_GENTPROTR_BASIC0( machval )
+INSERT_GENTPROTR_BASIC( machval )
 

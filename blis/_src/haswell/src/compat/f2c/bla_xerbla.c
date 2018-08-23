@@ -34,7 +34,7 @@
 
 #include "blis.h"
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 
 /* xerbla.f -- translated by f2c (version 19991025).
    You must link the resulting object file with the libraries:
@@ -80,7 +80,7 @@
     printf("** On entry to %6s, parameter number %2i had an illegal value\n",
         srname, (int)*info);
 
-    //bli_abort();
+    bli_abort();
 
 /*     End of XERBLA */
 

@@ -40,7 +40,6 @@ void bli_gemm_ker_var1
        obj_t*  b,
        obj_t*  c,
        cntx_t* cntx,
-       rntm_t* rntm,
        cntl_t* cntl,
        thrinfo_t* thread
      )
@@ -48,10 +47,10 @@ void bli_gemm_ker_var1
 	// Implement _ker_var1() in terms of _ker_var2() by transposing the
 	// entire suboperation (which also requires swapping A and B).
 
-	bli_obj_induce_trans( a );
-	bli_obj_induce_trans( b );
-	bli_obj_induce_trans( c );
+	bli_obj_induce_trans( *a );
+	bli_obj_induce_trans( *b );
+	bli_obj_induce_trans( *c );
 
-	bli_gemm_ker_var2( b, a, c, cntx, rntm, cntl, thread );
+	bli_gemm_ker_var2( b, a, c, cntx, cntl, thread );
 }
 

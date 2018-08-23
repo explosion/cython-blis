@@ -53,7 +53,7 @@ void PASTEF77(ch,blasname) \
              ftype*    c, const f77_int* ldc  \
      );
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTPROT_BLAS( gemm )
 #endif
 

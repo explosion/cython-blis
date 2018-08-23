@@ -32,7 +32,7 @@
 
 */
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 
 void bla_z_div(bla_dcomplex *cp, const bla_dcomplex *ap, const bla_dcomplex *bp);
 

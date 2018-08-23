@@ -64,104 +64,97 @@ typedef struct
 
 // Pool block query
 
-static void* bli_pblk_buf_sys( pblk_t* pblk )
-{
-    return pblk->buf_sys;
-}
+#define bli_pblk_buf_sys( pblk_p ) \
+\
+    ( (pblk_p)->buf_sys )
 
-static void* bli_pblk_buf_align( pblk_t* pblk )
-{
-    return pblk->buf_align;
-}
+#define bli_pblk_buf_align( pblk_p ) \
+\
+    ( (pblk_p)->buf_align )
 
 // Pool block modification
 
-static void bli_pblk_set_buf_sys( void* buf_sys, pblk_t* pblk )
-{
-    pblk->buf_sys = buf_sys;
+#define bli_pblk_set_buf_sys( buf_sys0, pblk_p ) \
+{ \
+    (pblk_p)->buf_sys = buf_sys0; \
 }
 
-static void bli_pblk_set_buf_align( void* buf_align, pblk_t* pblk )
-{
-    pblk->buf_align = buf_align;
+#define bli_pblk_set_buf_align( buf_align0, pblk_p ) \
+{ \
+    (pblk_p)->buf_align = buf_align0; \
 }
 
-static void bli_pblk_clear( pblk_t* pblk )
-{
-	bli_pblk_set_buf_sys( NULL, pblk );
-	bli_pblk_set_buf_align( NULL, pblk );
+#define bli_pblk_clear( pblk_p ) \
+{ \
+	bli_pblk_set_buf_sys( NULL, pblk_p ); \
+	bli_pblk_set_buf_align( NULL, pblk_p ); \
 }
 
 
 // Pool entry query
 
-static pblk_t* bli_pool_block_ptrs( pool_t* pool )
-{
-	return pool->block_ptrs;
-}
+#define bli_pool_block_ptrs( pool_p ) \
+\
+	( (pool_p)->block_ptrs )
 
-static dim_t bli_pool_block_ptrs_len( pool_t* pool )
-{
-	return pool->block_ptrs_len;
-}
+#define bli_pool_block_ptrs_len( pool_p ) \
+\
+	( (pool_p)->block_ptrs_len )
 
-static dim_t bli_pool_num_blocks( pool_t* pool )
-{
-	return pool->num_blocks;
-}
+#define bli_pool_num_blocks( pool_p ) \
+\
+	( (pool_p)->num_blocks )
 
-static siz_t bli_pool_block_size( pool_t* pool )
-{
-	return pool->block_size;
-}
+#define bli_pool_block_size( pool_p ) \
+\
+	( (pool_p)->block_size )
 
-static siz_t bli_pool_align_size( pool_t* pool )
-{
-	return pool->align_size;
-}
+#define bli_pool_align_size( pool_p ) \
+\
+	( (pool_p)->align_size )
 
-static dim_t bli_pool_top_index( pool_t* pool )
-{
-	return pool->top_index;
-}
+#define bli_pool_top_index( pool_p ) \
+\
+	( (pool_p)->top_index )
 
-static bool_t bli_pool_is_exhausted( pool_t* pool )
-{
-	return ( bool_t )
-	       ( bli_pool_top_index( pool ) == bli_pool_num_blocks( pool ) );
-}
+#define bli_pool_is_exhausted( pool_p ) \
+\
+	( bli_pool_top_index( pool_p ) == \
+	  bli_pool_num_blocks( pool_p ) )
 
 // Pool entry modification
 
-static void bli_pool_set_block_ptrs( pblk_t* block_ptrs, pool_t* pool ) \
-{
-    pool->block_ptrs = block_ptrs;
+#define bli_pool_set_block_ptrs( block_ptrs0, pool_p ) \
+{ \
+    (pool_p)->block_ptrs = block_ptrs0; \
 }
 
-static void bli_pool_set_block_ptrs_len( dim_t block_ptrs_len, pool_t* pool ) \
-{
-    pool->block_ptrs_len = block_ptrs_len;
+#define bli_pool_set_block_ptrs_len( block_ptrs_len0, pool_p ) \
+{ \
+    (pool_p)->block_ptrs_len = block_ptrs_len0; \
 }
 
-static void bli_pool_set_num_blocks( dim_t num_blocks, pool_t* pool ) \
-{
-    pool->num_blocks = num_blocks;
+#define bli_pool_set_num_blocks( num_blocks0, pool_p ) \
+{ \
+    (pool_p)->num_blocks = num_blocks0; \
 }
 
-static void bli_pool_set_block_size( siz_t block_size, pool_t* pool ) \
-{
-    pool->block_size = block_size;
+#define bli_pool_set_block_size( block_size0, pool_p ) \
+{ \
+    (pool_p)->block_size = block_size0; \
 }
 
-static void bli_pool_set_align_size( siz_t align_size, pool_t* pool ) \
-{
-    pool->align_size = align_size;
+#define bli_pool_set_align_size( align_size0, pool_p ) \
+{ \
+    (pool_p)->align_size = align_size0; \
 }
 
-static void bli_pool_set_top_index( dim_t top_index, pool_t* pool ) \
-{
-    pool->top_index = top_index;
+#define bli_pool_set_top_index( top_index0, pool_p ) \
+{ \
+    (pool_p)->top_index = top_index0; \
 }
+
+#endif
 
 // -----------------------------------------------------------------------------
 
@@ -174,8 +167,12 @@ void bli_pool_reinit( dim_t   num_blocks_new,
                       siz_t   block_size_new,
                       siz_t   align_size_new,
                       pool_t* pool );
+void bli_pool_reinit_if( dim_t   num_blocks_new,
+                         siz_t   block_size_new,
+                         siz_t   align_size_new,
+                         pool_t* pool );
 
-void bli_pool_checkout_block( siz_t req_size, pblk_t* block, pool_t* pool );
+void bli_pool_checkout_block( pblk_t* block, pool_t* pool );
 void bli_pool_checkin_block( pblk_t* block, pool_t* pool );
 
 void bli_pool_grow( dim_t num_blocks_add, pool_t* pool );
@@ -188,6 +185,4 @@ void bli_pool_free_block( pblk_t* block );
 
 void bli_pool_print( pool_t* pool );
 void bli_pblk_print( pblk_t* pblk );
-
-#endif
 

@@ -36,21 +36,17 @@
 
 cntl_t* bli_gemm_cntl_create
      (
-       opid_t family,
-       pack_t schema_a,
-       pack_t schema_b
+       opid_t family
      )
 {
-	return bli_gemmbp_cntl_create( family, schema_a, schema_b );
+	return bli_gemmbp_cntl_create( family );
 }
 
 // -----------------------------------------------------------------------------
 
 cntl_t* bli_gemmbp_cntl_create
      (
-       opid_t family,
-       pack_t schema_a,
-       pack_t schema_b
+       opid_t family
      )
 {
 	void* macro_kernel_p = bli_gemm_ker_var2;
@@ -86,7 +82,7 @@ cntl_t* bli_gemmbp_cntl_create
 	  FALSE,   // do NOT invert diagonal
 	  FALSE,   // reverse iteration if upper?
 	  FALSE,   // reverse iteration if lower?
-	  schema_a, // normally BLIS_PACKED_ROW_PANELS
+	  BLIS_PACKED_ROW_PANELS,
 	  BLIS_BUFFER_FOR_A_BLOCK,
 	  gemm_cntl_bp_bu
 	);
@@ -110,7 +106,7 @@ cntl_t* bli_gemmbp_cntl_create
 	  FALSE,   // do NOT invert diagonal
 	  FALSE,   // reverse iteration if upper?
 	  FALSE,   // reverse iteration if lower?
-	  schema_b, // normally BLIS_PACKED_COL_PANELS
+	  BLIS_PACKED_COL_PANELS,
 	  BLIS_BUFFER_FOR_B_PANEL,
 	  gemm_cntl_op_bp
 	);
@@ -138,10 +134,6 @@ cntl_t* bli_gemmbp_cntl_create
 
 // -----------------------------------------------------------------------------
 
-// This control tree creation function is disabled because it is no longer used.
-// (It was originally created in the run up to publishing the 1m journal article,
-// but was disabled to reduce complexity.)
-#if 0
 cntl_t* bli_gemmpb_cntl_create
      (
        opid_t family
@@ -231,7 +223,6 @@ cntl_t* bli_gemmpb_cntl_create
 
 	return gemm_cntl_vl_mm;
 }
-#endif
 
 // -----------------------------------------------------------------------------
 

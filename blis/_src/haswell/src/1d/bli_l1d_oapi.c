@@ -47,35 +47,33 @@ void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ) \
 { \
-	bli_init_once(); \
+	BLIS_OAPI_CNTX_DECL \
 \
-	BLIS_OAPI_EX_DECLS \
+	num_t     dt        = bli_obj_datatype( *x ); \
 \
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	doff_t    diagoffx  = bli_obj_diag_offset( x ); \
-	diag_t    diagx     = bli_obj_diag( x ); \
-	trans_t   transx    = bli_obj_conjtrans_status( x ); \
-	dim_t     m         = bli_obj_length( y ); \
-	dim_t     n         = bli_obj_width( y ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
-	void*     buf_y     = bli_obj_buffer_at_off( y ); \
-	inc_t     rs_y      = bli_obj_row_stride( y ); \
-	inc_t     cs_y      = bli_obj_col_stride( y ); \
+    doff_t    diagoffx  = bli_obj_diag_offset( *x ); \
+    diag_t    diagx     = bli_obj_diag( *x ); \
+    trans_t   transx    = bli_obj_conjtrans_status( *x ); \
+	dim_t     m         = bli_obj_length( *y ); \
+	dim_t     n         = bli_obj_width( *y ); \
+    void*     buf_x     = bli_obj_buffer_at_off( *x ); \
+    inc_t     rs_x      = bli_obj_row_stride( *x ); \
+    inc_t     cs_x      = bli_obj_col_stride( *x ); \
+    void*     buf_y     = bli_obj_buffer_at_off( *y ); \
+    inc_t     rs_y      = bli_obj_row_stride( *y ); \
+    inc_t     cs_y      = bli_obj_col_stride( *y ); \
 \
 	if ( bli_error_checking_is_enabled() ) \
 	    PASTEMAC(opname,_check)( x, y ); \
 \
 	/* Invoke the typed function. */ \
-	bli_call_ft_13 \
+	bli_call_ft_12 \
 	( \
 	   dt, \
-	   PASTECH(opname,BLIS_TAPI_EX_SUF), \
+	   opname, \
 	   diagoffx, \
 	   diagx, \
 	   transx, \
@@ -83,8 +81,7 @@ void PASTEMAC(opname,EX_SUF) \
 	   n, \
 	   buf_x, rs_x, cs_x, \
 	   buf_y, rs_y, cs_y, \
-	   cntx, \
-	   rntm  \
+	   cntx  \
 	); \
 }
 
@@ -101,26 +98,24 @@ void PASTEMAC(opname,EX_SUF) \
        obj_t*  alpha, \
        obj_t*  x, \
        obj_t*  y  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ) \
 { \
-	bli_init_once(); \
+	BLIS_OAPI_CNTX_DECL \
 \
-	BLIS_OAPI_EX_DECLS \
+	num_t     dt        = bli_obj_datatype( *x ); \
 \
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	doff_t    diagoffx  = bli_obj_diag_offset( x ); \
-	diag_t    diagx     = bli_obj_diag( x ); \
-	trans_t   transx    = bli_obj_conjtrans_status( x ); \
-	dim_t     m         = bli_obj_length( y ); \
-	dim_t     n         = bli_obj_width( y ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
-	void*     buf_y     = bli_obj_buffer_at_off( y ); \
-	inc_t     rs_y      = bli_obj_row_stride( y ); \
-	inc_t     cs_y      = bli_obj_col_stride( y ); \
+    doff_t    diagoffx  = bli_obj_diag_offset( *x ); \
+    diag_t    diagx     = bli_obj_diag( *x ); \
+    trans_t   transx    = bli_obj_conjtrans_status( *x ); \
+	dim_t     m         = bli_obj_length( *y ); \
+	dim_t     n         = bli_obj_width( *y ); \
+    void*     buf_x     = bli_obj_buffer_at_off( *x ); \
+    inc_t     rs_x      = bli_obj_row_stride( *x ); \
+    inc_t     cs_x      = bli_obj_col_stride( *x ); \
+    void*     buf_y     = bli_obj_buffer_at_off( *y ); \
+    inc_t     rs_y      = bli_obj_row_stride( *y ); \
+    inc_t     cs_y      = bli_obj_col_stride( *y ); \
 \
 	void*     buf_alpha; \
 \
@@ -133,13 +128,13 @@ void PASTEMAC(opname,EX_SUF) \
 	   as needed). */ \
 	bli_obj_scalar_init_detached_copy_of( dt, BLIS_NO_CONJUGATE, \
 	                                      alpha, &alpha_local ); \
-	buf_alpha = bli_obj_buffer_for_1x1( dt, &alpha_local ); \
+	buf_alpha = bli_obj_buffer_for_1x1( dt, alpha_local ); \
 \
 	/* Invoke the typed function. */ \
-	bli_call_ft_14 \
+	bli_call_ft_13 \
 	( \
 	   dt, \
-	   PASTECH(opname,BLIS_TAPI_EX_SUF), \
+	   opname, \
 	   diagoffx, \
 	   diagx, \
 	   transx, \
@@ -148,8 +143,7 @@ void PASTEMAC(opname,EX_SUF) \
 	   buf_alpha, \
 	   buf_x, rs_x, cs_x, \
 	   buf_y, rs_y, cs_y, \
-	   cntx, \
-	   rntm  \
+	   cntx  \
 	); \
 }
 
@@ -163,36 +157,33 @@ GENFRONT( scal2d )
 void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ) \
 { \
-	bli_init_once(); \
+	BLIS_OAPI_CNTX_DECL \
 \
-	BLIS_OAPI_EX_DECLS \
+	num_t     dt        = bli_obj_datatype( *x ); \
 \
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	doff_t    diagoffx  = bli_obj_diag_offset( x ); \
-	dim_t     m         = bli_obj_length( x ); \
-	dim_t     n         = bli_obj_width( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
+    doff_t    diagoffx  = bli_obj_diag_offset( *x ); \
+	dim_t     m         = bli_obj_length( *x ); \
+	dim_t     n         = bli_obj_width( *x ); \
+    void*     buf_x     = bli_obj_buffer_at_off( *x ); \
+    inc_t     rs_x      = bli_obj_row_stride( *x ); \
+    inc_t     cs_x      = bli_obj_col_stride( *x ); \
 \
 	if ( bli_error_checking_is_enabled() ) \
 	    PASTEMAC(opname,_check)( x ); \
 \
 	/* Invoke the void pointer-based function. */ \
-	bli_call_ft_8 \
+	bli_call_ft_7 \
 	( \
 	   dt, \
-	   PASTECH(opname,BLIS_TAPI_EX_SUF), \
+	   opname, \
 	   diagoffx, \
 	   m, \
 	   n, \
 	   buf_x, rs_x, cs_x, \
-	   cntx, \
-	   rntm  \
+	   cntx  \
 	); \
 }
 
@@ -206,22 +197,20 @@ void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ) \
 { \
-	bli_init_once(); \
+	BLIS_OAPI_CNTX_DECL \
 \
-	BLIS_OAPI_EX_DECLS \
+	num_t     dt        = bli_obj_datatype( *x ); \
 \
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	/* conj_t    conjalpha = bli_obj_conj_status( alpha ); */ \
-	doff_t    diagoffx  = bli_obj_diag_offset( x ); \
-	dim_t     m         = bli_obj_length( x ); \
-	dim_t     n         = bli_obj_width( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
+    /* conj_t    conjalpha = bli_obj_conj_status( *alpha ); */ \
+    doff_t    diagoffx  = bli_obj_diag_offset( *x ); \
+	dim_t     m         = bli_obj_length( *x ); \
+	dim_t     n         = bli_obj_width( *x ); \
+    void*     buf_x     = bli_obj_buffer_at_off( *x ); \
+    inc_t     rs_x      = bli_obj_row_stride( *x ); \
+    inc_t     cs_x      = bli_obj_col_stride( *x ); \
 \
 	void*     buf_alpha; \
 \
@@ -234,21 +223,20 @@ void PASTEMAC(opname,EX_SUF) \
 	   as needed). */ \
 	bli_obj_scalar_init_detached_copy_of( dt, BLIS_NO_CONJUGATE, \
 	                     alpha, &alpha_local ); \
-	buf_alpha = bli_obj_buffer_for_1x1( dt, &alpha_local ); \
+	buf_alpha = bli_obj_buffer_for_1x1( dt, alpha_local ); \
 \
 	/* Invoke the typed function. */ \
-	bli_call_ft_10 \
+	bli_call_ft_9 \
 	( \
 	   dt, \
-	   PASTECH(opname,BLIS_TAPI_EX_SUF), \
+	   opname, \
 	   BLIS_NO_CONJUGATE, /* internal conjugation applied during copy-cast. */ \
 	   diagoffx, \
 	   m, \
 	   n, \
 	   buf_alpha, \
 	   buf_x, rs_x, cs_x, \
-	   cntx, \
-	   rntm  \
+	   cntx  \
 	); \
 }
 
@@ -263,39 +251,36 @@ void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ) \
 { \
-	bli_init_once(); \
+	BLIS_OAPI_CNTX_DECL \
 \
-	BLIS_OAPI_EX_DECLS \
+	num_t     dt        = bli_obj_datatype( *x ); \
 \
-	num_t     dt        = bli_obj_dt( x ); \
+    doff_t    diagoffx  = bli_obj_diag_offset( *x ); \
+	dim_t     m         = bli_obj_length( *x ); \
+	dim_t     n         = bli_obj_width( *x ); \
+    void*     buf_x     = bli_obj_buffer_at_off( *x ); \
+    inc_t     rs_x      = bli_obj_row_stride( *x ); \
+    inc_t     cs_x      = bli_obj_col_stride( *x ); \
 \
-	doff_t    diagoffx  = bli_obj_diag_offset( x ); \
-	dim_t     m         = bli_obj_length( x ); \
-	dim_t     n         = bli_obj_width( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
-\
-	void*     buf_alpha = bli_obj_buffer_for_1x1( dt, alpha ); \
+	void*     buf_alpha = bli_obj_buffer_for_1x1( dt, *alpha ); \
 \
 	if ( bli_error_checking_is_enabled() ) \
 	    PASTEMAC(opname,_check)( alpha, x ); \
 \
 	/* Invoke the typed function. */ \
-	bli_call_ft_9 \
+	bli_call_ft_8 \
 	( \
 	   dt, \
-	   PASTECH(opname,BLIS_TAPI_EX_SUF), \
+	   opname, \
 	   diagoffx, \
 	   m, \
 	   n, \
 	   buf_alpha, \
 	   buf_x, rs_x, cs_x, \
-	   cntx, \
-	   rntm  \
+	   cntx  \
 	); \
 }
 

@@ -45,7 +45,7 @@ ftype_r PASTEF772(chr,chx,blasname) \
        const ftype_x* x, const f77_int* incx  \
      );
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTPROTR2_BLAS( nrm2 )
 #endif
 

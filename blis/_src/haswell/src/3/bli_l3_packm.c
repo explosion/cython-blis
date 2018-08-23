@@ -39,7 +39,6 @@ void bli_l3_packm
        obj_t*  x,
        obj_t*  x_pack,
        cntx_t* cntx,
-       rntm_t* rntm,
        cntl_t* cntl,
        thrinfo_t* thread
      )
@@ -162,8 +161,7 @@ void bli_l3_packm
 	// Update the buffer address in x_pack to point to the buffer associated
 	// with the mem_t entry acquired from the memory broker (now cached in
 	// the control tree node).
-	void* buf = bli_mem_buffer( cntl_mem_p );
-    bli_obj_set_buffer( buf, x_pack );
+	bli_obj_set_buffer_to_mem( cntl_mem_p, *x_pack );
 
 
 	// Pack the contents of object x to object x_pack.

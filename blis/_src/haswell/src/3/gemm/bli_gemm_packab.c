@@ -40,7 +40,6 @@ void bli_gemm_packa
        obj_t*  b,
        obj_t*  c,
        cntx_t* cntx,
-       rntm_t* rntm,
        cntl_t* cntl,
        thrinfo_t* thread
      )
@@ -53,7 +52,6 @@ void bli_gemm_packa
 	  a,
 	  &a_pack,
 	  cntx,
-	  rntm,
 	  cntl,
 	  thread
 	);
@@ -67,7 +65,6 @@ void bli_gemm_packa
 	  &BLIS_ONE,
 	  c,
 	  cntx,
-	  rntm,
 	  bli_cntl_sub_node( cntl ),
 	  bli_thrinfo_sub_node( thread )
 	);
@@ -81,7 +78,6 @@ void bli_gemm_packb
        obj_t*  b,
        obj_t*  c,
        cntx_t* cntx,
-       rntm_t* rntm,
        cntl_t* cntl,
        thrinfo_t* thread
      )
@@ -94,7 +90,6 @@ void bli_gemm_packb
 	  b,
 	  &b_pack,
 	  cntx,
-	  rntm,
 	  cntl,
 	  thread
 	);
@@ -108,7 +103,6 @@ void bli_gemm_packb
 	  &BLIS_ONE,
 	  c,
 	  cntx,
-	  rntm,
 	  bli_cntl_sub_node( cntl ),
 	  bli_thrinfo_sub_node( thread )
 	);

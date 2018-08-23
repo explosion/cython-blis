@@ -32,9 +32,7 @@
 
 */
 
-// Guard the function definitions so that they are only compiled when
-// #included from files that define the typed API macros.
-#ifdef BLIS_ENABLE_TAPI
+#include "blis.h"
 
 //
 // Define BLAS-like interfaces with typed operands.
@@ -43,25 +41,21 @@
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        conj_t  conjx, \
        dim_t   n, \
        ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  y, inc_t incy, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
-	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	f \
 	( \
@@ -69,8 +63,10 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	   n, \
 	   x, incx, \
 	   y, incy, \
-	   cntx  \
+	   cntx_p  \
 	); \
+\
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNC_BASIC( addv,  BLIS_ADDV_KER )
@@ -81,32 +77,30 @@ INSERT_GENTFUNC_BASIC( subv,  BLIS_SUBV_KER )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        dim_t   n, \
        ctype*  x, inc_t incx, \
-       dim_t*  index  \
-       BLIS_TAPI_EX_PARAMS  \
+       dim_t*  index, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
-	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	f \
 	( \
 	   n, \
 	   x, incx, \
 	   index, \
-	   cntx  \
+	   cntx_p  \
 	); \
+\
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNC_BASIC( amaxv, BLIS_AMAXV_KER )
@@ -115,27 +109,23 @@ INSERT_GENTFUNC_BASIC( amaxv, BLIS_AMAXV_KER )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        conj_t  conjx, \
        dim_t   n, \
        ctype*  alpha, \
        ctype*  x, inc_t incx, \
        ctype*  beta, \
-       ctype*  y, inc_t incy  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  y, inc_t incy, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
-	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	f \
 	( \
@@ -145,37 +135,34 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	   x, incx, \
 	   beta, \
 	   y, incy, \
-	   cntx  \
+	   cntx_p  \
 	); \
+\
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
-INSERT_GENTFUNC_BASIC( axpbyv, BLIS_AXPBYV_KER )
+INSERT_GENTFUNC_BASIC( axpbyv,  BLIS_AXPBYV_KER )
 
 
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        conj_t  conjx, \
        dim_t   n, \
        ctype*  alpha, \
        ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  y, inc_t incy, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) \
-		cntx = bli_gks_query_cntx(); \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
-	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	f \
 	( \
@@ -184,8 +171,10 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	   alpha, \
 	   x, incx, \
 	   y, incy, \
-	   cntx  \
+	   cntx_p  \
 	); \
+\
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNC_BASIC( axpyv,  BLIS_AXPYV_KER )
@@ -195,27 +184,23 @@ INSERT_GENTFUNC_BASIC( scal2v, BLIS_SCAL2V_KER )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        conj_t  conjx, \
        conj_t  conjy, \
        dim_t   n, \
        ctype*  x, inc_t incx, \
        ctype*  y, inc_t incy, \
-       ctype*  rho  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  rho, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
-	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	f \
 	( \
@@ -225,8 +210,10 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	   x, incx, \
 	   y, incy, \
 	   rho, \
-	   cntx  \
+	   cntx_p  \
 	); \
+\
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNC_BASIC( dotv, BLIS_DOTV_KER )
@@ -235,7 +222,7 @@ INSERT_GENTFUNC_BASIC( dotv, BLIS_DOTV_KER )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        conj_t  conjx, \
        conj_t  conjy, \
@@ -244,20 +231,16 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        ctype*  x, inc_t incx, \
        ctype*  y, inc_t incy, \
        ctype*  beta, \
-       ctype*  rho  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  rho, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
-	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	f \
 	( \
@@ -269,8 +252,10 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	   y, incy, \
 	   beta, \
 	   rho, \
-	   cntx  \
+	   cntx_p  \
 	); \
+\
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNC_BASIC( dotxv, BLIS_DOTXV_KER )
@@ -279,30 +264,28 @@ INSERT_GENTFUNC_BASIC( dotxv, BLIS_DOTXV_KER )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        dim_t   n, \
-       ctype*  x, inc_t incx  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  x, inc_t incx, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
-	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	f \
 	( \
 	   n, \
 	   x, incx, \
-	   cntx  \
+	   cntx_p  \
 	); \
+\
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNC_BASIC( invertv, BLIS_INVERTV_KER )
@@ -311,25 +294,21 @@ INSERT_GENTFUNC_BASIC( invertv, BLIS_INVERTV_KER )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        conj_t  conjalpha, \
        dim_t   n, \
        ctype*  alpha, \
-       ctype*  x, inc_t incx  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  x, inc_t incx, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
-	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	f \
 	( \
@@ -337,43 +316,43 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	   n, \
 	   alpha, \
 	   x, incx, \
-	   cntx  \
+	   cntx_p  \
 	); \
+\
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
-INSERT_GENTFUNC_BASIC( scalv, BLIS_SCALV_KER )
-INSERT_GENTFUNC_BASIC( setv,  BLIS_SETV_KER )
+INSERT_GENTFUNC_BASIC( scalv,  BLIS_SCALV_KER )
+INSERT_GENTFUNC_BASIC( setv,   BLIS_SETV_KER )
 
 
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        dim_t   n, \
        ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  y, inc_t incy, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
-	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	f \
 	( \
 	   n, \
 	   x, incx, \
 	   y, incy, \
-	   cntx  \
+	   cntx_p  \
 	); \
+\
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNC_BASIC( swapv, BLIS_SWAPV_KER )
@@ -381,26 +360,22 @@ INSERT_GENTFUNC_BASIC( swapv, BLIS_SWAPV_KER )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        conj_t  conjx, \
        dim_t   n, \
        ctype*  x, inc_t incx, \
        ctype*  beta, \
-       ctype*  y, inc_t incy  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  y, inc_t incy, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
-	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,opname,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	f \
 	( \
@@ -409,12 +384,12 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	   x, incx, \
 	   beta, \
 	   y, incy, \
-	   cntx  \
+	   cntx_p  \
 	); \
+\
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
-INSERT_GENTFUNC_BASIC( xpbyv, BLIS_XPBYV_KER )
+INSERT_GENTFUNC_BASIC( xpbyv,  BLIS_XPBYV_KER )
 
-
-#endif
 

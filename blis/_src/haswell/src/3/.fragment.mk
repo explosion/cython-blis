@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := 3
 CURRENT_SUB_DIRS := gemm hemm her2k herk symm syr2k syrk trmm trmm3 trsm ukernels
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := bli_l3_blocksize.c bli_l3_check.c bli_l3_cntl.c bli_l3_direct.c bli_l3_oapi_ba.c bli_l3_oapi.c bli_l3_oapi_ex.c bli_l3_packm.c bli_l3_prune.c bli_l3_tapi_ba.c bli_l3_tapi.c bli_l3_tapi_ex.c bli_l3_thrinfo.c bli_l3_ukr_oapi.c bli_l3_ukr_tapi.c
+LOCAL_SRC_FILES  := bli_l3_blocksize.c bli_l3_check.c bli_l3_cntl.c bli_l3_cntx.c bli_l3_direct.c bli_l3_oapi.c bli_l3_oapi_wc.c bli_l3_oapi_woc.c bli_l3_packm.c bli_l3_prune.c bli_l3_tapi.c bli_l3_thrinfo.c bli_l3_ukr_oapi.c bli_l3_ukr_tapi.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

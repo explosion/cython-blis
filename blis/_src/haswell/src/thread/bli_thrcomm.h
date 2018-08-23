@@ -44,10 +44,7 @@
 
 // thrcomm_t query (field only)
 
-static dim_t bli_thrcomm_num_threads( thrcomm_t* comm )
-{
-	return comm->n_threads;
-}
+#define bli_thrcomm_num_threads( comm )   ( (comm)->n_threads )
 
 
 // Thread communicator prototypes.

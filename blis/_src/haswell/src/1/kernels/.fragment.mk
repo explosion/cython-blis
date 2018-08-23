@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := kernels
 CURRENT_SUB_DIRS := 
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := 
+LOCAL_SRC_FILES  := bli_addv_ref.c bli_amaxv_ref.c bli_axpbyv_ref.c bli_axpyv_ref.c bli_copyv_ref.c bli_dotv_ref.c bli_dotxv_ref.c bli_invertv_ref.c bli_scal2v_ref.c bli_scalv_ref.c bli_setv_ref.c bli_subv_ref.c bli_swapv_ref.c bli_xpbyv_ref.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

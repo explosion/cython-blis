@@ -48,7 +48,7 @@ void PASTEF77(ch,blasname)( \
                             ftype*    x, f77_int* incx  \
                           );
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTPROT_BLAS( tpmv )
 #endif
 

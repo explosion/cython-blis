@@ -52,9 +52,10 @@ void PASTEF772(chx,cha,blasname) \
 	ftype_x* x0; \
 	inc_t    incx0; \
 	ftype_x  alpha_cast; \
+	err_t    init_result; \
 \
-	/* Initialize BLIS. */ \
-	bli_init_auto(); \
+	/* Initialize BLIS (if it is not already initialized). */ \
+	bli_init_auto( &init_result ); \
 \
 	/* Convert/typecast negative values of n to zero. */ \
 	bli_convert_blas_dim1( *n, n0 ); \
@@ -70,21 +71,20 @@ void PASTEF772(chx,cha,blasname) \
 	PASTEMAC2(cha,chx,cast)( (ftype_a*)alpha, alpha_cast ); \
 \
 	/* Call BLIS interface. */ \
-	PASTEMAC2(chx,blisname,BLIS_TAPI_EX_SUF) \
+	PASTEMAC(chx,blisname) \
 	( \
 	  BLIS_NO_CONJUGATE, \
 	  n0, \
 	  &alpha_cast, \
 	  x0, incx0, \
-	  NULL, \
 	  NULL  \
 	); \
 \
-	/* Finalize BLIS. */ \
-	bli_finalize_auto(); \
+	/* Finalize BLIS (if it was initialized above). */ \
+	bli_finalize_auto( init_result ); \
 }
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTFUNCSCAL_BLAS( scal, scalv )
 #endif
 

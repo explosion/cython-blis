@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := ind
 CURRENT_SUB_DIRS := 
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := bli_gemm4mb_ker_var2.c
+LOCAL_SRC_FILES  := bli_gemm3m2_ker_var2.c bli_gemm3m3_packa.c bli_gemm4mb_ker_var2.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

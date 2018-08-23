@@ -90,9 +90,6 @@ void bli_pool_finalize( pool_t* pool )
 	// Free the block_ptrs array.
 	bli_free_intl( block_ptrs );
 
-	// This explicit clearing of the pool_t struct is not strictly
-	// necessary and so it has been commented out.
-#if 0
 	// Clear the contents of the pool_t struct.
 	bli_pool_set_block_ptrs( NULL, pool );
 	bli_pool_set_block_ptrs_len( 0, pool );
@@ -100,7 +97,6 @@ void bli_pool_finalize( pool_t* pool )
 	bli_pool_set_top_index( 0, pool );
 	bli_pool_set_block_size( 0, pool );
 	bli_pool_set_align_size( 0, pool );
-#endif
 }
 
 void bli_pool_reinit( dim_t   num_blocks_new,
@@ -120,24 +116,42 @@ void bli_pool_reinit( dim_t   num_blocks_new,
 	bli_pool_init( num_blocks_new, block_size_new, align_size_new, pool );
 }
 
-void bli_pool_checkout_block( siz_t req_size, pblk_t* block, pool_t* pool )
+void bli_pool_reinit_if( dim_t   num_blocks_new,
+                         siz_t   block_size_new,
+                         siz_t   align_size_new,
+                         pool_t* pool )
 {
-	pblk_t* block_ptrs;
-	dim_t   top_index;
+	const dim_t num_blocks = bli_pool_num_blocks( pool );
+	const dim_t block_size = bli_pool_block_size( pool );
+	const dim_t align_size = bli_pool_align_size( pool );
 
-	if ( bli_pool_block_size( pool ) < req_size )
+	// Reinitialize the pool, but only if one or more of new pool
+	// parameters would require it. Otherwise, if only the number
+	// of blocks has increased, we can skip a full reinit and just
+	// grow the pool.
+	if ( block_size_new >  block_size ||
+	     align_size_new != align_size )
 	{
-		const dim_t num_blocks_new = bli_pool_num_blocks( pool );
-		const siz_t align_size_new = bli_pool_align_size( pool );
-
-		// If the requested block size is smaller than what the pool
-		// was initialized with, reinitialize the pool to contain blocks
-		// of the requested size.
+		// Reinitialize the pool with the new parameters, in particular,
+		// the new block size.
 		bli_pool_reinit( num_blocks_new,
-		                 req_size,
+		                 block_size_new,
 		                 align_size_new,
 		                 pool );
 	}
+	else if ( num_blocks_new > num_blocks )
+	{
+		const dim_t num_blocks_add = num_blocks_new -
+		                             num_blocks;
+
+		bli_pool_grow( num_blocks_add, pool );
+	}
+}
+
+void bli_pool_checkout_block( pblk_t* block, pool_t* pool )
+{
+	pblk_t* block_ptrs;
+	dim_t   top_index;
 
 	// If the pool is exhausted, add a block.
 	if ( bli_pool_is_exhausted( pool ) )
@@ -334,7 +348,7 @@ void bli_pool_alloc_block( siz_t   block_size,
 
 	// Advance the pointer to achieve the necessary alignment, if it is not
 	// already aligned.
-	if ( bli_is_unaligned_to( ( siz_t )buf_sys, ( siz_t )align_size ) )
+	if ( bli_is_unaligned_to( buf_sys, align_size ) )
 	{
 		// C99's stdint.h guarantees that a void* can be safely cast to a
 		// uintptr_t and then back to a void*, hence the casting of buf_sys
@@ -379,17 +393,16 @@ void bli_pool_print( pool_t* pool )
 
 	printf( "pool struct ---------------\n" );
 	printf( "  block_ptrs:      %p\n", block_ptrs );
-	printf( "  block_ptrs_len:  %ld\n", ( long )block_ptrs_len );
-	printf( "  top_index:       %ld\n", ( long )top_index );
-	printf( "  num_blocks:      %ld\n", ( long )num_blocks );
-	printf( "  block_size:      %ld\n", ( long )block_size );
-	printf( "  align_size:      %ld\n", ( long )align_size );
+	printf( "  block_ptrs_len:  %ld\n", block_ptrs_len );
+	printf( "  top_index:       %ld\n", top_index );
+	printf( "  num_blocks:      %ld\n", num_blocks );
+	printf( "  block_size:      %ld\n", block_size );
+	printf( "  align_size:      %ld\n", align_size );
 	printf( "  pblks   sys    align\n" );
 	for ( i = 0; i < num_blocks; ++i )
 	{
-		printf( "  %ld: %p %p\n", ( long )i,
-		                          bli_pblk_buf_sys(   &block_ptrs[i] ),
-	                              bli_pblk_buf_align( &block_ptrs[i] ) );
+	printf( "  %ld: %p %p\n", i, bli_pblk_buf_sys(   &block_ptrs[i] ),
+	                             bli_pblk_buf_align( &block_ptrs[i] ) );
 	}
 }
 

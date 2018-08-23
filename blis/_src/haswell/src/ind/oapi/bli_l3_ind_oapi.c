@@ -47,20 +47,13 @@ void PASTEMAC(opname,imeth) \
        obj_t*  b, \
        obj_t*  beta, \
        obj_t*  c, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	num_t                dt   = bli_obj_dt( c ); \
+	num_t                dt   = bli_obj_datatype( *c ); \
 	PASTECH(opname,_oft) func = PASTEMAC(opname,ind_get_avail)( dt ); \
 \
-	/* Initialize a local runtime with global settings if necessary. */ \
-	rntm_t rntm_l; \
-	if ( rntm == NULL ) { rntm = &rntm_l; bli_thread_init_rntm( rntm ); } \
-\
-	func( alpha, a, b, beta, c, cntx, rntm ); \
+	func( alpha, a, b, beta, c, cntx ); \
 }
 
 GENFRONT( gemm, ind )
@@ -81,20 +74,13 @@ void PASTEMAC(opname,imeth) \
        obj_t*  b, \
        obj_t*  beta, \
        obj_t*  c, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	num_t                dt   = bli_obj_dt( c ); \
+	num_t                dt   = bli_obj_datatype( *c ); \
 	PASTECH(opname,_oft) func = PASTEMAC(opname,ind_get_avail)( dt ); \
 \
-	/* Initialize a local runtime with global settings if necessary. */ \
-	rntm_t rntm_l; \
-	if ( rntm == NULL ) { rntm = &rntm_l; bli_thread_init_rntm( rntm ); } \
-\
-	func( side, alpha, a, b, beta, c, cntx, rntm ); \
+	func( side, alpha, a, b, beta, c, cntx ); \
 }
 
 GENFRONT( hemm, ind )
@@ -113,20 +99,13 @@ void PASTEMAC(opname,imeth) \
        obj_t*  a, \
        obj_t*  beta, \
        obj_t*  c, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	num_t                dt   = bli_obj_dt( c ); \
+	num_t                dt   = bli_obj_datatype( *c ); \
 	PASTECH(opname,_oft) func = PASTEMAC(opname,ind_get_avail)( dt ); \
 \
-	/* Initialize a local runtime with global settings if necessary. */ \
-	rntm_t rntm_l; \
-	if ( rntm == NULL ) { rntm = &rntm_l; bli_thread_init_rntm( rntm ); } \
-\
-	func( alpha, a, beta, c, cntx, rntm ); \
+	func( alpha, a, beta, c, cntx ); \
 }
 
 GENFRONT( herk, ind )
@@ -144,20 +123,13 @@ void PASTEMAC(opname,imeth) \
        obj_t*  alpha, \
        obj_t*  a, \
        obj_t*  b, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	num_t                dt   = bli_obj_dt( b ); \
+	num_t                dt   = bli_obj_datatype( *b ); \
 	PASTECH(opname,_oft) func = PASTEMAC(opname,ind_get_avail)( dt ); \
 \
-	/* Initialize a local runtime with global settings if necessary. */ \
-	rntm_t rntm_l; \
-	if ( rntm == NULL ) { rntm = &rntm_l; bli_thread_init_rntm( rntm ); } \
-\
-	func( side, alpha, a, b, cntx, rntm ); \
+	func( side, alpha, a, b, cntx ); \
 }
 
 GENFRONT( trmm, ind )

@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := packm
 CURRENT_SUB_DIRS := ukernels
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := bli_packm_blk_var1.c bli_packm_check.c bli_packm_cntl.c bli_packm_cxk_1er.c bli_packm_cxk_3mis.c bli_packm_cxk_4mi.c bli_packm_cxk.c bli_packm_cxk_rih.c bli_packm_init.c bli_packm_int.c bli_packm_part.c bli_packm_struc_cxk_1er.c bli_packm_struc_cxk_3mis.c bli_packm_struc_cxk_4mi.c bli_packm_struc_cxk.c bli_packm_struc_cxk_rih.c bli_packm_thrinfo.c bli_packm_unb_var1.c
+LOCAL_SRC_FILES  := bli_packm_blk_var1.c bli_packm.c bli_packm_check.c bli_packm_cntl.c bli_packm_cntx.c bli_packm_cxk_1er.c bli_packm_cxk_3mis.c bli_packm_cxk_4mi.c bli_packm_cxk.c bli_packm_cxk_rih.c bli_packm_init.c bli_packm_int.c bli_packm_part.c bli_packm_struc_cxk_1er.c bli_packm_struc_cxk_3mis.c bli_packm_struc_cxk_4mi.c bli_packm_struc_cxk.c bli_packm_struc_cxk_rih.c bli_packm_thrinfo.c bli_packm_unb_var1.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

@@ -61,9 +61,10 @@ void PASTEF77(ch,blasname) \
 	inc_t   incx0; \
 	inc_t   incy0; \
 	inc_t   rs_a, cs_a; \
+	err_t   init_result; \
 \
-	/* Initialize BLIS. */ \
-	bli_init_auto(); \
+	/* Initialize BLIS (if it is not already initialized). */ \
+	bli_init_auto( &init_result ); \
 \
 	/* Perform BLAS parameter checking. */ \
 	PASTEBLACHK(blasname) \
@@ -87,7 +88,7 @@ void PASTEF77(ch,blasname) \
 \
 	/* Determine the dimensions of x and y so we can adjust the increments,
 	   if necessary.*/ \
-	bli_set_dims_with_trans( blis_transa, m0, n0, &m_y, &n_x ); \
+	bli_set_dims_with_trans( blis_transa, m0, n0, m_y, n_x ); \
 \
 	/* BLAS handles cases where trans(A) has no columns, and x has no elements,
 	   in a peculiar way. In these situations, BLAS returns without performing
@@ -101,8 +102,8 @@ void PASTEF77(ch,blasname) \
 	   this quirky behavior; it will scale y by beta, as one would expect. */ \
 	if ( m_y > 0 && n_x == 0 ) \
 	{ \
-		/* Finalize BLIS. */ \
-		bli_finalize_auto(); \
+		/* Finalize BLIS (if it was initialized above). */ \
+		bli_finalize_auto( init_result ); \
 \
 		return; \
 	} \
@@ -117,7 +118,7 @@ void PASTEF77(ch,blasname) \
 	cs_a = *lda; \
 \
 	/* Call BLIS interface. */ \
-	PASTEMAC2(ch,blisname,BLIS_TAPI_EX_SUF) \
+	PASTEMAC(ch,blisname) \
 	( \
 	  blis_transa, \
 	  BLIS_NO_CONJUGATE, \
@@ -128,15 +129,14 @@ void PASTEF77(ch,blasname) \
 	  x0, incx0, \
 	  (ftype*)beta, \
 	  y0, incy0, \
-	  NULL, \
 	  NULL  \
 	); \
 \
-	/* Finalize BLIS. */ \
-	bli_finalize_auto(); \
+	/* Finalize BLIS (if it was initialized above). */ \
+	bli_finalize_auto( init_result ); \
 }
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTFUNC_BLAS( gemv, gemv )
 #endif
 

@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := ukernels
 CURRENT_SUB_DIRS := 
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := 
+LOCAL_SRC_FILES  := bli_packm_cxk_1e_ref.c bli_packm_cxk_1r_ref.c bli_packm_cxk_3mis_ref.c bli_packm_cxk_4mi_ref.c bli_packm_cxk_ref.c bli_packm_cxk_rih_ref.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

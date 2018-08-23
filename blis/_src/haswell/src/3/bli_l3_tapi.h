@@ -40,7 +40,7 @@
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        trans_t transa, \
        trans_t transb, \
@@ -51,17 +51,17 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        ctype*  a, inc_t rs_a, inc_t cs_a, \
        ctype*  b, inc_t rs_b, inc_t cs_b, \
        ctype*  beta, \
-       ctype*  c, inc_t rs_c, inc_t cs_c  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  c, inc_t rs_c, inc_t cs_c, \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( gemm )
+INSERT_GENTPROT_BASIC( gemm )
 
 
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        side_t  side, \
        uplo_t  uploa, \
@@ -73,18 +73,18 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        ctype*  a, inc_t rs_a, inc_t cs_a, \
        ctype*  b, inc_t rs_b, inc_t cs_b, \
        ctype*  beta, \
-       ctype*  c, inc_t rs_c, inc_t cs_c  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  c, inc_t rs_c, inc_t cs_c, \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( hemm )
-INSERT_GENTPROT_BASIC0( symm )
+INSERT_GENTPROT_BASIC( hemm )
+INSERT_GENTPROT_BASIC( symm )
 
 
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        uplo_t   uploc, \
        trans_t  transa, \
@@ -93,17 +93,17 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        ctype_r* alpha, \
        ctype*   a, inc_t rs_a, inc_t cs_a, \
        ctype_r* beta, \
-       ctype*   c, inc_t rs_c, inc_t cs_c  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*   c, inc_t rs_c, inc_t cs_c, \
+       cntx_t*  cntx  \
      );
 
-INSERT_GENTPROTR_BASIC0( herk )
+INSERT_GENTPROTR_BASIC( herk )
 
 
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        uplo_t   uploc, \
        trans_t  transa, \
@@ -114,17 +114,17 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        ctype*   a, inc_t rs_a, inc_t cs_a, \
        ctype*   b, inc_t rs_b, inc_t cs_b, \
        ctype_r* beta, \
-       ctype*   c, inc_t rs_c, inc_t cs_c  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*   c, inc_t rs_c, inc_t cs_c, \
+       cntx_t*  cntx  \
      );
 
-INSERT_GENTPROTR_BASIC0( her2k )
+INSERT_GENTPROTR_BASIC( her2k )
 
 
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        uplo_t  uploc, \
        trans_t transa, \
@@ -133,17 +133,17 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        ctype*  alpha, \
        ctype*  a, inc_t rs_a, inc_t cs_a, \
        ctype*  beta, \
-       ctype*  c, inc_t rs_c, inc_t cs_c  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  c, inc_t rs_c, inc_t cs_c, \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( syrk )
+INSERT_GENTPROT_BASIC( syrk )
 
 
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        uplo_t  uploc, \
        trans_t transa, \
@@ -154,17 +154,17 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        ctype*  a, inc_t rs_a, inc_t cs_a, \
        ctype*  b, inc_t rs_b, inc_t cs_b, \
        ctype*  beta, \
-       ctype*  c, inc_t rs_c, inc_t cs_c  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  c, inc_t rs_c, inc_t cs_c, \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( syr2k )
+INSERT_GENTPROT_BASIC( syr2k )
 
 
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        side_t  side, \
        uplo_t  uploa, \
@@ -177,17 +177,17 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        ctype*  a, inc_t rs_a, inc_t cs_a, \
        ctype*  b, inc_t rs_b, inc_t cs_b, \
        ctype*  beta, \
-       ctype*  c, inc_t rs_c, inc_t cs_c  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  c, inc_t rs_c, inc_t cs_c, \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( trmm3 )
+INSERT_GENTPROT_BASIC( trmm3 )
 
 
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        side_t  side, \
        uplo_t  uploa, \
@@ -197,10 +197,10 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        dim_t   n, \
        ctype*  alpha, \
        ctype*  a, inc_t rs_a, inc_t cs_a, \
-       ctype*  b, inc_t rs_b, inc_t cs_b  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  b, inc_t rs_b, inc_t cs_b, \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( trmm )
-INSERT_GENTPROT_BASIC0( trsm )
+INSERT_GENTPROT_BASIC( trmm )
+INSERT_GENTPROT_BASIC( trsm )
 

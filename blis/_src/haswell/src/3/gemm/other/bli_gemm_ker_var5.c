@@ -58,25 +58,25 @@ void bli_gemm_ker_var5( obj_t*  a,
                         gemm_t* cntl,
                         gemm_thrinfo_t* thread )
 {
-	num_t     dt_exec   = bli_obj_exec_dt( c );
+	num_t     dt_exec   = bli_obj_execution_datatype( *c );
 
-	dim_t     m         = bli_obj_length( c );
-	dim_t     n         = bli_obj_width( c );
-	dim_t     k         = bli_obj_width( a );
+	dim_t     m         = bli_obj_length( *c );
+	dim_t     n         = bli_obj_width( *c );
+	dim_t     k         = bli_obj_width( *a );
 
-	void*     buf_a     = bli_obj_buffer_at_off( a );
-	inc_t     cs_a      = bli_obj_col_stride( a );
-	dim_t     pd_a      = bli_obj_panel_dim( a );
-	inc_t     ps_a      = bli_obj_panel_stride( a );
+	void*     buf_a     = bli_obj_buffer_at_off( *a );
+	inc_t     cs_a      = bli_obj_col_stride( *a );
+	dim_t     pd_a      = bli_obj_panel_dim( *a );
+	inc_t     ps_a      = bli_obj_panel_stride( *a );
 
-	void*     buf_b     = bli_obj_buffer_at_off( b );
-	inc_t     rs_b      = bli_obj_row_stride( b );
-	dim_t     pd_b      = bli_obj_panel_dim( b );
-	inc_t     ps_b      = bli_obj_panel_stride( b );
+	void*     buf_b     = bli_obj_buffer_at_off( *b );
+	inc_t     rs_b      = bli_obj_row_stride( *b );
+	dim_t     pd_b      = bli_obj_panel_dim( *b );
+	inc_t     ps_b      = bli_obj_panel_stride( *b );
 
-	void*     buf_c     = bli_obj_buffer_at_off( c );
-	inc_t     rs_c      = bli_obj_row_stride( c );
-	inc_t     cs_c      = bli_obj_col_stride( c );
+	void*     buf_c     = bli_obj_buffer_at_off( *c );
+	inc_t     rs_c      = bli_obj_row_stride( *c );
+	inc_t     cs_c      = bli_obj_col_stride( *c );
 
 	obj_t     scalar_a;
 	obj_t     scalar_b;
@@ -97,8 +97,8 @@ void bli_gemm_ker_var5( obj_t*  a,
 
 	// Grab the addresses of the internal scalar buffers for the scalar
 	// merged above and the scalar attached to C.
-	buf_alpha = bli_obj_internal_scalar_buffer( &scalar_b );
-	buf_beta  = bli_obj_internal_scalar_buffer( c );
+	buf_alpha = bli_obj_internal_scalar_buffer( scalar_b );
+	buf_beta  = bli_obj_internal_scalar_buffer( *c );
 
 	// Index into the type combination array to extract the correct
 	// function pointer.
@@ -223,8 +223,8 @@ void PASTEMAC(ch,varname)( \
 	cstep_c = cs_c * NR; \
 \
 	/* Save the panel strides of A and B to the auxinfo_t object. */ \
-	bli_auxinfo_set_ps_a( ps_a, &aux ); \
-	bli_auxinfo_set_ps_b( ps_b, &aux ); \
+	bli_auxinfo_set_ps_a( ps_a, aux ); \
+	bli_auxinfo_set_ps_b( ps_b, aux ); \
 \
 	b1 = b_cast; \
 	c1 = c_cast; \
@@ -234,7 +234,7 @@ void PASTEMAC(ch,varname)( \
 	b2 = bp; \
 \
 	/* Save address of next panel of B to the auxinfo_t object. */ \
-	bli_auxinfo_set_next_b( b2, &aux ); \
+	bli_auxinfo_set_next_b( b2, aux ); \
 \
 	/* Loop over the n dimension (NR columns at a time). */ \
 	for ( j = 0; j < n_iter; ++j ) \
@@ -270,7 +270,7 @@ void PASTEMAC(ch,varname)( \
 			} \
 \
 			/* Save address of next panel of A to the auxinfo_t object. */ \
-			bli_auxinfo_set_next_a( a2, &aux ); \
+			bli_auxinfo_set_next_a( a2, aux ); \
 \
 			/* Handle interior and edge cases separately. */ \
 			if ( m_cur == MR && n_cur == NR ) \

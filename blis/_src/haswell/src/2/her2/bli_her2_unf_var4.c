@@ -53,6 +53,7 @@ void PASTEMAC(ch,varname) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
 \
+	ctype*  two        = PASTEMAC(ch,2); \
 	ctype*  chi1; \
 	ctype*  x2; \
 	ctype*  psi1; \
@@ -156,8 +157,7 @@ void PASTEMAC(ch,varname) \
 \
 		/* gamma11 = gamma11 +      alpha  * chi1 * conj(psi1) \
 		                     + conj(alpha) * psi1 * conj(chi1); */ \
-		PASTEMAC(ch,adds)( alpha0_chi1_psi1, *gamma11 ); \
-		PASTEMAC(ch,adds)( alpha0_chi1_psi1, *gamma11 ); \
+		PASTEMAC(ch,axpys)( *two, alpha0_chi1_psi1, *gamma11 ); \
 \
 		/* For her2, explicitly set the imaginary component of gamma11 to
            zero. */ \

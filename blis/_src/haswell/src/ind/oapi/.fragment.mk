@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := oapi
 CURRENT_SUB_DIRS := 
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := bli_l3_3m4m1m_oapi.c bli_l3_ind_oapi.c bli_l3_nat_oapi.c
+LOCAL_SRC_FILES  := bli_l3_1mbppb_oapi.c bli_l3_3m4m1m_oapi.c bli_l3_ind_oapi.c bli_l3_nat_oapi.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

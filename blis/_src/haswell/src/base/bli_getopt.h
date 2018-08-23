@@ -32,15 +32,9 @@
 
 */
 
-typedef struct getopt_s
-{
-	char* optarg;
-	int   optind;
-	int   opterr;
-	int   optopt;
-} getopt_t;
+extern char *bli_optarg;
+extern int   bli_optind;
+extern int   bli_opterr;
+extern int   bli_optopt;
 
-void bli_getopt_init_state( int opterr, getopt_t* state );
-
-int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* state );
-
+int bli_getopt( int argc, char** const argv, const char* optstring );

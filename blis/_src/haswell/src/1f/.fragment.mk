@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := 1f
 CURRENT_SUB_DIRS := kernels
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := bli_l1f_check.c bli_l1f_oapi_ba.c bli_l1f_oapi.c bli_l1f_oapi_ex.c bli_l1f_tapi_ba.c bli_l1f_tapi.c bli_l1f_tapi_ex.c
+LOCAL_SRC_FILES  := bli_l1f_check.c bli_l1f_cntx.c bli_l1f_oapi.c bli_l1f_oapi_wc.c bli_l1f_oapi_woc.c bli_l1f_tapi.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

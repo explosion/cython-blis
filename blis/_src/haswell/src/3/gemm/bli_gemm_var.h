@@ -46,7 +46,6 @@ void PASTEMAC0(opname) \
        obj_t*  b, \
        obj_t*  c, \
        cntx_t* cntx, \
-       rntm_t* rntm, \
        cntl_t* cntl, \
        thrinfo_t* thread  \
      );
@@ -61,7 +60,9 @@ GENPROT( gemm_ker_var1 )
 GENPROT( gemm_ker_var2 )
 
 // Headers for induced algorithms:
+GENPROT( gemm3m3_packa ) // 3m3
 GENPROT( gemm4mb_ker_var2 ) // 4m1b
+GENPROT( gemm3m2_ker_var2 ) // 3m2
 
 
 //
@@ -86,12 +87,12 @@ void PASTEMAC(ch,varname) \
        void*   beta, \
        void*   c, inc_t rs_c, inc_t cs_c, \
        cntx_t* cntx, \
-       rntm_t* rntm, \
        thrinfo_t* thread  \
      );
 
-INSERT_GENTPROT_BASIC0( gemm_ker_var2 )
+INSERT_GENTPROT_BASIC( gemm_ker_var2 )
 
 // Headers for induced algorithms:
-INSERT_GENTPROT_BASIC0( gemm4mb_ker_var2 ) // 4m1b
+INSERT_GENTPROT_BASIC( gemm4mb_ker_var2 ) // 4m1b
+INSERT_GENTPROT_BASIC( gemm3m2_ker_var2 ) // 3m2
 

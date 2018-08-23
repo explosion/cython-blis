@@ -47,36 +47,34 @@ void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ) \
 { \
-	bli_init_once(); \
+	BLIS_OAPI_CNTX_DECL \
 \
-	BLIS_OAPI_EX_DECLS \
+	num_t     dt        = bli_obj_datatype( *x ); \
 \
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	doff_t    diagoffx  = bli_obj_diag_offset( x ); \
-	diag_t    diagx     = bli_obj_diag( x ); \
-	uplo_t    uplox     = bli_obj_uplo( x ); \
-	trans_t   transx    = bli_obj_conjtrans_status( x ); \
-	dim_t     m         = bli_obj_length( y ); \
-	dim_t     n         = bli_obj_width( y ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
-	void*     buf_y     = bli_obj_buffer_at_off( y ); \
-	inc_t     rs_y      = bli_obj_row_stride( y ); \
-	inc_t     cs_y      = bli_obj_col_stride( y ); \
+	doff_t    diagoffx  = bli_obj_diag_offset( *x ); \
+	diag_t    diagx     = bli_obj_diag( *x ); \
+	uplo_t    uplox     = bli_obj_uplo( *x ); \
+	trans_t   transx    = bli_obj_conjtrans_status( *x ); \
+	dim_t     m         = bli_obj_length( *y ); \
+	dim_t     n         = bli_obj_width( *y ); \
+	void*     buf_x     = bli_obj_buffer_at_off( *x ); \
+	inc_t     rs_x      = bli_obj_row_stride( *x ); \
+	inc_t     cs_x      = bli_obj_col_stride( *x ); \
+	void*     buf_y     = bli_obj_buffer_at_off( *y ); \
+	inc_t     rs_y      = bli_obj_row_stride( *y ); \
+	inc_t     cs_y      = bli_obj_col_stride( *y ); \
 \
 	if ( bli_error_checking_is_enabled() ) \
 	    PASTEMAC(opname,_check)( x, y ); \
 \
 	/* Invoke the typed function. */ \
-	bli_call_ft_14 \
+	bli_call_ft_13 \
 	( \
 	   dt, \
-	   PASTECH(opname,BLIS_TAPI_EX_SUF), \
+	   opname, \
 	   diagoffx, \
 	   diagx, \
 	   uplox, \
@@ -85,8 +83,7 @@ void PASTEMAC(opname,EX_SUF) \
 	   n, \
 	   buf_x, rs_x, cs_x, \
 	   buf_y, rs_y, cs_y, \
-	   cntx, \
-	   rntm  \
+	   cntx  \
 	); \
 }
 
@@ -103,27 +100,25 @@ void PASTEMAC(opname,EX_SUF) \
        obj_t*  alpha, \
        obj_t*  x, \
        obj_t*  y  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ) \
 { \
-	bli_init_once(); \
+	BLIS_OAPI_CNTX_DECL \
 \
-	BLIS_OAPI_EX_DECLS \
+	num_t     dt        = bli_obj_datatype( *x ); \
 \
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	doff_t    diagoffx  = bli_obj_diag_offset( x ); \
-	diag_t    diagx     = bli_obj_diag( x ); \
-	uplo_t    uplox     = bli_obj_uplo( x ); \
-	trans_t   transx    = bli_obj_conjtrans_status( x ); \
-	dim_t     m         = bli_obj_length( y ); \
-	dim_t     n         = bli_obj_width( y ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
-	void*     buf_y     = bli_obj_buffer_at_off( y ); \
-	inc_t     rs_y      = bli_obj_row_stride( y ); \
-	inc_t     cs_y      = bli_obj_col_stride( y ); \
+	doff_t    diagoffx  = bli_obj_diag_offset( *x ); \
+	diag_t    diagx     = bli_obj_diag( *x ); \
+	uplo_t    uplox     = bli_obj_uplo( *x ); \
+	trans_t   transx    = bli_obj_conjtrans_status( *x ); \
+	dim_t     m         = bli_obj_length( *y ); \
+	dim_t     n         = bli_obj_width( *y ); \
+	void*     buf_x     = bli_obj_buffer_at_off( *x ); \
+	inc_t     rs_x      = bli_obj_row_stride( *x ); \
+	inc_t     cs_x      = bli_obj_col_stride( *x ); \
+	void*     buf_y     = bli_obj_buffer_at_off( *y ); \
+	inc_t     rs_y      = bli_obj_row_stride( *y ); \
+	inc_t     cs_y      = bli_obj_col_stride( *y ); \
 \
 	void*     buf_alpha; \
 \
@@ -136,13 +131,13 @@ void PASTEMAC(opname,EX_SUF) \
 	   as needed). */ \
 	bli_obj_scalar_init_detached_copy_of( dt, BLIS_NO_CONJUGATE, \
 	                                      alpha, &alpha_local ); \
-	buf_alpha = bli_obj_buffer_for_1x1( dt, &alpha_local ); \
+	buf_alpha = bli_obj_buffer_for_1x1( dt, alpha_local ); \
 \
 	/* Invoke the typed function. */ \
-	bli_call_ft_15 \
+	bli_call_ft_14 \
 	( \
 	   dt, \
-	   PASTECH(opname,BLIS_TAPI_EX_SUF), \
+	   opname, \
 	   diagoffx, \
 	   diagx, \
 	   uplox, \
@@ -152,8 +147,7 @@ void PASTEMAC(opname,EX_SUF) \
 	   buf_alpha, \
 	   buf_x, rs_x, cs_x, \
 	   buf_y, rs_y, cs_y, \
-	   cntx, \
-	   rntm  \
+	   cntx  \
 	); \
 }
 
@@ -168,24 +162,22 @@ void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ) \
 { \
-	bli_init_once(); \
+	BLIS_OAPI_CNTX_DECL \
 \
-	BLIS_OAPI_EX_DECLS \
+	num_t     dt        = bli_obj_datatype( *x ); \
 \
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	/* conj_t    conjalpha = bli_obj_conj_status( alpha ); */ \
-	doff_t    diagoffx  = bli_obj_diag_offset( x ); \
-	diag_t    diagx     = bli_obj_diag( x ); \
-	uplo_t    uplox     = bli_obj_uplo( x ); \
-	dim_t     m         = bli_obj_length( x ); \
-	dim_t     n         = bli_obj_width( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
+	/* conj_t    conjalpha = bli_obj_conj_status( *alpha ); */ \
+	doff_t    diagoffx  = bli_obj_diag_offset( *x ); \
+	diag_t    diagx     = bli_obj_diag( *x ); \
+	uplo_t    uplox     = bli_obj_uplo( *x ); \
+	dim_t     m         = bli_obj_length( *x ); \
+	dim_t     n         = bli_obj_width( *x ); \
+	void*     buf_x     = bli_obj_buffer_at_off( *x ); \
+	inc_t     rs_x      = bli_obj_row_stride( *x ); \
+	inc_t     cs_x      = bli_obj_col_stride( *x ); \
 \
 	void*     buf_alpha; \
 \
@@ -196,7 +188,7 @@ void PASTEMAC(opname,EX_SUF) \
 	    PASTEMAC(opname,_check)( alpha, x ); \
 \
 	/* Alias x to x_local so we can apply alpha if it is non-unit. */ \
-	bli_obj_alias_to( x, &x_local ); \
+	bli_obj_alias_to( *x, x_local ); \
 \
 	/* If alpha is non-unit, apply it to the scalar attached to x. */ \
 	if ( !bli_obj_equals( alpha, &BLIS_ONE ) ) \
@@ -211,13 +203,13 @@ void PASTEMAC(opname,EX_SUF) \
 \
 	/* Grab the address of the internal scalar buffer for the scalar
 	   attached to x. */ \
-	buf_alpha = bli_obj_internal_scalar_buffer( &x_local ); \
+	buf_alpha = bli_obj_internal_scalar_buffer( x_local ); \
 \
 	/* Invoke the typed function. */ \
-	bli_call_ft_12 \
+	bli_call_ft_11 \
 	( \
 	   dt, \
-	   PASTECH(opname,BLIS_TAPI_EX_SUF), \
+	   opname, \
 	   BLIS_NO_CONJUGATE, /* internal conjugation applied during copy-cast. */ \
 	   diagoffx, \
 	   diagx, \
@@ -226,8 +218,7 @@ void PASTEMAC(opname,EX_SUF) \
 	   n, \
 	   buf_alpha, \
 	   buf_x, rs_x, cs_x, \
-	   cntx, \
-	   rntm  \
+	   cntx  \
 	); \
 }
 
@@ -241,24 +232,22 @@ void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x  \
-       BLIS_OAPI_EX_PARAMS  \
+       BLIS_OAPI_CNTX_PARAM  \
      ) \
 { \
-	bli_init_once(); \
+	BLIS_OAPI_CNTX_DECL \
 \
-	BLIS_OAPI_EX_DECLS \
+	num_t     dt        = bli_obj_datatype( *x ); \
 \
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	/* conj_t    conjalpha = bli_obj_conj_status( alpha ); */ \
-	doff_t    diagoffx  = bli_obj_diag_offset( x ); \
-	diag_t    diagx     = bli_obj_diag( x ); \
-	uplo_t    uplox     = bli_obj_uplo( x ); \
-	dim_t     m         = bli_obj_length( x ); \
-	dim_t     n         = bli_obj_width( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
+	/* conj_t    conjalpha = bli_obj_conj_status( *alpha ); */ \
+	doff_t    diagoffx  = bli_obj_diag_offset( *x ); \
+	diag_t    diagx     = bli_obj_diag( *x ); \
+	uplo_t    uplox     = bli_obj_uplo( *x ); \
+	dim_t     m         = bli_obj_length( *x ); \
+	dim_t     n         = bli_obj_width( *x ); \
+	void*     buf_x     = bli_obj_buffer_at_off( *x ); \
+	inc_t     rs_x      = bli_obj_row_stride( *x ); \
+	inc_t     cs_x      = bli_obj_col_stride( *x ); \
 \
 	void*     buf_alpha; \
 \
@@ -271,13 +260,13 @@ void PASTEMAC(opname,EX_SUF) \
 	   as needed). */ \
 	bli_obj_scalar_init_detached_copy_of( dt, BLIS_NO_CONJUGATE, \
 	                                      alpha, &alpha_local ); \
-	buf_alpha = bli_obj_buffer_for_1x1( dt, &alpha_local ); \
+	buf_alpha = bli_obj_buffer_for_1x1( dt, alpha_local ); \
 \
 	/* Invoke the typed function. */ \
-	bli_call_ft_12 \
+	bli_call_ft_11 \
 	( \
 	   dt, \
-	   PASTECH(opname,BLIS_TAPI_EX_SUF), \
+	   opname, \
 	   BLIS_NO_CONJUGATE, /* internal conjugation applied during copy-cast. */ \
 	   diagoffx, \
 	   diagx, \
@@ -286,8 +275,7 @@ void PASTEMAC(opname,EX_SUF) \
 	   n, \
 	   buf_alpha, \
 	   buf_x, rs_x, cs_x, \
-	   cntx, \
-	   rntm  \
+	   cntx  \
 	); \
 }
 

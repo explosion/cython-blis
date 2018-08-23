@@ -51,8 +51,7 @@ void PASTEMAC(ch,opname) \
        dim_t   n, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
        ctype*  y, inc_t rs_y, inc_t cs_y, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      ) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
@@ -69,13 +68,10 @@ void PASTEMAC(ch,opname) \
 	dim_t    ij0, n_shift; \
 \
 	/* Set various loop parameters. */ \
-	bli_set_dims_incs_uplo_2m \
-	( \
-	  diagoffx, diagx, transx, \
-	  uplox, m, n, rs_x, cs_x, rs_y, cs_y, \
-	  &uplox_eff, &n_elem_max, &n_iter, &incx, &ldx, &incy, &ldy, \
-	  &ij0, &n_shift \
-	); \
+	bli_set_dims_incs_uplo_2m( diagoffx, diagx, transx, \
+	                           uplox, m, n, rs_x, cs_x, rs_y, cs_y, \
+	                           uplox_eff, n_elem_max, n_iter, incx, ldx, incy, ldy, \
+	                           ij0, n_shift ); \
 \
 	if ( bli_is_zeros( uplox_eff ) ) return; \
 \
@@ -168,8 +164,7 @@ void PASTEMAC(ch,opname) \
        ctype*  alpha, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
        ctype*  y, inc_t rs_y, inc_t cs_y, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      ) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
@@ -186,13 +181,10 @@ void PASTEMAC(ch,opname) \
 	dim_t    ij0, n_shift; \
 \
 	/* Set various loop parameters. */ \
-	bli_set_dims_incs_uplo_2m \
-	( \
-	  diagoffx, diagx, transx, \
-	  uplox, m, n, rs_x, cs_x, rs_y, cs_y, \
-	  &uplox_eff, &n_elem_max, &n_iter, &incx, &ldx, &incy, &ldy, \
-	  &ij0, &n_shift \
-	); \
+	bli_set_dims_incs_uplo_2m( diagoffx, diagx, transx, \
+	                           uplox, m, n, rs_x, cs_x, rs_y, cs_y, \
+	                           uplox_eff, n_elem_max, n_iter, incx, ldx, incy, ldy, \
+	                           ij0, n_shift ); \
 \
 	if ( bli_is_zeros( uplox_eff ) ) return; \
 \
@@ -286,8 +278,7 @@ void PASTEMAC(ch,opname) \
        dim_t   n, \
        ctype*  alpha, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      ) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
@@ -301,13 +292,10 @@ void PASTEMAC(ch,opname) \
 	dim_t    ij0, n_shift; \
 \
 	/* Set various loop parameters. */ \
-	bli_set_dims_incs_uplo_1m \
-	( \
-	  diagoffx, diagx, \
-	  uplox, m, n, rs_x, cs_x, \
-	  &uplox_eff, &n_elem_max, &n_iter, &incx, &ldx, \
-	  &ij0, &n_shift \
-	); \
+	bli_set_dims_incs_uplo_1m( diagoffx, diagx, \
+	                           uplox, m, n, rs_x, cs_x, \
+	                           uplox_eff, n_elem_max, n_iter, incx, ldx, \
+	                           ij0, n_shift ); \
 \
 	if ( bli_is_zeros( uplox_eff ) ) return; \
 \

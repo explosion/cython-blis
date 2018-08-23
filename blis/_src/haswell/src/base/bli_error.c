@@ -34,13 +34,28 @@
 
 #include "blis.h"
 
+static bool_t bli_error_is_init = FALSE;
+
 void bli_error_init( void )
 {
+	// If the API is already initialized, return early.
+	if ( bli_error_is_initialized() ) return;
+
 	bli_error_init_msgs();
+
+	// Mark API as initialized.
+	bli_error_is_init = TRUE;
 }
 
 void bli_error_finalize( void )
 {
+	// Mark API as uninitialized.
+	bli_error_is_init = FALSE;
+}
+
+bool_t bli_error_is_initialized( void )
+{
+	return bli_error_is_init;
 }
 
 // -----------------------------------------------------------------------------
@@ -90,8 +105,6 @@ void bli_error_init_msgs( void )
 	         "Expected second datatype to be real projection of first." );
 	sprintf( bli_error_string_for_code(BLIS_EXPECTED_REAL_VALUED_OBJECT),
 	         "Expected real-valued object (ie: if complex, imaginary component equals zero)." );
-	sprintf( bli_error_string_for_code(BLIS_INCONSISTENT_PRECISIONS),
-	         "Expected consistent precisions (both single or both double)." );
 
 	sprintf( bli_error_string_for_code(BLIS_NONCONFORMAL_DIMENSIONS),
 	         "Encountered non-conformal dimensions between objects." );
@@ -151,6 +164,8 @@ void bli_error_init_msgs( void )
 
 	sprintf( bli_error_string_for_code(BLIS_INVALID_PACKBUF),
 	         "Invalid packbuf_t value." );
+	sprintf( bli_error_string_for_code(BLIS_REQUESTED_CONTIG_BLOCK_TOO_BIG ),
+	         "Attempted to allocate contiguous memory block that is too big for implementation." );
 	sprintf( bli_error_string_for_code(BLIS_EXHAUSTED_CONTIG_MEMORY_POOL),
 	         "Attempted to allocate more memory from contiguous pool than is available." );
 	sprintf( bli_error_string_for_code(BLIS_INSUFFICIENT_STACK_BUF_SIZE),
@@ -162,22 +177,6 @@ void bli_error_init_msgs( void )
 
 	sprintf( bli_error_string_for_code(BLIS_EXPECTED_OBJECT_ALIAS),
 	         "Expected object to be alias." );
-
-	sprintf( bli_error_string_for_code(BLIS_INVALID_ARCH_ID),
-	         "Invalid architecture id value." );
-
-	sprintf( bli_error_string_for_code(BLIS_MC_DEF_NONMULTIPLE_OF_MR),
-	         "Default MC is non-multiple of MR for one or more datatypes." );
-	sprintf( bli_error_string_for_code(BLIS_MC_MAX_NONMULTIPLE_OF_MR),
-	         "Maximum MC is non-multiple of MR for one or more datatypes." );
-	sprintf( bli_error_string_for_code(BLIS_NC_DEF_NONMULTIPLE_OF_NR),
-	         "Default NC is non-multiple of NR for one or more datatypes." );
-	sprintf( bli_error_string_for_code(BLIS_NC_MAX_NONMULTIPLE_OF_NR),
-	         "Maximum NC is non-multiple of NR for one or more datatypes." );
-	sprintf( bli_error_string_for_code(BLIS_KC_DEF_NONMULTIPLE_OF_KR),
-	         "Default KC is non-multiple of KR for one or more datatypes." );
-	sprintf( bli_error_string_for_code(BLIS_KC_MAX_NONMULTIPLE_OF_KR),
-	         "Maximum KC is non-multiple of KR for one or more datatypes." );
 }
 
 void bli_print_msg( char* str, char* file, guint_t line )
@@ -197,46 +196,32 @@ void bli_abort( void )
 
 // -----------------------------------------------------------------------------
 
-#ifdef BLIS_ENABLE_PTHREADS
-static pthread_mutex_t err_mutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
-
 // Current error checking level.
 static errlev_t bli_err_chk_level = BLIS_FULL_ERROR_CHECKING;
 
 errlev_t bli_error_checking_level( void )
 {
-	return bli_err_chk_level;
+    return bli_err_chk_level;
 }
 
-void bli_error_checking_level_set( errlev_t new_level )
+errlev_t bli_error_checking_level_set( errlev_t new_level )
 {
-	err_t e_val;
+    err_t    e_val;
+    errlev_t old_level;
 
-	e_val = bli_check_valid_error_level( new_level );
-	bli_check_error_code( e_val );
+    e_val = bli_check_valid_error_level( new_level );
+    bli_check_error_code( e_val );
 
-#ifdef BLIS_ENABLE_OPENMP
-	_Pragma( "omp critical (err)" )
-#endif
-#ifdef BLIS_ENABLE_PTHREADS
-	pthread_mutex_lock( &err_mutex );
-#endif
+    old_level = bli_err_chk_level;
 
-	// BEGIN CRITICAL SECTION
-	{
-		bli_err_chk_level = new_level;
-	}
-	// END CRITICAL SECTION
+    bli_err_chk_level = new_level;
 
-#ifdef BLIS_ENABLE_PTHREADS
-	pthread_mutex_unlock( &err_mutex );
-#endif
+    return old_level;
 }
 
 bool_t bli_error_checking_is_enabled( void )
 {
-	return bli_error_checking_level() != BLIS_NO_ERROR_CHECKING;
+    return bli_error_checking_level() != BLIS_NO_ERROR_CHECKING;
 }
 
 char* bli_error_string_for_code( gint_t code )

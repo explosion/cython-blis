@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := trsm
 CURRENT_SUB_DIRS := 
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := 
+LOCAL_SRC_FILES  := bli_gemmtrsm1m_ukr_ref.c bli_gemmtrsm3m1_ukr_ref.c bli_gemmtrsm4m1_ukr_ref.c bli_trsm1m_ukr_ref.c bli_trsm3m1_ukr_ref.c bli_trsm4m1_ukr_ref.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

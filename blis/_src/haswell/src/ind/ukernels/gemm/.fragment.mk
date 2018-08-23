@@ -45,7 +45,7 @@ CURRENT_DIR_NAME := gemm
 CURRENT_SUB_DIRS := 
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := 
+LOCAL_SRC_FILES  := bli_gemm1m_ukr_ref.c bli_gemm3m1_ukr_ref.c bli_gemm3m2_ukr_ref.c bli_gemm3m3_ukr_ref.c bli_gemm3mh_ukr_ref.c bli_gemm4m1_ukr_ref.c bli_gemm4mb_ukr_ref.c bli_gemm4mh_ukr_ref.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

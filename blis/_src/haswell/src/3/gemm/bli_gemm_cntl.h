@@ -34,26 +34,20 @@
 
 cntl_t* bli_gemm_cntl_create
      (
-       opid_t family,
-       pack_t schema_a,
-       pack_t schema_b
+       opid_t family
      );
 
 // -----------------------------------------------------------------------------
 
 cntl_t* bli_gemmbp_cntl_create
      (
-       opid_t family,
-       pack_t schema_a,
-       pack_t schema_b
+       opid_t family
      );
 
-#if 0
 cntl_t* bli_gemmpb_cntl_create
      (
-       opid_t family,
+       opid_t family
      );
-#endif
 
 // -----------------------------------------------------------------------------
 

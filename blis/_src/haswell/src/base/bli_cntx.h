@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2016, Hewlett Packard Enterprise Development LP
+   Copyright (C) 2016 Hewlett Packard Enterprise Development LP
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -36,6 +36,8 @@
 #ifndef BLIS_CNTX_H
 #define BLIS_CNTX_H
 
+//#include "bli_cntx_init.h"
+
 
 // Context object type (defined in bli_type_defs.h)
 
@@ -60,503 +62,510 @@ typedef struct cntx_s
 	pack_t    schema_b;
 	pack_t    schema_c;
 
+	bool_t    anti_pref;
+
+	dim_t*    thrloop;
+
 	membrk_t* membrk;
 } cntx_t;
 */
 
 // -----------------------------------------------------------------------------
 
-//
-// -- cntx_t query (fields only) -----------------------------------------------
-//
+// cntx_t query (fields only)
 
-static blksz_t* bli_cntx_blkszs_buf( cntx_t* cntx )
-{
-	return cntx->blkszs;
+#define bli_cntx_blkszs_buf( cntx ) \
+\
+	( (cntx)->blkszs )
+
+#define bli_cntx_bmults_buf( cntx ) \
+\
+	( (cntx)->bmults )
+
+#define bli_cntx_l3_vir_ukrs_buf( cntx ) \
+\
+	( (cntx)->l3_vir_ukrs )
+
+#define bli_cntx_l3_nat_ukrs_buf( cntx ) \
+\
+	( (cntx)->l3_nat_ukrs )
+
+#define bli_cntx_l3_nat_ukrs_prefs_buf( cntx ) \
+\
+	( (cntx)->l3_nat_ukrs_prefs )
+
+#define bli_cntx_l1f_kers_buf( cntx ) \
+\
+	( (cntx)->l1f_kers )
+
+#define bli_cntx_l1v_kers_buf( cntx ) \
+\
+	( (cntx)->l1v_kers )
+
+#define bli_cntx_packm_kers_buf( cntx ) \
+\
+	( (cntx)->packm_kers )
+
+#define bli_cntx_unpackm_kers_buf( cntx ) \
+\
+	( (cntx)->unpackm_kers )
+
+#define bli_cntx_method( cntx ) \
+\
+	( (cntx)->method )
+
+#define bli_cntx_schema_a_block( cntx ) \
+\
+	( (cntx)->schema_a_block )
+
+#define bli_cntx_schema_b_panel( cntx ) \
+\
+	( (cntx)->schema_b_panel )
+
+#define bli_cntx_schema_c_panel( cntx ) \
+\
+	( (cntx)->schema_c_panel )
+
+#define bli_cntx_anti_pref( cntx ) \
+\
+	( (cntx)->anti_pref )
+
+#define bli_cntx_thrloop( cntx ) \
+\
+	( (cntx)->thrloop )
+
+#define bli_cntx_membrk( cntx ) \
+\
+	( (cntx)->membrk )
+
+#if 1
+#define bli_cntx_jc_way( cntx ) \
+\
+	( (cntx)->thrloop[ BLIS_NC ] )
+
+#define bli_cntx_pc_way( cntx ) \
+\
+	( (cntx)->thrloop[ BLIS_KC ] )
+
+#define bli_cntx_ic_way( cntx ) \
+\
+	( (cntx)->thrloop[ BLIS_MC ] )
+
+#define bli_cntx_jr_way( cntx ) \
+\
+	( (cntx)->thrloop[ BLIS_NR ] )
+
+#define bli_cntx_ir_way( cntx ) \
+\
+	( (cntx)->thrloop[ BLIS_MR ] )
+#endif
+
+#define bli_cntx_way_for_bszid( bszid, cntx ) \
+\
+    ( (cntx)->thrloop[ bszid ] )
+
+// cntx_t modification (fields only)
+
+#define bli_cntx_set_blkszs_buf( _blkszs, cntx_p ) \
+{ \
+	(cntx_p)->blkszs = _blkszs; \
 }
-static bszid_t* bli_cntx_bmults_buf( cntx_t* cntx )
-{
-	return cntx->bmults;
+
+#define bli_cntx_set_bmults_buf( _bmults, cntx_p ) \
+{ \
+	(cntx_p)->bmults = _bmults; \
 }
-static func_t* bli_cntx_l3_vir_ukrs_buf( cntx_t* cntx )
-{
-	return cntx->l3_vir_ukrs;
+
+#define bli_cntx_set_l3_vir_ukrs_buf( _l3_vir_ukrs, cntx_p ) \
+{ \
+	(cntx_p)->l3_vir_ukrs = _l3_vir_ukrs; \
 }
-static func_t* bli_cntx_l3_nat_ukrs_buf( cntx_t* cntx )
-{
-	return cntx->l3_nat_ukrs;
+
+#define bli_cntx_set_l3_nat_ukrs_buf( _l3_nat_ukrs, cntx_p ) \
+{ \
+	(cntx_p)->l3_nat_ukrs = _l3_nat_ukrs; \
 }
-static mbool_t* bli_cntx_l3_nat_ukrs_prefs_buf( cntx_t* cntx )
-{
-	return cntx->l3_nat_ukrs_prefs;
+
+#define bli_cntx_set_l3_nat_ukrs_prefs_buf( _l3_nat_ukrs_prefs, cntx_p ) \
+{ \
+	(cntx_p)->l3_nat_ukrs_prefs = _l3_nat_ukrs_prefs; \
 }
-static func_t* bli_cntx_l1f_kers_buf( cntx_t* cntx )
-{
-	return cntx->l1f_kers;
+
+#define bli_cntx_set_l1f_kers_buf( _l1f_kers, cntx_p ) \
+{ \
+	(cntx_p)->l1f_kers = _l1f_kers; \
 }
-static func_t* bli_cntx_l1v_kers_buf( cntx_t* cntx )
-{
-	return cntx->l1v_kers;
+
+#define bli_cntx_set_l1v_kers_buf( _l1v_kers, cntx_p ) \
+{ \
+	(cntx_p)->l1v_kers = _l1v_kers; \
 }
-static func_t* bli_cntx_packm_kers_buf( cntx_t* cntx )
-{
-	return cntx->packm_kers;
+
+#define bli_cntx_set_method( _method, cntx_p ) \
+{ \
+	(cntx_p)->method = _method; \
 }
-static func_t* bli_cntx_unpackm_kers_buf( cntx_t* cntx )
-{
-	return cntx->unpackm_kers;
+
+#define bli_cntx_set_schema_a_block( _schema_a_block, cntx_p ) \
+{ \
+	(cntx_p)->schema_a_block = _schema_a_block; \
 }
-static ind_t bli_cntx_method( cntx_t* cntx )
-{
-	return cntx->method;
+
+#define bli_cntx_set_schema_b_panel( _schema_b_panel, cntx_p ) \
+{ \
+	(cntx_p)->schema_b_panel = _schema_b_panel; \
 }
-static pack_t bli_cntx_schema_a_block( cntx_t* cntx )
-{
-	return cntx->schema_a_block;
+
+#define bli_cntx_set_schema_c_panel( _schema_c_panel, cntx_p ) \
+{ \
+	(cntx_p)->schema_c_panel = _schema_c_panel; \
 }
-static pack_t bli_cntx_schema_b_panel( cntx_t* cntx )
-{
-	return cntx->schema_b_panel;
+
+#define bli_cntx_set_anti_pref( _anti_pref, cntx_p ) \
+{ \
+	(cntx_p)->anti_pref = _anti_pref; \
 }
-static pack_t bli_cntx_schema_c_panel( cntx_t* cntx )
-{
-	return cntx->schema_c_panel;
+
+#define bli_cntx_set_thrloop( jc_, pc_, ic_, jr_, ir_, cntx_p ) \
+{ \
+	(cntx_p)->thrloop[ BLIS_NC ] = jc_; \
+	(cntx_p)->thrloop[ BLIS_KC ] = pc_; \
+	(cntx_p)->thrloop[ BLIS_MC ] = ic_; \
+	(cntx_p)->thrloop[ BLIS_NR ] = jr_; \
+	(cntx_p)->thrloop[ BLIS_MR ] = ir_; \
+	(cntx_p)->thrloop[ BLIS_KR ] = 1;   \
 }
-static membrk_t* bli_cntx_get_membrk( cntx_t* cntx )
-{
-	return cntx->membrk;
+
+#define bli_cntx_set_membrk( _membrk, cntx_p ) \
+{ \
+	(cntx_p)->membrk = _membrk; \
 }
+
+// cntx_t query (complex)
+
+#define bli_cntx_get_blksz_def_dt( dt, bs_id, cntx ) \
+\
+	bli_blksz_get_def \
+	( \
+	  (dt), (&(bli_cntx_blkszs_buf( (cntx) ))[ bs_id ]) \
+	)
+
+#define bli_cntx_get_blksz_max_dt( dt, bs_id, cntx ) \
+\
+	bli_blksz_get_max \
+	( \
+	  (dt), (&(bli_cntx_blkszs_buf( (cntx) ))[ bs_id ]) \
+	)
+
+#define bli_cntx_get_bmult_dt( dt, bs_id, cntx ) \
+\
+	bli_blksz_get_def \
+	( \
+	  (dt), \
+	  (&(bli_cntx_blkszs_buf( (cntx) )) \
+	  [ \
+	    (bli_cntx_bmults_buf( (cntx) ))[ bs_id ] \
+	  ]) \
+	)
+
+#define bli_cntx_get_l3_ukr_dt( dt, ukr_id, cntx ) \
+\
+	bli_func_get_dt \
+	( \
+	  (dt), \
+	  &(( \
+	    bli_cntx_method( (cntx) ) != BLIS_NAT && \
+	    bli_is_complex( dt ) \
+		  ? bli_cntx_l3_vir_ukrs_buf( (cntx) ) \
+	      : bli_cntx_l3_nat_ukrs_buf( (cntx) ) \
+	  )[ ukr_id ]) \
+	)
+
+#define bli_cntx_get_l3_vir_ukr_dt( dt, ukr_id, cntx ) \
+\
+	bli_func_get_dt \
+	( \
+	  (dt), (&(bli_cntx_l3_vir_ukrs_buf( (cntx) ))[ ukr_id ]) \
+	)
+
+#define bli_cntx_get_l3_nat_ukr_dt( dt, ukr_id, cntx ) \
+\
+	bli_func_get_dt \
+	( \
+	  (dt), (&(bli_cntx_l3_nat_ukrs_buf( (cntx) ))[ ukr_id ]) \
+	)
+
+#define bli_cntx_get_l1f_ker_dt( dt, ker_id, cntx ) \
+\
+	bli_func_get_dt \
+	( \
+	  (dt), (&(bli_cntx_l1f_kers_buf( (cntx) ))[ ker_id ]) \
+	)
+
+#define bli_cntx_get_l1v_ker_dt( dt, ker_id, cntx ) \
+\
+	bli_func_get_dt \
+	( \
+	  (dt), (&(bli_cntx_l1v_kers_buf( (cntx) ))[ ker_id ]) \
+	)
+
+#define bli_cntx_get_l3_nat_ukr_prefs_dt( dt, ukr_id, cntx ) \
+\
+	bli_mbool_get_dt \
+	( \
+	  (dt), (&(bli_cntx_l3_nat_ukrs_prefs_buf( (cntx) ))[ ukr_id ]) \
+	)
+
+#define bli_cntx_get_ind_method( cntx ) \
+\
+	bli_cntx_method( cntx )
+
+#define bli_cntx_get_pack_schema_a_block( cntx ) \
+\
+	bli_cntx_schema_a_block( cntx )
+
+#define bli_cntx_get_pack_schema_b_panel( cntx ) \
+\
+	bli_cntx_schema_b_panel( cntx )
+
+#define bli_cntx_get_pack_schema_c_panel( cntx ) \
+\
+	bli_cntx_schema_c_panel( cntx )
+
+#define bli_cntx_get_membrk( cntx ) \
+\
+	bli_cntx_membrk( cntx )
+
+
+
 
 // -----------------------------------------------------------------------------
 
-//
-// -- cntx_t modification (fields only) ----------------------------------------
-//
+// create/free
 
-static void bli_cntx_set_method( ind_t method, cntx_t* cntx )
-{
-	cntx->method = method;
-}
-static void bli_cntx_set_schema_a_block( pack_t schema, cntx_t* cntx )
-{
-	cntx->schema_a_block = schema;
-}
-static void bli_cntx_set_schema_b_panel( pack_t schema, cntx_t* cntx )
-{
-	cntx->schema_b_panel = schema;
-}
-static void bli_cntx_set_schema_c_panel( pack_t schema, cntx_t* cntx )
-{
-	cntx->schema_c_panel = schema;
-}
-static void bli_cntx_set_schema_ab_blockpanel( pack_t sa, pack_t sb, cntx_t* cntx )
-{
-	bli_cntx_set_schema_a_block( sa, cntx );
-	bli_cntx_set_schema_b_panel( sb, cntx );
-}
-static void bli_cntx_set_membrk( membrk_t* membrk, cntx_t* cntx )
-{
-	cntx->membrk = membrk;
-}
+//void     bli_cntx_create( cntx_t* cntx );
+//void     bli_cntx_free( cntx_t* cntx );
+void     bli_cntx_clear( cntx_t* cntx );
+void     bli_cntx_init( cntx_t* cntx );
 
-// -----------------------------------------------------------------------------
+// get functions
 
-//
-// -- cntx_t query (complex) ---------------------------------------------------
-//
+blksz_t* bli_cntx_get_blksz( bszid_t bs_id,
+                             cntx_t* cntx );
+blksz_t* bli_cntx_get_bmult( bszid_t bs_id,
+                             cntx_t* cntx );
+func_t*  bli_cntx_get_l3_ukr( l3ukr_t ukr_id,
+                              cntx_t* cntx );
+func_t*  bli_cntx_get_l3_vir_ukr( l3ukr_t ukr_id,
+                                  cntx_t* cntx );
+func_t*  bli_cntx_get_l3_nat_ukr( l3ukr_t ukr_id,
+                                  cntx_t* cntx );
+mbool_t* bli_cntx_get_l3_nat_ukr_prefs( l3ukr_t ukr_id,
+                                        cntx_t* cntx );
+func_t*  bli_cntx_get_l1f_ker( l1fkr_t ker_id,
+                               cntx_t* cntx );
+func_t*  bli_cntx_get_l1v_ker( l1vkr_t ker_id,
+                               cntx_t* cntx );
+//func_t*  bli_cntx_get_packm_ukr( cntx_t* cntx );
 
-static blksz_t* bli_cntx_get_blksz( bszid_t bs_id, cntx_t* cntx )
-{
-	blksz_t* blkszs = bli_cntx_blkszs_buf( cntx );
-	blksz_t* blksz  = &blkszs[ bs_id ];
+//dim_t    bli_cntx_get_blksz_def_dt( num_t   dt,
+//                                    bszid_t bs_id,
+//                                    cntx_t* cntx );
+//dim_t    bli_cntx_get_blksz_max_dt( num_t   dt,
+//                                    bszid_t bs_id,
+//                                    cntx_t* cntx );
+//dim_t    bli_cntx_get_bmult_dt( num_t   dt,
+//                                bszid_t bs_id,
+//                                cntx_t* cntx );
+//void*    bli_cntx_get_l3_ukr_dt( num_t   dt,
+//                                 l3ukr_t ukr_id,
+//                                 cntx_t* cntx );
+//void*    bli_cntx_get_l3_vir_ukr_dt( num_t   dt,
+//                                     l3ukr_t ukr_id,
+//                                     cntx_t* cntx );
+//void*    bli_cntx_get_l3_nat_ukr_dt( num_t   dt,
+//                                     l3ukr_t ukr_id,
+//                                     cntx_t* cntx );
+//bool_t   bli_cntx_get_l3_nat_ukr_prefs_dt( num_t   dt,
+//                                           l3ukr_t ukr_id,
+//                                           cntx_t* cntx );
+//void*    bli_cntx_get_l1f_ker_dt( num_t   dt,
+//                                  l1fkr_t ker_id,
+//                                  cntx_t* cntx );
+//void*    bli_cntx_get_l1v_ker_dt( num_t   dt,
+//                                  l1vkr_t ker_id,
+//                                  cntx_t* cntx );
+func_t*  bli_cntx_get_packm_ker( l1mkr_t ker_id,
+                                 cntx_t* cntx );
+func_t*  bli_cntx_get_unpackm_ker( l1mkr_t ker_id,
+                                   cntx_t* cntx );
+//ind_t    bli_cntx_get_ind_method( cntx_t* cntx );
+//pack_t   bli_cntx_get_pack_schema_a_block( cntx_t* cntx );
+//pack_t   bli_cntx_get_pack_schema_b_panel( cntx_t* cntx );
+//pack_t   bli_cntx_get_pack_schema_c_panel( cntx_t* cntx );
+//bool_t   bli_cntx_get_ukr_anti_pref( cntx_t* cntx );
+dim_t    bli_cntx_get_num_threads( cntx_t* cntx );
+dim_t    bli_cntx_get_num_threads_in( cntx_t* cntx, cntl_t* cntl );
 
-	// Return the address of the blksz_t identified by bs_id.
-	return blksz;
-}
+// set functions
 
-static dim_t bli_cntx_get_blksz_def_dt( num_t dt, bszid_t bs_id, cntx_t* cntx )
-{
-	blksz_t* blksz  = bli_cntx_get_blksz( bs_id, cntx );
-	dim_t    bs_dt  = bli_blksz_get_def( dt, blksz );
+void     bli_cntx_set_blkszs( ind_t method, dim_t n_bs, ... );
 
-	// Return the main (default) blocksize value for the datatype given.
-	return bs_dt;
-}
+void     bli_cntx_set_blksz( bszid_t  bs_id,
+                             blksz_t* blksz,
+                             bszid_t  mult_id,
+                             cntx_t*  cntx );
 
-static dim_t bli_cntx_get_blksz_max_dt( num_t dt, bszid_t bs_id, cntx_t* cntx )
-{
-	blksz_t* blksz  = bli_cntx_get_blksz( bs_id, cntx );
-	dim_t    bs_dt  = bli_blksz_get_max( dt, blksz );
+void     bli_cntx_set_l3_nat_ukrs( dim_t n_ukrs, ... );
 
-	// Return the auxiliary (maximum) blocksize value for the datatype given.
-	return bs_dt;
-}
+void     bli_cntx_set_l3_nat_ukr( l3ukr_t ukr_id,
+                                  func_t* func,
+                                  cntx_t* cntx );
+void     bli_cntx_set_l3_nat_ukr_prefs( l3ukr_t  ukr_id,
+                                        mbool_t* prefs,
+                                        cntx_t*  cntx );
 
-static bszid_t bli_cntx_get_bmult_id( bszid_t bs_id, cntx_t* cntx )
-{
-	bszid_t* restrict bmults = bli_cntx_bmults_buf( cntx );
-	bszid_t           bm_id  = bmults[ bs_id ];
+void     bli_cntx_set_l3_vir_ukr( l3ukr_t ukr_id,
+                                  func_t* func,
+                                  cntx_t* cntx );
 
-	return bm_id;
-}
+void     bli_cntx_set_l1f_ker( l1fkr_t ker_id,
+                               func_t* func,
+                               cntx_t* cntx );
 
-static blksz_t* bli_cntx_get_bmult( bszid_t bs_id, cntx_t* cntx )
-{
-	bszid_t           bm_id  = bli_cntx_get_bmult_id( bs_id, cntx );
-	blksz_t* restrict bmult  = bli_cntx_get_blksz( bm_id, cntx );
+void     bli_cntx_set_l1v_ker( l1vkr_t ker_id,
+                               func_t* func,
+                               cntx_t* cntx );
 
-	return bmult;
-}
+void     bli_cntx_set_packm_kers( dim_t n_kers, ... );
 
-static dim_t bli_cntx_get_bmult_dt( num_t dt, bszid_t bs_id, cntx_t* cntx )
-{
-	blksz_t* bmult  = bli_cntx_get_bmult( bs_id, cntx );
-	dim_t    bm_dt  = bli_blksz_get_def( dt, bmult );
+void     bli_cntx_set_packm_ker( l1mkr_t ker_id,
+                                 func_t* func,
+                                 cntx_t* cntx );
 
-	return bm_dt;
-}
+void     bli_cntx_set_packm_ukr( func_t* func, 
+                                 cntx_t* cntx );
+void     bli_cntx_set_ind_method( ind_t   method,
+                                  cntx_t* cntx );
+void     bli_cntx_set_pack_schema_ab_blockpanel( pack_t  schema_a,
+                                                 pack_t  schema_b,
+                                                 cntx_t* cntx );
+void     bli_cntx_set_pack_schema_a_block( pack_t  schema_a,
+                                           cntx_t* cntx );
+void     bli_cntx_set_pack_schema_b_panel( pack_t  schema_b,
+                                           cntx_t* cntx );
+void     bli_cntx_set_pack_schema_c_panel( pack_t  schema_c,
+                                           cntx_t* cntx );
+//void     bli_cntx_set_ukr_anti_pref( bool_t  anti_pref,
+//                                     cntx_t* cntx );
+void     bli_cntx_set_thrloop_from_env( opid_t  l3_op,
+                                        side_t  side,
+                                        cntx_t* cntx,
+                                        dim_t m,
+                                        dim_t n,
+                                        dim_t k );
 
-// -----------------------------------------------------------------------------
+// other query functions
 
-static func_t* bli_cntx_get_l3_vir_ukrs( l3ukr_t ukr_id, cntx_t* cntx )
-{
-	func_t* funcs = bli_cntx_l3_vir_ukrs_buf( cntx );
-	func_t* func  = &funcs[ ukr_id ];
+bool_t   bli_cntx_l3_nat_ukr_prefers_rows_dt( num_t   dt,
+                                              l3ukr_t ukr_id,
+                                              cntx_t* cntx );
+bool_t   bli_cntx_l3_nat_ukr_prefers_cols_dt( num_t   dt,
+                                              l3ukr_t ukr_id,
+                                              cntx_t* cntx );
+bool_t   bli_cntx_l3_nat_ukr_prefers_storage_of( obj_t*  obj,
+                                                 l3ukr_t ukr_id,
+                                                 cntx_t* cntx );
+bool_t   bli_cntx_l3_nat_ukr_dislikes_storage_of( obj_t*  obj,
+                                                  l3ukr_t ukr_id,
+                                                  cntx_t* cntx );
+bool_t   bli_cntx_l3_nat_ukr_eff_prefers_storage_of( obj_t*  obj,
+                                                     l3ukr_t ukr_id,
+                                                     cntx_t* cntx );
+bool_t   bli_cntx_l3_nat_ukr_eff_dislikes_storage_of( obj_t*  obj,
+                                                      l3ukr_t ukr_id,
+                                                      cntx_t* cntx );
+bool_t   bli_cntx_l3_ukr_prefers_rows_dt( num_t   dt,
+                                          l3ukr_t ukr_id,
+                                          cntx_t* cntx );
+bool_t   bli_cntx_l3_ukr_prefers_cols_dt( num_t   dt,
+                                          l3ukr_t ukr_id,
+                                          cntx_t* cntx );
+bool_t   bli_cntx_l3_ukr_prefers_storage_of( obj_t*  obj,
+                                             l3ukr_t ukr_id,
+                                             cntx_t* cntx );
+bool_t   bli_cntx_l3_ukr_dislikes_storage_of( obj_t*  obj,
+                                              l3ukr_t ukr_id,
+                                              cntx_t* cntx );
+bool_t   bli_cntx_l3_ukr_eff_prefers_storage_of( obj_t*  obj,
+                                                 l3ukr_t ukr_id,
+                                                 cntx_t* cntx );
+bool_t   bli_cntx_l3_ukr_eff_dislikes_storage_of( obj_t*  obj,
+                                                  l3ukr_t ukr_id,
+                                                  cntx_t* cntx );
 
-	return func;
-}
+// print function
 
-static void* bli_cntx_get_l3_vir_ukr_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
-{
-	func_t* func = bli_cntx_get_l3_vir_ukrs( ukr_id, cntx );
-
-	return bli_func_get_dt( dt, func );
-}
-
-static func_t* bli_cntx_get_l3_nat_ukrs( l3ukr_t ukr_id, cntx_t* cntx )
-{
-	func_t* funcs = bli_cntx_l3_nat_ukrs_buf( cntx );
-	func_t* func  = &funcs[ ukr_id ];
-
-	return func;
-}
-
-static void* bli_cntx_get_l3_nat_ukr_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
-{
-	func_t* func = bli_cntx_get_l3_nat_ukrs( ukr_id, cntx );
-
-	return bli_func_get_dt( dt, func );
-}
-
-// -----------------------------------------------------------------------------
-
-static mbool_t* bli_cntx_get_l3_nat_ukr_prefs( l3ukr_t ukr_id, cntx_t* cntx )
-{
-	mbool_t* mbools = bli_cntx_l3_nat_ukrs_prefs_buf( cntx );
-	mbool_t* mbool  = &mbools[ ukr_id ];
-
-	return mbool;
-}
-
-static bool_t bli_cntx_get_l3_nat_ukr_prefs_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
-{
-	mbool_t* mbool = bli_cntx_get_l3_nat_ukr_prefs( ukr_id, cntx );
-
-	return bli_mbool_get_dt( dt, mbool );
-}
-
-// -----------------------------------------------------------------------------
-
-static func_t* bli_cntx_get_l1f_kers( l1fkr_t ker_id, cntx_t* cntx )
-{
-	func_t* funcs = bli_cntx_l1f_kers_buf( cntx );
-	func_t* func  = &funcs[ ker_id ];
-
-	return func;
-}
-
-static void* bli_cntx_get_l1f_ker_dt( num_t dt, l1fkr_t ker_id, cntx_t* cntx )
-{
-	func_t* func = bli_cntx_get_l1f_kers( ker_id, cntx );
-
-	return bli_func_get_dt( dt, func );
-}
-
-// -----------------------------------------------------------------------------
-
-static func_t* bli_cntx_get_l1v_kers( l1vkr_t ker_id, cntx_t* cntx )
-{
-	func_t* funcs = bli_cntx_l1v_kers_buf( cntx );
-	func_t* func  = &funcs[ ker_id ];
-
-	return func;
-}
-
-static void* bli_cntx_get_l1v_ker_dt( num_t dt, l1vkr_t ker_id, cntx_t* cntx )
-{
-	func_t* func = bli_cntx_get_l1v_kers( ker_id, cntx );
-
-	return bli_func_get_dt( dt, func );
-}
+void bli_cntx_print( cntx_t* cntx );
 
 // -----------------------------------------------------------------------------
 
-static func_t* bli_cntx_get_packm_kers( l1mkr_t ker_id, cntx_t* cntx )
-{
-	func_t* func = NULL;
+// Preprocess out these calls entirely, since they are currently just empty
+// functions that do nothing.
+#if 0
+  #define bli_cntx_create( cntx ) { bli_cntx_clear( cntx ); }
+  #define bli_cntx_free( cntx )   { bli_cntx_clear( cntx ); }
+#else
+  #define bli_cntx_create( cntx ) { ; }
+  #define bli_cntx_free( cntx )   { ; }
+#endif
 
-	// Only index to the requested packm func_t if the packm kernel being
-	// requested is one that is explicitly supported.
-	if ( 0 <= ( gint_t )ker_id &&
-	          ( gint_t )ker_id < BLIS_NUM_PACKM_KERS )
-	{
-		func_t* funcs = bli_cntx_packm_kers_buf( cntx );
+// These macros initialize/finalize a local context if the given context
+// pointer is NULL. When initializing, the context address that should
+// be used (local or external) is assigned to cntx_p.
 
-		func = &funcs[ ker_id ];
+#define bli_cntx_init_local_if( opname, dt, cntx, cntx_p ) \
+\
+	cntx_t _cntx_l; \
+\
+	if ( bli_is_null( cntx ) ) \
+	{ \
+		PASTEMAC(opname,_cntx_init)( dt, &_cntx_l ); \
+		cntx_p = &_cntx_l; \
+	} \
+	else \
+	{ \
+		cntx_p = cntx; \
 	}
 
-	return func;
-}
-
-static void* bli_cntx_get_packm_ker_dt( num_t dt, l1mkr_t ker_id, cntx_t* cntx )
-{
-	void* fp = NULL;
-
-	// Only query the context for the packm func_t (and then extract the
-	// datatype-specific function pointer) if the packm kernel being
-	// requested is one that is explicitly supported.
-	if ( 0 <= ( gint_t )ker_id &&
-	          ( gint_t )ker_id < BLIS_NUM_PACKM_KERS )
-	{
-		func_t* func = bli_cntx_get_packm_kers( ker_id, cntx );
-
-		fp = bli_func_get_dt( dt, func );
+#define bli_cntx_finalize_local_if( opname, cntx ) \
+\
+	if ( bli_is_null( cntx ) ) \
+	{ \
+		PASTEMAC(opname,_cntx_finalize)( &_cntx_l ); \
 	}
 
-	return fp;
-}
 
-static func_t* bli_cntx_get_unpackm_kers( l1mkr_t ker_id, cntx_t* cntx )
-{
-	func_t* func = NULL;
-
-	// Only index to the requested unpackm func_t if the unpackm kernel being
-	// requested is one that is explicitly supported.
-	if ( 0 <= ( gint_t )ker_id &&
-	          ( gint_t )ker_id < BLIS_NUM_UNPACKM_KERS )
-	{
-		func_t* funcs = bli_cntx_unpackm_kers_buf( cntx );
-
-		func = &funcs[ ker_id ];
+#define bli_cntx_init_local_if2( opname, suf, dt, cntx, cntx_p ) \
+\
+	cntx_t _cntx_l; \
+\
+	if ( bli_is_null( cntx ) ) \
+	{ \
+		PASTEMAC2(opname,suf,_cntx_init)( dt, &_cntx_l ); \
+		cntx_p = &_cntx_l; \
+	} \
+	else \
+	{ \
+		cntx_p = cntx; \
 	}
 
-	return func;
-}
-
-static void* bli_cntx_get_unpackm_ker_dt( num_t dt, l1mkr_t ker_id, cntx_t* cntx )
-{
-	void* fp = NULL;
-
-	// Only query the context for the unpackm func_t (and then extract the
-	// datatype-specific function pointer) if the unpackm kernel being
-	// requested is one that is explicitly supported.
-	if ( 0 <= ( gint_t )ker_id &&
-	          ( gint_t )ker_id < BLIS_NUM_UNPACKM_KERS )
-	{
-		func_t* func = bli_cntx_get_unpackm_kers( ker_id, cntx );
-
-		fp = bli_func_get_dt( dt, func );
+#define bli_cntx_finalize_local_if2( opname, suf, cntx ) \
+\
+	if ( bli_is_null( cntx ) ) \
+	{ \
+		PASTEMAC2(opname,suf,_cntx_finalize)( &_cntx_l ); \
 	}
-
-	return fp;
-}
-
-// -----------------------------------------------------------------------------
-
-static bool_t bli_cntx_l3_nat_ukr_prefers_rows_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
-{
-	bool_t prefs = bli_cntx_get_l3_nat_ukr_prefs_dt( dt, ukr_id, cntx );
-
-	// A ukernel preference of TRUE means the ukernel prefers row storage.
-	return ( bool_t )
-	       ( prefs == TRUE );
-}
-
-static bool_t bli_cntx_l3_nat_ukr_prefers_cols_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
-{
-	bool_t prefs = bli_cntx_get_l3_nat_ukr_prefs_dt( dt, ukr_id, cntx );
-
-	// A ukernel preference of FALSE means the ukernel prefers column storage.
-	return ( bool_t )
-	       ( prefs == FALSE );
-}
-
-static bool_t bli_cntx_l3_nat_ukr_prefers_storage_of( obj_t* obj, l3ukr_t ukr_id, cntx_t* cntx )
-{
-	const num_t  dt    = bli_obj_dt( obj );
-	const bool_t ukr_prefers_rows
-	                   = bli_cntx_l3_nat_ukr_prefers_rows_dt( dt, ukr_id, cntx );
-	const bool_t ukr_prefers_cols
-	                   = bli_cntx_l3_nat_ukr_prefers_cols_dt( dt, ukr_id, cntx );
-	bool_t       r_val = FALSE;
-
-	if      ( bli_obj_is_row_stored( obj ) && ukr_prefers_rows ) r_val = TRUE;
-	else if ( bli_obj_is_col_stored( obj ) && ukr_prefers_cols ) r_val = TRUE;
-
-	return r_val;
-}
-
-static bool_t bli_cntx_l3_nat_ukr_dislikes_storage_of( obj_t* obj, l3ukr_t ukr_id, cntx_t* cntx )
-{
-	return ( bool_t )
-	       !bli_cntx_l3_nat_ukr_prefers_storage_of( obj, ukr_id, cntx );
-}
-
-// -----------------------------------------------------------------------------
-
-static bool_t bli_cntx_l3_vir_ukr_prefers_rows_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
-{
-	// For induced methods, return the ukernel storage preferences of the
-	// corresponding real micro-kernel.
-	// NOTE: This projection to real domain becomes unnecessary if you
-	// set the exec_dt for 1m to the real projection of the storage
-	// datatype.
-	if ( bli_cntx_method( cntx ) != BLIS_NAT )
-	    dt = bli_dt_proj_to_real( dt );
-
-	return bli_cntx_l3_nat_ukr_prefers_rows_dt( dt, ukr_id, cntx );
-}
-
-static bool_t bli_cntx_l3_vir_ukr_prefers_cols_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
-{
-	// For induced methods, return the ukernel storage preferences of the
-	// corresponding real micro-kernel.
-	// NOTE: This projection to real domain becomes unnecessary if you
-	// set the exec_dt for 1m to the real projection of the storage
-	// datatype.
-	if ( bli_cntx_method( cntx ) != BLIS_NAT )
-	    dt = bli_dt_proj_to_real( dt );
-
-	return bli_cntx_l3_nat_ukr_prefers_cols_dt( dt, ukr_id, cntx );
-}
-
-static bool_t bli_cntx_l3_vir_ukr_prefers_storage_of( obj_t* obj, l3ukr_t ukr_id, cntx_t* cntx )
-{
-	// Note that we use the execution datatype, which may differ from the
-	// storage datatype of C (though this would happen in very few situations).
-	const num_t  dt    = bli_obj_exec_dt( obj );
-	const bool_t ukr_prefers_rows
-	                   = bli_cntx_l3_vir_ukr_prefers_rows_dt( dt, ukr_id, cntx );
-	const bool_t ukr_prefers_cols
-	                   = bli_cntx_l3_vir_ukr_prefers_cols_dt( dt, ukr_id, cntx );
-	bool_t       r_val = FALSE;
-
-	if      ( bli_obj_is_row_stored( obj ) && ukr_prefers_rows ) r_val = TRUE;
-	else if ( bli_obj_is_col_stored( obj ) && ukr_prefers_cols ) r_val = TRUE;
-
-	return r_val;
-}
-
-static bool_t bli_cntx_l3_vir_ukr_dislikes_storage_of( obj_t* obj, l3ukr_t ukr_id, cntx_t* cntx )
-{
-	return ( bool_t )
-	       !bli_cntx_l3_vir_ukr_prefers_storage_of( obj, ukr_id, cntx );
-}
-
-// -----------------------------------------------------------------------------
-
-//
-// -- cntx_t modification (complex) --------------------------------------------
-//
-
-static void bli_cntx_set_blksz( bszid_t bs_id, blksz_t* blksz, bszid_t mult_id, cntx_t* cntx )
-{
-	blksz_t* blkszs = bli_cntx_blkszs_buf( cntx );
-	bszid_t* bmults = bli_cntx_bmults_buf( cntx );
-
-	blkszs[ bs_id ] = *blksz;
-	bmults[ bs_id ] = mult_id;
-}
-
-static void bli_cntx_set_l3_vir_ukr( l3ukr_t ukr_id, func_t* func, cntx_t* cntx )
-{
-	func_t* funcs = bli_cntx_l3_vir_ukrs_buf( cntx );
-
-	funcs[ ukr_id ] = *func;
-}
-
-static void bli_cntx_set_l3_nat_ukr( l3ukr_t ukr_id, func_t* func, cntx_t* cntx )
-{
-	func_t* funcs = bli_cntx_l3_nat_ukrs_buf( cntx );
-
-	funcs[ ukr_id ] = *func;
-}
-
-static void bli_cntx_set_l3_nat_ukr_prefs( l3ukr_t ukr_id, mbool_t* prefs, cntx_t* cntx )
-{
-	mbool_t* mbools = bli_cntx_l3_nat_ukrs_prefs_buf( cntx );
-
-	mbools[ ukr_id ] = *prefs;
-}
-
-static void bli_cntx_set_l1f_ker( l1fkr_t ker_id, func_t* func, cntx_t* cntx )
-{
-	func_t* funcs = bli_cntx_l1f_kers_buf( cntx );
-
-	funcs[ ker_id ] = *func;
-}
-
-static void bli_cntx_set_l1v_ker( l1vkr_t ker_id, func_t* func, cntx_t* cntx )
-{
-	func_t* funcs = bli_cntx_l1v_kers_buf( cntx );
-
-	funcs[ ker_id ] = *func;
-}
-
-static void bli_cntx_set_packm_ker( l1mkr_t ker_id, func_t* func, cntx_t* cntx )
-{
-	func_t* funcs = bli_cntx_get_packm_kers( ker_id, cntx );
-
-	funcs[ ker_id ] = *func;
-}
-
-static void bli_cntx_set_packm_ker_dt( void* fp, num_t dt, l1mkr_t ker_id, cntx_t* cntx )
-{
-	func_t* func = ( func_t* )bli_cntx_get_packm_kers( ker_id, cntx );
-
-	bli_func_set_dt( fp, dt, func );
-}
-
-static void bli_cntx_set_unpackm_ker( l1mkr_t ker_id, func_t* func, cntx_t* cntx )
-{
-	func_t* funcs = bli_cntx_get_unpackm_kers( ker_id, cntx );
-
-	funcs[ ker_id ] = *func;
-}
-
-static void bli_cntx_set_unpackm_ker_dt( void* fp, num_t dt, l1mkr_t ker_id, cntx_t* cntx )
-{
-	func_t* func = ( func_t* )bli_cntx_get_unpackm_kers( ker_id, cntx );
-
-	bli_func_set_dt( fp, dt, func );
-}
-
-// -----------------------------------------------------------------------------
-
-// Function prototypes
-
-void  bli_cntx_clear( cntx_t* cntx );
-
-void  bli_cntx_set_blkszs( ind_t method, dim_t n_bs, ... );
-
-void  bli_cntx_set_ind_blkszs( ind_t method, dim_t n_bs, ... );
-
-void  bli_cntx_set_l3_nat_ukrs( dim_t n_ukrs, ... );
-void  bli_cntx_set_l1f_kers( dim_t n_kers, ... );
-void  bli_cntx_set_l1v_kers( dim_t n_kers, ... );
-void  bli_cntx_set_packm_kers( dim_t n_kers, ... );
-
-void  bli_cntx_print( cntx_t* cntx );
 
 
 #endif

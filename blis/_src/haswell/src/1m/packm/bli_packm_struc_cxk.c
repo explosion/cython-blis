@@ -171,7 +171,7 @@ void PASTEMAC(ch,varname) \
 		dim_t           n_edge = n_panel_max; \
 		ctype*          p_edge = p + (i  )*rs_p; \
 \
-		PASTEMAC2(ch,setm,BLIS_TAPI_EX_SUF) \
+		PASTEMAC(ch,setm) \
 		( \
 		  BLIS_NO_CONJUGATE, \
 		  0, \
@@ -181,8 +181,7 @@ void PASTEMAC(ch,varname) \
 		  n_edge, \
 		  zero, \
 		  p_edge, rs_p, cs_p, \
-		  cntx, \
-		  NULL  \
+		  cntx  \
 		); \
 	} \
 \
@@ -194,7 +193,7 @@ void PASTEMAC(ch,varname) \
 		dim_t           n_edge = n_panel_max - j; \
 		ctype*          p_edge = p + (j  )*cs_p; \
 \
-		PASTEMAC2(ch,setm,BLIS_TAPI_EX_SUF) \
+		PASTEMAC(ch,setm) \
 		( \
 		  BLIS_NO_CONJUGATE, \
 		  0, \
@@ -204,8 +203,7 @@ void PASTEMAC(ch,varname) \
 		  n_edge, \
 		  zero, \
 		  p_edge, rs_p, cs_p, \
-		  cntx, \
-		  NULL  \
+		  cntx  \
 		); \
 	} \
 \
@@ -230,7 +228,7 @@ void PASTEMAC(ch,varname) \
 			dim_t           n_br   = n_panel_max - j; \
 			ctype*          p_br   = p + (i  )*rs_p + (j  )*cs_p; \
 \
-			PASTEMAC2(ch,setd,BLIS_TAPI_EX_SUF) \
+			PASTEMAC(ch,setd) \
 			( \
 			  BLIS_NO_CONJUGATE, \
 			  0, \
@@ -238,8 +236,7 @@ void PASTEMAC(ch,varname) \
 			  n_br, \
 			  one, \
 			  p_br, rs_p, cs_p, \
-			  cntx, \
-			  NULL  \
+			  cntx  \
 			); \
 		} \
 	} \
@@ -311,10 +308,10 @@ void PASTEMAC(ch,varname) \
 		{ \
 			c = c + diagoffc * ( doff_t )cs_c + \
 			       -diagoffc * ( doff_t )rs_c;  \
-			bli_swap_incs( &incc, &ldc ); \
+			bli_swap_incs( incc, ldc ); \
 \
 			if ( bli_is_hermitian( strucc ) ) \
-				bli_toggle_conj( &conjc ); \
+				bli_toggle_conj( conjc ); \
 		} \
 \
 		/* Pack the full panel. */ \
@@ -379,7 +376,7 @@ void PASTEMAC(ch,varname) \
 			conjc12    = conjc; \
 \
 			if ( bli_is_hermitian( strucc ) ) \
-				bli_toggle_conj( &conjc12 ); \
+				bli_toggle_conj( conjc12 ); \
 		} \
 		else /* if ( ( row_stored && bli_is_lower( uploc ) ) || \
 		             ( col_stored && bli_is_upper( uploc ) ) ) */ \
@@ -405,7 +402,7 @@ void PASTEMAC(ch,varname) \
 			conjc12    = conjc; \
 \
 			if ( bli_is_hermitian( strucc ) ) \
-				bli_toggle_conj( &conjc10 ); \
+				bli_toggle_conj( conjc10 ); \
 		} \
 \
 		/* Pack to p10. For upper storage, this includes the unstored
@@ -436,25 +433,23 @@ void PASTEMAC(ch,varname) \
 \
 		/* Pack the stored triangle of c11 to p11. */ \
 		{ \
-			dim_t           p11_m  = panel_dim; \
-			dim_t           p11_n  = panel_dim; \
-			dim_t           j2     = diagoffc_abs; \
-			ctype* restrict c11    = c + (j2 )*ldc; \
-			ctype* restrict p11    = p + (j2 )*ldp; \
-			trans_t         transc = ( trans_t )conjc; \
+			dim_t           p11_m = panel_dim; \
+			dim_t           p11_n = panel_dim; \
+			dim_t           j2    = diagoffc_abs; \
+			ctype* restrict c11   = c + (j2 )*ldc; \
+			ctype* restrict p11   = p + (j2 )*ldp; \
 \
-			PASTEMAC2(ch,copym,BLIS_TAPI_EX_SUF) \
+			PASTEMAC(ch,copym) \
 			( \
 			  0, \
 			  BLIS_NONUNIT_DIAG, \
 			  uploc, \
-			  transc, \
+			  conjc, \
 			  p11_m, \
 			  p11_n, \
 			  c11, rs_c, cs_c, \
 			  p11, rs_p, cs_p, \
-			  cntx, \
-			  NULL  \
+			  cntx  \
 			); \
 \
 			/* If source matrix c is Hermitian, we have to zero out the
@@ -475,7 +470,7 @@ void PASTEMAC(ch,varname) \
 			/* Now that the diagonal has been made explicitly Hermitian
 			   (if applicable), we can now safely scale the stored
 			   triangle specified by uploc. */ \
-			PASTEMAC2(ch,scalm,BLIS_TAPI_EX_SUF) \
+			PASTEMAC(ch,scalm) \
 			( \
 			  BLIS_NO_CONJUGATE, \
 			  0, \
@@ -485,8 +480,7 @@ void PASTEMAC(ch,varname) \
 			  p11_n, \
 			  kappa, \
 			  p11, rs_p, cs_p, \
-			  cntx, \
-			  NULL  \
+			  cntx  \
 			); \
 		} \
 	} \
@@ -541,7 +535,7 @@ void PASTEMAC(ch,varname) \
 	   the diagonal of the packed panel to kappa. */ \
 	if ( bli_is_unit_diag( diagc ) ) \
 	{ \
-		PASTEMAC2(ch,setd,BLIS_TAPI_EX_SUF) \
+		PASTEMAC(ch,setd) \
 		( \
 		  BLIS_NO_CONJUGATE, \
 		  diagoffp, \
@@ -549,22 +543,20 @@ void PASTEMAC(ch,varname) \
 		  n_panel, \
 		  kappa, \
 		  p, rs_p, cs_p, \
-		  cntx, \
-		  NULL  \
+		  cntx  \
 		); \
 	} \
 \
 	/* If requested, invert the diagonal of the packed panel. */ \
 	if ( invdiag == TRUE ) \
 	{ \
-		PASTEMAC2(ch,invertd,BLIS_TAPI_EX_SUF) \
+		PASTEMAC(ch,invertd) \
 		( \
 		  diagoffp, \
 		  m_panel, \
 		  n_panel, \
 		  p, rs_p, cs_p, \
-		  cntx, \
-		  NULL  \
+		  cntx  \
 		); \
 	} \
 \
@@ -580,10 +572,10 @@ void PASTEMAC(ch,varname) \
 		ctype* restrict zero  = PASTEMAC(ch,0); \
 		uplo_t          uplop = uploc; \
 \
-		bli_toggle_uplo( &uplop ); \
-		bli_shift_diag_offset_to_shrink_uplo( uplop, &diagoffp ); \
+		bli_toggle_uplo( uplop ); \
+		bli_shift_diag_offset_to_shrink_uplo( uplop, diagoffp ); \
 \
-		PASTEMAC2(ch,setm,BLIS_TAPI_EX_SUF) \
+		PASTEMAC(ch,setm) \
 		( \
 		  BLIS_NO_CONJUGATE, \
 		  diagoffp, \
@@ -593,8 +585,7 @@ void PASTEMAC(ch,varname) \
 		  n_panel, \
 		  zero, \
 		  p, rs_p, cs_p, \
-		  cntx, \
-		  NULL  \
+		  cntx  \
 		); \
 	} \
 \

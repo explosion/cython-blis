@@ -51,9 +51,10 @@ ftype_r PASTEF772(chr,chx,blasname) \
 	ftype_x* x0; \
 	inc_t    incx0; \
 	ftype_r  asum; \
+	err_t    init_result; \
 \
-	/* Initialize BLIS. */ \
-	bli_init_auto(); \
+	/* Initialize BLIS (if it is not already initialized). */ \
+	bli_init_auto( &init_result ); \
 \
 	/* Convert/typecast negative values of n to zero. */ \
 	bli_convert_blas_dim1( *n, n0 ); \
@@ -63,22 +64,21 @@ ftype_r PASTEF772(chr,chx,blasname) \
 	bli_convert_blas_incv( n0, (ftype_x*)x, *incx, x0, incx0 ); \
 \
 	/* Call BLIS interface. */ \
-	PASTEMAC2(chx,blisname,BLIS_TAPI_EX_SUF) \
+	PASTEMAC(chx,blisname) \
 	( \
 	  n0, \
 	  x0, incx0, \
 	  &asum, \
-	  NULL, \
 	  NULL  \
 	); \
 \
-	/* Finalize BLIS. */ \
-	bli_finalize_auto(); \
+	/* Finalize BLIS (if it was initialized above). */ \
+	bli_finalize_auto( init_result ); \
 \
 	return asum; \
 }
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTFUNCR2_BLAS( asum, asumv )
 #endif
 

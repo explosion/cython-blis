@@ -40,7 +40,7 @@
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -49,19 +49,19 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        dim_t   m, \
        dim_t   n, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
-       ctype*  y, inc_t rs_y, inc_t cs_y  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  y, inc_t rs_y, inc_t cs_y, \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( addm )
-INSERT_GENTPROT_BASIC0( copym )
-INSERT_GENTPROT_BASIC0( subm )
+INSERT_GENTPROT_BASIC( addm )
+INSERT_GENTPROT_BASIC( copym )
+INSERT_GENTPROT_BASIC( subm )
 
 
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -71,18 +71,18 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        dim_t   n, \
        ctype*  alpha, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
-       ctype*  y, inc_t rs_y, inc_t cs_y  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  y, inc_t rs_y, inc_t cs_y, \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( axpym )
-INSERT_GENTPROT_BASIC0( scal2m )
+INSERT_GENTPROT_BASIC( axpym )
+INSERT_GENTPROT_BASIC( scal2m )
 
 
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        conj_t  conjalpha, \
        doff_t  diagoffx, \
@@ -91,10 +91,10 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        dim_t   m, \
        dim_t   n, \
        ctype*  alpha, \
-       ctype*  x, inc_t rs_x, inc_t cs_x  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  x, inc_t rs_x, inc_t cs_x, \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( scalm )
-INSERT_GENTPROT_BASIC0( setm )
+INSERT_GENTPROT_BASIC( scalm )
+INSERT_GENTPROT_BASIC( setm )
 

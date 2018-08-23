@@ -48,11 +48,18 @@
 #include "bli_l3_ind_opt.h"
 
 // level-3 cntx initialization
-#include "bli_cntx_ind_stage.h"
+#include "bli_gemmind_cntx.h"
+#include "bli_trsmind_cntx.h"
+
+// level-3 ukernels
+#include "bli_gemmind_ukr_ref.h"
+#include "bli_gemmtrsmind_x_ukr_ref.h"
+#include "bli_trsmind_x_ukr_ref.h"
 
 
 void   bli_ind_init( void );
 void   bli_ind_finalize( void );
+bool_t bli_ind_is_initialized( void );
 
 void   bli_ind_enable( ind_t method );
 void   bli_ind_disable( ind_t method );
@@ -65,7 +72,7 @@ void   bli_ind_disable_all_dt( num_t dt );
 void   bli_ind_oper_enable_only( opid_t oper, ind_t method, num_t dt );
 
 bool_t bli_ind_oper_is_impl( opid_t oper, ind_t method );
-//bool_t bli_ind_oper_has_avail( opid_t oper, num_t dt );
+bool_t bli_ind_oper_has_avail( opid_t oper, num_t dt );
 void*  bli_ind_oper_get_avail( opid_t oper, num_t dt );
 ind_t  bli_ind_oper_find_avail( opid_t oper, num_t dt );
 char*  bli_ind_oper_get_avail_impl_string( opid_t oper, num_t dt );

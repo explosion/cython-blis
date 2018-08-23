@@ -32,6 +32,8 @@
 
 */
 
+#include "bli_packm_cxk_ref.h"
+
 
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, varname ) \
@@ -41,11 +43,11 @@ void PASTEMAC(ch,varname) \
        conj_t  conja, \
        dim_t   panel_dim, \
        dim_t   panel_len, \
-       ctype*  kappa, \
-       ctype*  a, inc_t inca, inc_t lda, \
-       ctype*  p,             inc_t ldp, \
+       void*   kappa, \
+       void*   a, inc_t inca, inc_t lda, \
+       void*   p,             inc_t ldp, \
        cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( packm_cxk )
+INSERT_GENTPROT_BASIC( packm_cxk )
 

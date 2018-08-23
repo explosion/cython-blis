@@ -46,7 +46,7 @@ void PASTEF772(chx,cha,blasname) \
        ftype_x* x, const f77_int* incx  \
      );
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTPROTSCAL_BLAS( scal )
 #endif
 

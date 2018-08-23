@@ -34,17 +34,17 @@
 
 #include "blis.h"
 
+
+char       *bli_optarg = NULL;
+int         bli_optind = 1;
+
+int         bli_opterr = 0;
+int         bli_optopt = 0;
+
 static char OPT_MARKER = '-';
 
-void bli_getopt_init_state( int opterr, getopt_t* state )
-{
-	state->optarg = NULL;
-	state->optind = 1;
-	state->opterr = opterr;
-	state->optopt = 0;
-}
 
-int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* state )
+int bli_getopt( int argc, char** const argv, const char* optstring )
 {
 	static char* nextchar = NULL;
 
@@ -52,7 +52,7 @@ int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* st
 	char*        optstr_char;
 
 	// If argv contains no more arguments to process, return.
-	if ( state->optind == argc ) return -1;
+	if ( bli_optind == argc ) return -1;
 
 	// Get a pointer to the current argv element string to process. If
 	// nextchar is non-NULL, then it means the previous call processed
@@ -61,7 +61,7 @@ int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* st
 	// contained in nextchar).
 	if ( nextchar == NULL )
 	{
-		elem_str = argv[ state->optind ];
+		elem_str = argv[ bli_optind ];
 
 		// elem_str[0] should be an OPT_MARKER if it is an option. In the
 		// event that it is not an option, argv should be permuted so that
@@ -71,8 +71,8 @@ int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* st
 		// its non-option arguments.
 		if ( elem_str[0] != OPT_MARKER )
 		{
-			state->optarg = NULL;
-			//state->optind += 1;
+			bli_optarg = NULL;
+			//bli_optind += 1;
 			return -1;
 		}
 
@@ -99,12 +99,12 @@ int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* st
 	// string, store it and return '?'.
 	if ( optstr_char == NULL )
 	{
-		if ( state->opterr == 1 ) fprintf( stderr, "bli_getopt(): **error**: option character '%c' missing from option string \"%s\"\n", elem_str[0], optstring );
+		if ( bli_opterr == 1 ) fprintf( stderr, "bli_getopt(): **error**: option character '%c' missing from option string \"%s\"\n", elem_str[0], optstring );
 
 		// We can't dereference optstr_char since it is NULL, so we use
 		// elem_str[0] instead.
-		state->optopt = elem_str[0];
-		state->optind += 1;
+		bli_optopt = elem_str[0];
+		bli_optind += 1;
 		return '?';
 	}
 
@@ -121,29 +121,29 @@ int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* st
 			// If there are no more elements in argv, the argument was
 			// omitted. Store the corresponding option character and
 			// return '?'.
-			if ( state->optind + 1 >= argc )
+			if ( bli_optind + 1 >= argc )
 			{
-				if ( state->opterr == 1 ) fprintf( stderr, "bli_getopt(): **error**: option character '%c' is missing an argument (end of argv)\n", elem_str[0] );
+				if ( bli_opterr == 1 ) fprintf( stderr, "bli_getopt(): **error**: option character '%c' is missing an argument (end of argv)\n", elem_str[0] );
 
-				state->optopt = *optstr_char;
-				state->optind += 1;
+				bli_optopt = *optstr_char;
+				bli_optind += 1;
 				return '?';
 			}
 			// If there are still more elements in argv yet to process AND
 			// the next one is an option, then the argument was omitted.
-			else if ( argv[ state->optind + 1 ][0] == OPT_MARKER )
+			else if ( argv[ bli_optind + 1 ][0] == OPT_MARKER )
 			{
-				if ( state->opterr == 1 ) fprintf( stderr, "bli_getopt(): **error**: option character '%c' is missing an argument (next element of argv is option '%c')\n", elem_str[0], argv[ state->optind + 1 ][1] );
+				if ( bli_opterr == 1 ) fprintf( stderr, "bli_getopt(): **error**: option character '%c' is missing an argument (next element of argv is option '%c')\n", elem_str[0], argv[ bli_optind + 1 ][1] );
 
-				state->optopt = *optstr_char;
-				state->optind += 1;
+				bli_optopt = *optstr_char;
+				bli_optind += 1;
 				return '?';
 			}
 
 			// If no error was deteced above, we can safely assign optarg
 			// to be the next element in argv and increment optind by two.
-			state->optarg = argv[ state->optind + 1 ];
-			state->optind += 2;
+			bli_optarg = argv[ bli_optind + 1 ];
+			bli_optind += 2;
 		}
 		else
 		{
@@ -151,8 +151,8 @@ int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* st
 			// that because the char after the option character is not NULL,
 			// the character(s) after it must constitute the argument.
 
-			state->optarg = &elem_str[1];
-			state->optind += 1;
+			bli_optarg = &elem_str[1];
+			bli_optind += 1;
 		}
 
 		return *optstr_char;
@@ -170,8 +170,8 @@ int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* st
 		}
 	}
 
-	state->optarg = NULL;
-	state->optind += 1;
+	bli_optarg = NULL;
+	bli_optind += 1;
 	return *optstr_char;
 }
 

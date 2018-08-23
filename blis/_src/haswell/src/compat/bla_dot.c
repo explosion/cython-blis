@@ -39,9 +39,9 @@
 // Define BLAS-to-BLIS interfaces.
 //
 #undef  GENTFUNCDOT
-#define GENTFUNCDOT( ftype, ch, chc, blis_conjx, blasname, blisname ) \
+#define GENTFUNCDOT( ftype, chxy, chc, blis_conjx, blasname, blisname ) \
 \
-ftype PASTEF772(ch,blasname,chc) \
+ftype PASTEF772(chxy,blasname,chc) \
      ( \
        const f77_int* n, \
        const ftype*   x, const f77_int* incx, \
@@ -54,9 +54,10 @@ ftype PASTEF772(ch,blasname,chc) \
 	inc_t  incx0; \
 	inc_t  incy0; \
 	ftype  rho; \
+	err_t  init_result; \
 \
-	/* Initialize BLIS. */ \
-	bli_init_auto(); \
+	/* Initialize BLIS (if it is not already initialized). */ \
+	bli_init_auto( &init_result ); \
 \
 	/* Convert/typecast negative values of n to zero. */ \
 	bli_convert_blas_dim1( *n, n0 ); \
@@ -67,7 +68,7 @@ ftype PASTEF772(ch,blasname,chc) \
 	bli_convert_blas_incv( n0, (ftype*)y, *incy, y0, incy0 ); \
 \
 	/* Call BLIS interface. */ \
-	PASTEMAC2(ch,blisname,BLIS_TAPI_EX_SUF) \
+	PASTEMAC(chxy,blisname) \
 	( \
 	  blis_conjx, \
 	  BLIS_NO_CONJUGATE, \
@@ -75,17 +76,16 @@ ftype PASTEF772(ch,blasname,chc) \
 	  x0, incx0, \
 	  y0, incy0, \
 	  &rho, \
-	  NULL, \
 	  NULL  \
 	); \
 \
-	/* Finalize BLIS. */ \
-	bli_finalize_auto(); \
+	/* Finalize BLIS (if it was initialized above). */ \
+	bli_finalize_auto( init_result ); \
 \
 	return rho; \
 }
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTFUNCDOT_BLAS( dot, dotv )
 
 
@@ -96,15 +96,13 @@ INSERT_GENTFUNCDOT_BLAS( dot, dotv )
 float PASTEF77(sd,sdot)
      (
        const f77_int* n,
-       const float*   sb,
        const float*   x, const f77_int* incx,
        const float*   y, const f77_int* incy
      )
 {
-	float r = ( float )PASTEF77(d,sdot)( n,
-	                                     x, incx,
-	                                     y, incy );
-	return r + *sb;
+	return ( float )PASTEF77(d,sdot)( n,
+	                                  x, incx,
+	                                  y, incy );
 }
 
 // Input vectors stored in single precision, computed in double precision,

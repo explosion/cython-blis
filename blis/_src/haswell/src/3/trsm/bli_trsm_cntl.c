@@ -36,21 +36,16 @@
 
 cntl_t* bli_trsm_cntl_create
      (
-       side_t side,
-       pack_t schema_a,
-       pack_t schema_b
+       side_t side
      )
 {
-	if ( bli_is_left( side ) )
-		return bli_trsm_l_cntl_create( schema_a, schema_b );
-	else
-		return bli_trsm_r_cntl_create( schema_a, schema_b );
+	if ( bli_is_left( side ) ) return bli_trsm_l_cntl_create();
+	else                       return bli_trsm_r_cntl_create();
 }
 
 cntl_t* bli_trsm_l_cntl_create
      (
-       pack_t schema_a,
-       pack_t schema_b
+       void
      )
 {
 	void* macro_kernel_p = bli_trsm_xx_ker_var2;
@@ -84,7 +79,7 @@ cntl_t* bli_trsm_l_cntl_create
 	  TRUE,    // do NOT invert diagonal
 	  TRUE,    // reverse iteration if upper?
 	  FALSE,   // reverse iteration if lower?
-	  schema_a, // normally BLIS_PACKED_ROW_PANELS
+	  BLIS_PACKED_ROW_PANELS,
 	  BLIS_BUFFER_FOR_A_BLOCK,
 	  trsm_cntl_bp_bu
 	);
@@ -108,7 +103,7 @@ cntl_t* bli_trsm_l_cntl_create
 	  FALSE,   // do NOT invert diagonal
 	  FALSE,   // reverse iteration if upper?
 	  FALSE,   // reverse iteration if lower?
-	  schema_b, // normally BLIS_PACKED_COL_PANELS
+	  BLIS_PACKED_COL_PANELS,
 	  BLIS_BUFFER_FOR_B_PANEL,
 	  trsm_cntl_op_bp
 	);
@@ -136,8 +131,7 @@ cntl_t* bli_trsm_l_cntl_create
 
 cntl_t* bli_trsm_r_cntl_create
      (
-       pack_t schema_a,
-       pack_t schema_b
+       void
      )
 {
 	void* macro_kernel_p = bli_trsm_xx_ker_var2;
@@ -171,7 +165,7 @@ cntl_t* bli_trsm_r_cntl_create
 	  FALSE,   // do NOT invert diagonal
 	  FALSE,   // reverse iteration if upper?
 	  FALSE,   // reverse iteration if lower?
-	  schema_a, // normally BLIS_PACKED_ROW_PANELS
+	  BLIS_PACKED_ROW_PANELS,
 	  BLIS_BUFFER_FOR_A_BLOCK,
 	  trsm_cntl_bp_bu
 	);
@@ -195,7 +189,7 @@ cntl_t* bli_trsm_r_cntl_create
 	  TRUE,    // do NOT invert diagonal
 	  FALSE,   // reverse iteration if upper?
 	  TRUE,    // reverse iteration if lower?
-	  schema_b, // normally BLIS_PACKED_COL_PANELS
+	  BLIS_PACKED_COL_PANELS,
 	  BLIS_BUFFER_FOR_B_PANEL,
 	  trsm_cntl_op_bp
 	);

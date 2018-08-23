@@ -42,10 +42,10 @@
 # These two mmakefile variables need to be set in order for the recursive
 # include process to work!
 CURRENT_DIR_NAME := base
-CURRENT_SUB_DIRS := cast check noopt proj
+CURRENT_SUB_DIRS := check noopt
 
 # Source files local to this fragment
-LOCAL_SRC_FILES  := bli_arch.c bli_blksz.c bli_check.c bli_clock.c bli_cntl.c bli_cntx.c bli_const.c bli_cpuid.c bli_error.c bli_func.c bli_getopt.c bli_gks.c bli_info.c bli_init.c bli_machval.c bli_malloc.c bli_mbool.c bli_membrk.c bli_memsys.c bli_obj.c bli_obj_scalar.c bli_param_map.c bli_part.c bli_pool.c bli_prune.c bli_query.c bli_rntm.c bli_setgetij.c bli_setri.c bli_string.c bli_winsys.c
+LOCAL_SRC_FILES  := bli_blksz.c bli_check.c bli_clock.c bli_cntl.c bli_cntx.c bli_const.c bli_error.c bli_func.c bli_getopt.c bli_gks.c bli_info.c bli_init.c bli_machval.c bli_malloc.c bli_mbool.c bli_membrk.c bli_memsys.c bli_obj.c bli_obj_scalar.c bli_opid.c bli_param_map.c bli_part.c bli_pool.c bli_prune.c bli_query.c
 
 # Add the fragment's local source files to the _global_variable_ variable.
 MK_FRAME_SRC += $(addprefix $(PARENT_PATH)/$(CURRENT_DIR_NAME)/, $(LOCAL_SRC_FILES))

@@ -52,6 +52,7 @@ f77_int PASTEF772(i,chx,blasname) \
 	inc_t    incx0; \
 	gint_t   bli_index; \
 	f77_int  f77_index; \
+	err_t    init_result; \
 \
 	/* If the vector is empty, return an index of zero. This early check
 	   is needed to emulate netlib BLAS. Without it, bli_?amaxv() will
@@ -59,8 +60,8 @@ f77_int PASTEF772(i,chx,blasname) \
 	   being returned, which is not what we want. */ \
 	if ( *n < 1 || *incx <= 0 ) return 0; \
 \
-	/* Initialize BLIS. */ \
-	bli_init_auto(); \
+	/* Initialize BLIS (if it is not already initialized). */ \
+	bli_init_auto( &init_result ); \
 \
 	/* Convert/typecast negative values of n to zero. */ \
 	bli_convert_blas_dim1( *n, n0 ); \
@@ -70,12 +71,11 @@ f77_int PASTEF772(i,chx,blasname) \
 	bli_convert_blas_incv( n0, (ftype_x*)x, *incx, x0, incx0 ); \
 \
 	/* Call BLIS interface. */ \
-	PASTEMAC2(chx,blisname,BLIS_TAPI_EX_SUF) \
+	PASTEMAC(chx,blisname) \
 	( \
 	  n0, \
 	  x0, incx0, \
 	  &bli_index, \
-	  NULL, \
 	  NULL  \
 	); \
 \
@@ -84,13 +84,13 @@ f77_int PASTEF772(i,chx,blasname) \
 	   integer size, that typecast occurs here. */ \
 	f77_index = bli_index + 1; \
 \
-	/* Finalize BLIS. */ \
-	bli_finalize_auto(); \
+	/* Finalize BLIS (if it was initialized above). */ \
+	bli_finalize_auto( init_result ); \
 \
 	return f77_index; \
 }
 
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_ENABLE_BLAS2BLIS
 INSERT_GENTFUNC_BLAS( amax, amaxv )
 #endif
 

@@ -48,16 +48,17 @@ void PASTEMAC(ch,opname) \
        ctype*  b, inc_t rs_b, inc_t cs_b, \
        ctype*  beta, \
        ctype*  c, inc_t rs_c, inc_t cs_c, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( gemm3mh )
-INSERT_GENTPROT_BASIC0( gemm3m1 )
-INSERT_GENTPROT_BASIC0( gemm4mh )
-INSERT_GENTPROT_BASIC0( gemm4mb )
-INSERT_GENTPROT_BASIC0( gemm4m1 )
-INSERT_GENTPROT_BASIC0( gemm1m )
+INSERT_GENTPROT_BASIC( gemm3mh )
+INSERT_GENTPROT_BASIC( gemm3m3 )
+INSERT_GENTPROT_BASIC( gemm3m2 )
+INSERT_GENTPROT_BASIC( gemm3m1 )
+INSERT_GENTPROT_BASIC( gemm4mh )
+INSERT_GENTPROT_BASIC( gemm4mb )
+INSERT_GENTPROT_BASIC( gemm4m1 )
+INSERT_GENTPROT_BASIC( gemm1m )
 
 
 #undef  GENTPROT
@@ -76,15 +77,14 @@ void PASTEMAC(ch,opname) \
        ctype*  b, inc_t rs_b, inc_t cs_b, \
        ctype*  beta, \
        ctype*  c, inc_t rs_c, inc_t cs_c, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( hemm3mh )
-INSERT_GENTPROT_BASIC0( hemm3m1 )
-INSERT_GENTPROT_BASIC0( hemm4mh )
-INSERT_GENTPROT_BASIC0( hemm4m1 )
-INSERT_GENTPROT_BASIC0( hemm1m )
+INSERT_GENTPROT_BASIC( hemm3mh )
+INSERT_GENTPROT_BASIC( hemm3m1 )
+INSERT_GENTPROT_BASIC( hemm4mh )
+INSERT_GENTPROT_BASIC( hemm4m1 )
+INSERT_GENTPROT_BASIC( hemm1m )
 
 
 #undef  GENTPROTR
@@ -102,15 +102,14 @@ void PASTEMAC(ch,opname) \
        ctype*   b, inc_t rs_b, inc_t cs_b, \
        ctype_r* beta, \
        ctype*   c, inc_t rs_c, inc_t cs_c, \
-       cntx_t*  cntx, \
-       rntm_t*  rntmx  \
+       cntx_t*  cntx  \
      );
 
-INSERT_GENTPROTR_BASIC0( her2k3mh )
-INSERT_GENTPROTR_BASIC0( her2k3m1 )
-INSERT_GENTPROTR_BASIC0( her2k4mh )
-INSERT_GENTPROTR_BASIC0( her2k4m1 )
-INSERT_GENTPROTR_BASIC0( her2k1m )
+INSERT_GENTPROTR_BASIC( her2k3mh )
+INSERT_GENTPROTR_BASIC( her2k3m1 )
+INSERT_GENTPROTR_BASIC( her2k4mh )
+INSERT_GENTPROTR_BASIC( her2k4m1 )
+INSERT_GENTPROTR_BASIC( her2k1m )
 
 
 #undef  GENTPROTR
@@ -126,15 +125,14 @@ void PASTEMAC(ch,opname) \
        ctype*   a, inc_t rs_a, inc_t cs_a, \
        ctype_r* beta, \
        ctype*   c, inc_t rs_c, inc_t cs_c, \
-       cntx_t* cntx, \
-       rntm_t* rntmx  \
+       cntx_t*  cntx  \
      );
 
-INSERT_GENTPROTR_BASIC0( herk3mh )
-INSERT_GENTPROTR_BASIC0( herk3m1 )
-INSERT_GENTPROTR_BASIC0( herk4mh )
-INSERT_GENTPROTR_BASIC0( herk4m1 )
-INSERT_GENTPROTR_BASIC0( herk1m )
+INSERT_GENTPROTR_BASIC( herk3mh )
+INSERT_GENTPROTR_BASIC( herk3m1 )
+INSERT_GENTPROTR_BASIC( herk4mh )
+INSERT_GENTPROTR_BASIC( herk4m1 )
+INSERT_GENTPROTR_BASIC( herk1m )
 
 
 #undef  GENTPROT
@@ -153,15 +151,14 @@ void PASTEMAC(ch,opname) \
        ctype*  b, inc_t rs_b, inc_t cs_b, \
        ctype*  beta, \
        ctype*  c, inc_t rs_c, inc_t cs_c, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( symm3mh )
-INSERT_GENTPROT_BASIC0( symm3m1 )
-INSERT_GENTPROT_BASIC0( symm4mh )
-INSERT_GENTPROT_BASIC0( symm4m1 )
-INSERT_GENTPROT_BASIC0( symm1m )
+INSERT_GENTPROT_BASIC( symm3mh )
+INSERT_GENTPROT_BASIC( symm3m1 )
+INSERT_GENTPROT_BASIC( symm4mh )
+INSERT_GENTPROT_BASIC( symm4m1 )
+INSERT_GENTPROT_BASIC( symm1m )
 
 
 #undef  GENTPROT
@@ -179,15 +176,14 @@ void PASTEMAC(ch,opname) \
        ctype*  b, inc_t rs_b, inc_t cs_b, \
        ctype*  beta, \
        ctype*  c, inc_t rs_c, inc_t cs_c, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( syr2k3mh )
-INSERT_GENTPROT_BASIC0( syr2k3m1 )
-INSERT_GENTPROT_BASIC0( syr2k4mh )
-INSERT_GENTPROT_BASIC0( syr2k4m1 )
-INSERT_GENTPROT_BASIC0( syr2k1m )
+INSERT_GENTPROT_BASIC( syr2k3mh )
+INSERT_GENTPROT_BASIC( syr2k3m1 )
+INSERT_GENTPROT_BASIC( syr2k4mh )
+INSERT_GENTPROT_BASIC( syr2k4m1 )
+INSERT_GENTPROT_BASIC( syr2k1m )
 
 
 #undef  GENTPROT
@@ -203,15 +199,14 @@ void PASTEMAC(ch,opname) \
        ctype*  a, inc_t rs_a, inc_t cs_a, \
        ctype*  beta, \
        ctype*  c, inc_t rs_c, inc_t cs_c, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( syrk3mh )
-INSERT_GENTPROT_BASIC0( syrk3m1 )
-INSERT_GENTPROT_BASIC0( syrk4mh )
-INSERT_GENTPROT_BASIC0( syrk4m1 )
-INSERT_GENTPROT_BASIC0( syrk1m )
+INSERT_GENTPROT_BASIC( syrk3mh )
+INSERT_GENTPROT_BASIC( syrk3m1 )
+INSERT_GENTPROT_BASIC( syrk4mh )
+INSERT_GENTPROT_BASIC( syrk4m1 )
+INSERT_GENTPROT_BASIC( syrk1m )
 
 
 #undef  GENTPROT
@@ -231,15 +226,14 @@ void PASTEMAC(ch,opname) \
        ctype*  b, inc_t rs_b, inc_t cs_b, \
        ctype*  beta, \
        ctype*  c, inc_t rs_c, inc_t cs_c, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( trmm33mh )
-INSERT_GENTPROT_BASIC0( trmm33m1 )
-INSERT_GENTPROT_BASIC0( trmm34mh )
-INSERT_GENTPROT_BASIC0( trmm34m1 )
-INSERT_GENTPROT_BASIC0( trmm31m )
+INSERT_GENTPROT_BASIC( trmm33mh )
+INSERT_GENTPROT_BASIC( trmm33m1 )
+INSERT_GENTPROT_BASIC( trmm34mh )
+INSERT_GENTPROT_BASIC( trmm34m1 )
+INSERT_GENTPROT_BASIC( trmm31m )
 
 
 #undef  GENTPROT
@@ -256,13 +250,12 @@ void PASTEMAC(ch,opname) \
        ctype*  alpha, \
        ctype*  a, inc_t rs_a, inc_t cs_a, \
        ctype*  b, inc_t rs_b, inc_t cs_b, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( trmm3m1 )
-INSERT_GENTPROT_BASIC0( trmm4m1 )
-INSERT_GENTPROT_BASIC0( trmm1m )
+INSERT_GENTPROT_BASIC( trmm3m1 )
+INSERT_GENTPROT_BASIC( trmm4m1 )
+INSERT_GENTPROT_BASIC( trmm1m )
 
 
 #undef  GENTPROT
@@ -279,11 +272,10 @@ void PASTEMAC(ch,opname) \
        ctype*  alpha, \
        ctype*  a, inc_t rs_a, inc_t cs_a, \
        ctype*  b, inc_t rs_b, inc_t cs_b, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx  \
      );
 
-INSERT_GENTPROT_BASIC0( trsm3m1 )
-INSERT_GENTPROT_BASIC0( trsm4m1 )
-INSERT_GENTPROT_BASIC0( trsm1m )
+INSERT_GENTPROT_BASIC( trsm3m1 )
+INSERT_GENTPROT_BASIC( trsm4m1 )
+INSERT_GENTPROT_BASIC( trsm1m )
 

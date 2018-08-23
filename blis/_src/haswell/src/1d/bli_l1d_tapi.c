@@ -32,9 +32,7 @@
 
 */
 
-// Guard the function definitions so that they are only compiled when
-// #included from files that define the typed API macros.
-#ifdef BLIS_ENABLE_TAPI
+#include "blis.h"
 
 //
 // Define BLAS-like interfaces with typed operands.
@@ -43,7 +41,7 @@
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kername, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -51,15 +49,12 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        dim_t   m, \
        dim_t   n, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
-       ctype*  y, inc_t rs_y, inc_t cs_y  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  y, inc_t rs_y, inc_t cs_y, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
 	ctype*      x1; \
 	ctype*      y1; \
@@ -74,12 +69,9 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 \
 	/* Determine the distance to the diagonals, the number of diagonal
 	   elements, and the diagonal increments. */ \
-	bli_set_dims_incs_2d \
-	( \
-	  diagoffx, transx, \
-	  m, n, rs_x, cs_x, rs_y, cs_y, \
-	  &offx, &offy, &n_elem, &incx, &incy \
-	); \
+	bli_set_dims_incs_2d( diagoffx, transx, \
+	                      m, n, rs_x, cs_x, rs_y, cs_y, \
+	                      offx, offy, n_elem, incx, incy ); \
 \
 	conjx = bli_extract_conj( transx ); \
 \
@@ -97,11 +89,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	    y1   = y + offy; \
 	} \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	/* Initialize a local context if the given context is NULL. */ \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
 	/* Query the context for the operation's kernel address. */ \
-	PASTECH2(ch,kername,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,kername,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	/* Invoke the kernel with the appropriate parameters. */ \
 	f( \
@@ -109,8 +101,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	   n_elem, \
 	   x1, incx, \
 	   y1, incy, \
-	   cntx  \
+	   cntx_p  \
 	 ); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNC_BASIC2( addd,  addv,  BLIS_ADDV_KER )
@@ -121,7 +116,7 @@ INSERT_GENTFUNC_BASIC2( subd,  subv,  BLIS_SUBV_KER )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kername, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -130,15 +125,12 @@ void PASTEMAC2(ch,opname,EX_SUF) \
        dim_t   n, \
        ctype*  alpha, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
-       ctype*  y, inc_t rs_y, inc_t cs_y  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  y, inc_t rs_y, inc_t cs_y, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
 	ctype*      x1; \
 	ctype*      y1; \
@@ -153,12 +145,9 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 \
 	/* Determine the distance to the diagonals, the number of diagonal
 	   elements, and the diagonal increments. */ \
-	bli_set_dims_incs_2d \
-	( \
-	  diagoffx, transx, \
-	  m, n, rs_x, cs_x, rs_y, cs_y, \
-	  &offx, &offy, &n_elem, &incx, &incy \
-	); \
+	bli_set_dims_incs_2d( diagoffx, transx, \
+	                      m, n, rs_x, cs_x, rs_y, cs_y, \
+	                      offx, offy, n_elem, incx, incy ); \
 \
 	conjx = bli_extract_conj( transx ); \
 \
@@ -176,11 +165,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	    y1   = y + offy; \
 	} \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	/* Initialize a local context if the given context is NULL. */ \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
 	/* Query the context for the operation's kernel address. */ \
-	PASTECH2(ch,kername,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,kername,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	/* Invoke the kernel with the appropriate parameters. */ \
 	f( \
@@ -189,8 +178,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	   alpha, \
 	   x1, incx, \
 	   y1, incy, \
-	   cntx  \
+	   cntx_p  \
 	 ); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNC_BASIC2( axpyd,  axpyv,  BLIS_AXPYV_KER )
@@ -200,20 +192,17 @@ INSERT_GENTFUNC_BASIC2( scal2d, scal2v, BLIS_SCAL2V_KER )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kername, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        doff_t  diagoffx, \
        dim_t   m, \
        dim_t   n, \
-       ctype*  x, inc_t rs_x, inc_t cs_x  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  x, inc_t rs_x, inc_t cs_x, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
 	ctype*      x1; \
 	dim_t       n_elem; \
@@ -226,27 +215,27 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 \
 	/* Determine the distance to the diagonals, the number of diagonal
 	   elements, and the diagonal increments. */ \
-	bli_set_dims_incs_1d \
-	( \
-	  diagoffx, \
-	  m, n, rs_x, cs_x, \
-	  &offx, &n_elem, &incx \
-	); \
+	bli_set_dims_incs_1d( diagoffx, \
+	                      m, n, rs_x, cs_x, \
+	                      offx, n_elem, incx ); \
 \
     x1 = x + offx; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	/* Initialize a local context if the given context is NULL. */ \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
 	/* Query the context for the operation's kernel address. */ \
-	PASTECH2(ch,kername,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,kername,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	/* Invoke the kernel with the appropriate parameters. */ \
 	f( \
 	   n_elem, \
 	   x1, incx, \
-	   cntx  \
+	   cntx_p  \
 	 ); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNC_BASIC2( invertd, invertv, BLIS_INVERTV_KER )
@@ -255,22 +244,19 @@ INSERT_GENTFUNC_BASIC2( invertd, invertv, BLIS_INVERTV_KER )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, kername, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        conj_t  conjalpha, \
        doff_t  diagoffx, \
        dim_t   m, \
        dim_t   n, \
        ctype*  alpha, \
-       ctype*  x, inc_t rs_x, inc_t cs_x  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*  x, inc_t rs_x, inc_t cs_x, \
+       cntx_t* cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt = PASTEMAC(ch,type); \
+	cntx_t*     cntx_p; \
 \
 	ctype*      x1; \
 	dim_t       n_elem; \
@@ -283,20 +269,17 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 \
 	/* Determine the distance to the diagonals, the number of diagonal
 	   elements, and the diagonal increments. */ \
-	bli_set_dims_incs_1d \
-	( \
-	  diagoffx, \
-	  m, n, rs_x, cs_x, \
-	  &offx, &n_elem, &incx \
-	); \
+	bli_set_dims_incs_1d( diagoffx, \
+	                      m, n, rs_x, cs_x, \
+	                      offx, n_elem, incx ); \
 \
     x1 = x + offx; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	/* Initialize a local context if the given context is NULL. */ \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
 	/* Query the context for the operation's kernel address. */ \
-	PASTECH2(ch,kername,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH2(ch,kername,_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx_p ); \
 \
 	/* Invoke the kernel with the appropriate parameters. */ \
 	f( \
@@ -304,8 +287,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	   n_elem, \
 	   alpha, \
 	   x1, incx, \
-	   cntx  \
+	   cntx_p  \
 	 ); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNC_BASIC2( scald, scalv, BLIS_SCALV_KER )
@@ -315,22 +301,19 @@ INSERT_GENTFUNC_BASIC2( setd,  setv,  BLIS_SETV_KER )
 #undef  GENTFUNCR
 #define GENTFUNCR( ctype, ctype_r, ch, chr, opname, kername, kerid ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
        doff_t   diagoffx, \
        dim_t    m, \
        dim_t    n, \
        ctype_r* alpha, \
-       ctype*   x, inc_t rs_x, inc_t cs_x  \
-       BLIS_TAPI_EX_PARAMS  \
+       ctype*   x, inc_t rs_x, inc_t cs_x, \
+       cntx_t*  cntx  \
      ) \
 { \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
 	const num_t dt   = PASTEMAC(ch,type); \
 	const num_t dt_r = PASTEMAC(chr,type); \
+	cntx_t*     cntx_p; \
 \
 	ctype_r*    x1; \
 	dim_t       n_elem; \
@@ -346,12 +329,9 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 \
 	/* Determine the distance to the diagonals, the number of diagonal
 	   elements, and the diagonal increments. */ \
-	bli_set_dims_incs_1d \
-	( \
-	  diagoffx, \
-	  m, n, rs_x, cs_x, \
-	  &offx, &n_elem, &incx \
-	); \
+	bli_set_dims_incs_1d( diagoffx, \
+	                      m, n, rs_x, cs_x, \
+	                      offx, n_elem, incx ); \
 \
 	/* Alternate implementation. (Substitute for remainder of function). */ \
 	/* for ( i = 0; i < n_elem; ++i ) \
@@ -368,11 +348,11 @@ void PASTEMAC2(ch,opname,EX_SUF) \
     x1   = ( ctype_r* )( x + offx ) + 1; \
 	incx = 2*incx; \
 \
-	/* Obtain a valid context from the gks if necessary. */ \
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
+	/* Initialize a local context if the given context is NULL. */ \
+	bli_cntx_init_local_if( opname, dt, cntx, cntx_p ); \
 \
 	/* Query the context for the operation's kernel address. */ \
-	PASTECH2(chr,kername,_ft) f = bli_cntx_get_l1v_ker_dt( dt_r, kerid, cntx ); \
+	PASTECH2(chr,kername,_ft) f = bli_cntx_get_l1v_ker_dt( dt_r, kerid, cntx_p ); \
 \
 	/* Invoke the kernel with the appropriate parameters. */ \
 	f( \
@@ -380,12 +360,12 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	   n_elem, \
 	   alpha, \
 	   x1, incx, \
-	   cntx  \
+	   cntx_p  \
 	 ); \
+\
+	/* Finalize the context if it was initialized locally. */ \
+	bli_cntx_finalize_local_if( opname, cntx ); \
 }
 
 INSERT_GENTFUNCR_BASIC2( setid, setv, BLIS_SETV_KER )
-
-
-#endif
 
