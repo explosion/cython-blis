@@ -13,7 +13,6 @@
       "-std=c99",
       "-Wall",
       "-O3",
-      "-fPIC",
       "-fno-stack-protector",
       "-Wno-unused-function"
     ],
