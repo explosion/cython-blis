@@ -18,6 +18,22 @@ try:
 except ImportError:
     use_cython = False
 
+MOD_NAMES = [
+    'blis.cy',
+    'blis.py'
+]
+
+def clean(path):
+    if os.path.exists(os.path.join(PWD, 'build')):
+        shutil.rmtree(os.path.join(PWD, 'build'))
+    for name in MOD_NAMES:
+        name = name.replace('.', '/')
+        for ext in ['.so', '.html', '.cpp', '.c']:
+            file_path = os.path.join(path, name + ext)
+            if os.path.exists(file_path):
+                os.unlink(file_path)
+
+
 def locate_windows_llvm():
     # first check if the LLVM_HOME env variable is in use
     if 'LLVM_HOME' in os.environ:
@@ -74,11 +90,12 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                                    env=os.environ)
         compiler = self.get_compiler_name()
         arch = self.get_arch_name()
+        print(arch)
         cflags, ldflags = self.get_flags(arch=arch, compiler=compiler)
         extensions = []
         e = self.extensions.pop(0)
         blis_dir = os.path.dirname(e.sources[0])
-        c_sources = get_c_sources(os.path.join(blis_dir, '_src', arch))
+        c_sources = get_c_sources(os.path.join(blis_dir, '_src', arch, 'src'))
         include_dir = os.path.join(blis_dir, '_src', arch, 'include')
         print(e.sources)
         self.extensions.append(Extension(e.name, e.sources + c_sources))
@@ -127,7 +144,6 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             ldflags = flags['ldflags']['msvc']
         return cflags, ldflags
 
-
 def get_c_sources(start_dir):
     c_sources = []
     excludes = ['old', 'attic', 'broken', 'tmp', 'test',
@@ -139,22 +155,20 @@ def get_c_sources(start_dir):
         else:
             for name in files:
                 if name.endswith('.c'):
-                    # These files are not built directly -- only included
-                    if name.endswith('_ba.c'):
-                        continue
-                    elif name.endswith('_ex.c'):
-                        continue
                     c_sources.append(os.path.join(path, name))
     return c_sources
 
 
 PWD = os.path.join(os.path.dirname(__file__))
 ARCH = os.environ.get('BLIS_ARCH', 'haswell')
-SRC = os.path.join(PWD, 'blis', '_src')
+SRC = os.path.join(PWD, 'blis', '_src', ARCH, 'src')
 INCLUDE = os.path.join(PWD, 'blis', '_src', ARCH, 'include')
 COMPILER = os.environ.get('BLIS_COMPILER', 'gcc')
 
 c_files = get_c_sources(SRC)
+ 
+if len(sys.argv) > 1 and sys.argv[1] == 'clean':
+    clean(PWD)
 
 setup(
     setup_requires=['numpy'],
@@ -164,7 +178,7 @@ setup(
 
     ],
     cmdclass={'build_ext': ExtensionBuilder},
-    package_data={'': ['*.json', '*.pyx', '*.pxd', '_src/*/include/*.h'] + c_files},
+    package_data={'': ['*.json', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
 
     name="blis",
     packages=['blis'],
