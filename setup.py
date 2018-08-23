@@ -136,9 +136,11 @@ def get_c_sources(start_dir):
         else:
             for name in files:
                 if name.endswith('.c'):
+                    # These files are not built directly -- only included
                     if name.endswith('_ba.c'):
                         continue
                     elif name.endswith('_ex.c'):
+                        continue
                     c_sources.append(os.path.join(path, name))
     return c_sources
 
