@@ -57,7 +57,7 @@ class build_ext_options:
             self.compiler.compiler = [locate_windows_llvm()]
             self.compiler.compiler_so = list(self.compiler.compiler)
             self.compiler.preprocessor = list(self.compiler.compiler)
-            self.compiler.linker = list(self.compiler.compiler) + ['-shared']
+            self.compiler.linker = list(self.compiler.compiler)
             self.compiler.linker_so = list(self.compiler.linker)
             self.compiler.linker_exe = list(self.compiler.linker)
             self.compiler.archiver = [
@@ -80,6 +80,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         blis_dir = os.path.dirname(e.sources[0])
         c_sources = get_c_sources(os.path.join(blis_dir, '_src', arch))
         include_dir = os.path.join(blis_dir, '_src', arch, 'include')
+        print(e.sources)
         self.extensions.append(Extension(e.name, e.sources + c_sources))
         for e in self.extensions:
             e.extra_compile_args.extend(cflags)
