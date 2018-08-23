@@ -1,7 +1,7 @@
 {
   "ldflags": {
     "common": [],
-    "gcc": ["-lm"],
+    "gcc": [],
     "icc": [],
     "clang": [],
     "msvc": []
