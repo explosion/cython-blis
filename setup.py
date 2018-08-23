@@ -98,9 +98,9 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             return os.environ['BLIS_ARCH']
         processor = platform.processor()
         if processor == 'x86_64':
-            return 'x86_64' # Best guess?
+            return 'haswell' # Best guess?
         else:
-            return 'x86_64'
+            return 'haswell'
 
     def get_compiler_name(self):
         if 'BLIS_COMPILER' in os.environ:
@@ -113,7 +113,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         else:
             return name
     
-    def get_flags(self, arch='x86_64', compiler='gcc'):
+    def get_flags(self, arch='haswell', compiler='gcc'):
         flags = json.load(open('blis/compilation_flags.json'))
         if compiler != 'msvc':
             cflags = flags['cflags'].get(compiler, {}).get(arch, [])
@@ -149,7 +149,7 @@ def get_c_sources(start_dir):
 
 
 PWD = os.path.join(os.path.dirname(__file__))
-ARCH = os.environ.get('BLIS_ARCH', 'x86_64')
+ARCH = os.environ.get('BLIS_ARCH', 'haswell')
 SRC = os.path.join(PWD, 'blis', '_src')
 INCLUDE = os.path.join(PWD, 'blis', '_src', ARCH, 'include')
 COMPILER = os.environ.get('BLIS_COMPILER', 'gcc')
