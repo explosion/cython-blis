@@ -57,9 +57,9 @@ class build_ext_options:
             self.compiler.compiler = [locate_windows_llvm()]
             self.compiler.compiler_so = list(self.compiler.compiler)
             self.compiler.preprocessor = list(self.compiler.compiler)
-            self.compiler.linker = list(self.compiler.compiler) = ['-shared']
-            self.compiler.linker_so = list(self.compiler.linker) = ['-shared']
-            self.compiler.linker_exe = list(self.compiler.linker) = ['-shared']
+            self.compiler.linker = list(self.compiler.compiler) + ['-shared']
+            self.compiler.linker_so = list(self.compiler.linker) + ['-shared']
+            self.compiler.linker_exe = list(self.compiler.linker) + ['-shared']
             self.compiler.archiver = [
                 os.path.join(os.path.dirname(self.compiler.linker[0]), 'llvm-ar.exe')]
             self.compiler.library_dirs.extend(library_dirs)
