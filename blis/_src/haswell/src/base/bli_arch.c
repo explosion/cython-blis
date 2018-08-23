@@ -59,15 +59,15 @@ arch_t bli_arch_query_id( void )
 
 // -----------------------------------------------------------------------------
 
-#include <pthread.h>
+//#include <pthread.h>
 
 // A pthread structure used in pthread_once(). pthread_once() is guaranteed to
 // execute exactly once among all threads that pass in this control object.
-static pthread_once_t once_id = PTHREAD_ONCE_INIT;
+//static pthread_once_t once_id = PTHREAD_ONCE_INIT;
 
 void bli_arch_set_id_once( void )
 {
-	pthread_once( &once_id, bli_arch_set_id );
+	//pthread_once( &once_id, bli_arch_set_id );
 }
 
 // -----------------------------------------------------------------------------
