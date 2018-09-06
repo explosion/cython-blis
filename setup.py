@@ -3,6 +3,7 @@ import shutil
 import os
 import os.path
 import json
+import tempfile
 import distutils.command.build_ext
 from distutils.ccompiler import new_compiler
 import subprocess
@@ -90,34 +91,19 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                                    env=os.environ)
         compiler = self.get_compiler_name()
         arch = self.get_arch_name()
-        print(arch)
-        cflags, ldflags = self.get_flags(arch=arch, compiler=compiler)
+        objects = self.compile_objects(compiler, arch, OBJ_DIR)
         extensions = []
-        e = self.extensions.pop(0)
-        blis_dir = os.path.dirname(e.sources[0])
-        c_sources = get_c_sources(os.path.join(blis_dir, '_src', arch, 'src'))
-        include_dir = os.path.join(blis_dir, '_src', arch, 'include')
-        print(e.sources)
-        self.extensions.append(Extension(e.name, e.sources + c_sources))
         for e in self.extensions:
-            e.extra_compile_args.extend(cflags)
-            e.extra_link_args.extend(ldflags),
             e.include_dirs.append(numpy.get_include())
-            e.include_dirs.append(os.path.abspath(include_dir)),
-            e.undef_macros.append("FORTIFY_SOURCE")
-            e.undef_macros.append("LIBM")
-        for key, value in self.compiler.__dict__.items():
-            print(key, value)
+            e.include_dirs.append(INCLUDE)
+            e.extra_objects = objects
         distutils.command.build_ext.build_ext.build_extensions(self)
     
     def get_arch_name(self):
         if 'BLIS_ARCH' in os.environ:
             return os.environ['BLIS_ARCH']
-        processor = platform.processor()
-        if processor == 'x86_64':
-            return 'haswell' # Best guess?
         else:
-            return 'haswell'
+            return 'x86_64'
 
     def get_compiler_name(self):
         if 'BLIS_COMPILER' in os.environ:
@@ -129,53 +115,49 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             return 'gcc'
         else:
             return name
-    
-    def get_flags(self, arch='haswell', compiler='gcc'):
-        flags = json.load(open('blis/compilation_flags.json'))
-        if compiler != 'msvc':
-            cflags = flags['cflags'].get(compiler, {}).get(arch, [])
-            cflags += flags['cflags']['common']
-        else:
-            cflags = flags['cflags']['msvc']
-        if compiler != 'msvc':
-            ldflags = flags['ldflags'].get(compiler, [])
-            ldflags += flags['ldflags']['common']
-        else:
-            ldflags = flags['ldflags']['msvc']
-        return cflags, ldflags
 
-def get_c_sources(start_dir):
-    c_sources = []
-    excludes = ['old', 'attic', 'broken', 'tmp', 'test',
-                'cblas', 'other']
-    for path, subdirs, files in os.walk(start_dir):
-        for exc in excludes:
-            if exc in path:
-                break
-        else:
-            for name in files:
-                if name.endswith('.c'):
-                    c_sources.append(os.path.join(path, name))
-    return c_sources
+    def compile_objects(self, compiler, arch, obj_dir):
+        objects = []
+        with open(os.path.join(SRC, "make_targets.jsonl")) as file_:
+            for line in file_:
+                spec = json.loads(line)
+                _, target_name = os.path.split(spec['target'])
+                spec['target'] = os.path.join(obj_dir, target_name)
+                spec['source'] = os.path.join(BLIS_DIR, spec['source'])
+                for i, include in enumerate(spec['include']):
+                    include = include.replace('-I', '', 1)
+                    spec['include'][i] = '-I' + os.path.join(BLIS_DIR, include)
+                objects.append(self.build_object(compiler, **spec))
+        return objects
 
+    def build_object(self, compiler, source, target, flags, macros, include):
+        if os.path.exists(target):
+            return target
+        command = [compiler, "-O3", "-std=c99", "-c", source, "-o", target]
+        command.extend(flags)
+        command.extend(macros)
+        command.extend(include)
+        print(command)
+        subprocess.check_call(command)
+        return target
 
-PWD = os.path.join(os.path.dirname(__file__))
-ARCH = os.environ.get('BLIS_ARCH', 'haswell')
-SRC = os.path.join(PWD, 'blis', '_src', ARCH, 'src')
-INCLUDE = os.path.join(PWD, 'blis', '_src', ARCH, 'include')
+PWD = os.path.join(os.path.abspath(os.path.dirname('.')))
+SRC = os.path.join(PWD, 'blis') 
+BLIS_DIR = os.path.join(SRC, '_src')
+INCLUDE = os.path.join(PWD, 'blis', '_src', 'include')
 COMPILER = os.environ.get('BLIS_COMPILER', 'gcc')
 
-c_files = get_c_sources(SRC)
+c_files = [] #get_c_sources(SRC)
  
 if len(sys.argv) > 1 and sys.argv[1] == 'clean':
     clean(PWD)
 
+OBJ_DIR = tempfile.mkdtemp()
 setup(
     setup_requires=['numpy'],
     ext_modules=[
         Extension('blis.cy', ['blis/cy.c']),
-        Extension('blis.py', ['blis/py.c']),
-
+        Extension('blis.py', ['blis/py.c'])
     ],
     cmdclass={'build_ext': ExtensionBuilder},
     package_data={'': ['*.json', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
@@ -204,3 +186,4 @@ setup(
         'Topic :: Scientific/Engineering'
     ],
 )
+shutil.rmtree(OBJ_DIR)
