@@ -90,7 +90,8 @@ extern "C" {
 
 // POSIX threads are unconditionally required, regardless of whether
 // multithreading is enabled via pthreads or OpenMP (or disabled).
-#include <pthread.h> // skipped
+//#include <pthread.h> // skipped
+#include <sys/types.h>
 
 
 #endif
@@ -34908,7 +34909,7 @@ typedef struct
 
 // -- Memory broker object type --
 
-#include <pthread.h> // skipped
+//#include <pthread.h> // skipped
 // begin bli_malloc.h
 
 
