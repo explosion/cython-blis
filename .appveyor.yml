@@ -65,5 +65,5 @@ test_script:
   #- "%PYTHON%\\python.exe -m pytest tests/"
 
 artifacts:
-  - path: blis/_src/make
+  - path: /c/projects/cython-blis
     name: msvc.jsonl
