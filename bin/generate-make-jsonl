@@ -8,5 +8,5 @@ cd flame-blis
 ./configure --disable-shared --disable-threading --enable-verbose-make x86_64
 make > make.log 
 cat make.log | python ../bin/munge_make_log.py > ../blis/_src/make/$COMPILER.jsonl
-cp include/x86_64/blis.h blis/_src/include/blis.h
-cp include/x86_64/blis.h blis/_src/include/x86_64/blis.h
+cp include/x86_64/blis.h ../blis/_src/include/blis.h
+cp include/x86_64/blis.h ../blis/_src/include/x86_64/blis.h
