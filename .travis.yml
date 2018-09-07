@@ -10,12 +10,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo ln -s /usr/lib/binutils-2.26/bin/as /usr/bin/as; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo rm -f /usr/bin/ld; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo ln -s /usr/lib/binutils-2.26/bin/ld /usr/bin/ld; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CC="gcc-6"; fi
-  - cd flame-blis
-  - ./configure --disable-threading --enable-verbose-make CC=$CC x86_64
-  - make > make.log
-  - cd ..
-  - cat flame-blis/make.log | python ./bin/munge_make_log.py > ./blis/_src/make/gcc.jsonl
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sed -i 's/"gcc"/"gcc-6"/' blis/_src/make/gcc.jsonl ; fi
   - pip install -r dev-requirements.txt
   - pip install -r requirements.txt
   - python setup.py bdist_wheel
