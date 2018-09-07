@@ -1,4 +1,6 @@
 language: python
+sudo: required
+dist: trusty
 
 python:
   - "2.7"
@@ -7,6 +9,11 @@ python:
   - "3.6"
 
 install:
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo rm -f /usr/bin/as; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo ln -s /usr/lib/binutils-2.26/bin/as /usr/bin/as; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo rm -f /usr/bin/ld; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo ln -s /usr/lib/binutils-2.26/bin/ld /usr/bin/ld; fi
+  - if [ "$CC" = "gcc" ] && [ "$TRAVIS_OS_NAME" = "linux" ]; then export CC="gcc-6"; fi
   - cd flame-blis
   - ./configure --disable-threading --enable-verbose-make x86_64
   - make | python ../bin/munge_make_log.py > ../blis/_src/make/gcc.jsonl
@@ -15,6 +22,16 @@ install:
   - pip install -r requirements.txt
   - python setup.py bdist_wheel
   - pip install dist/*.whl
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-6
+    - binutils-2.26
+    - clang
+
 
 script:
   - cd /tmp
