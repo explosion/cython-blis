@@ -159,11 +159,11 @@ setup(
         Extension('blis.py', ['blis/py.c'])
     ],
     cmdclass={'build_ext': ExtensionBuilder},
-    package_data={'': ['*.json', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
+    package_data={'': ['*.json', '*.jsonl', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
 
     name="blis",
     packages=['blis'],
-    version="0.0.14",
+    version="0.0.15",
     author="Matthew Honnibal",
     author_email="matt@explosion.ai",
     summary="The Blis BLAS-like linear algebra library, as a self-contained C-extension.",
