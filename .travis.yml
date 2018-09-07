@@ -8,7 +8,7 @@ python:
 
 install:
   - cd flame-blis
-  - ./configure --disable-threading --verbose-make x86_64
+  - ./configure --disable-threading --enable-verbose-make x86_64
   - make | python ../bin/munge_make_log.py > ../blis/_src/make/gcc.jsonl
   - pip install -r dev-requirements.txt
   - pip install -r requirements.txt
