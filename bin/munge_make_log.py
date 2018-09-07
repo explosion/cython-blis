@@ -2,7 +2,7 @@ import sys
 import json
 
 for line in sys.stdin:
-    if not line.startswith('gcc'):
+    if 'flatten-headers.py' in line:
         continue
     pieces = line.split()
     args = {}
@@ -10,7 +10,9 @@ for line in sys.stdin:
     macros = []
     includes = []
     for i, piece in enumerate(pieces):
-        if piece == '-c':
+        if i == 0:
+            args['compiler'] = piece
+        elif piece == '-c':
             args['source'] = pieces[i+1]
         elif piece == '-o':
             args['target'] = pieces[i+1]
