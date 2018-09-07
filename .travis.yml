@@ -27,8 +27,9 @@ addons:
 
 
 script:
+  - cp -r tests/ /tmp/blis-tests
   - cd /tmp
-  - python -m pytest --pyargs blis
+  - python -m pytest blis-tests/
 
 after_success:
   coveralls
