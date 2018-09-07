@@ -9,13 +9,12 @@ python:
 install:
   - pip install -r dev-requirements.txt
   - pip install -r requirements.txt
-  - BLIS_ARCH=reference python setup.py build_ext --inplace
-  - BLIS_ARCH=reference pip install -e .
-  - pip install pytest-cov
-  - pip install coveralls
+  - python setup.py bdist_wheel
+  - pip install dist/*.whl
 
 script:
-  - python -m pytest blis --cov=blis
+  - cd /tmp
+  - python -m pytest --pyargs blis --cov=blis
 
 after_success:
   coveralls
