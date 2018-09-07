@@ -33,16 +33,18 @@ build_script:
 - set AR=llvm-ar
 - set AS=llvm-as
 - set LIBPTHREAD=-lpthreads
-- bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && ls"
-  #- bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && ./configure --disable-shared --disable-threading --verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
-  #- bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && make AR=llvm-ar CPICFLAGS= LIBM= > make.log" 
-  #- bash -lc "cd $APPVEYOR_BUILD_FOLDER && python ./bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
-  #- bash -lc "cd $APPVEYOR_BUILD_FOLDER && source activate && cp flame-blis/include/x86_64/blis.h blis/_src/include/blis.h"
-  #- "%PYTHON%\\python.exe -m pip install wheel"
-  #- "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
-  #- "%PYTHON%\\python.exe -m pip install -r requirements.txt"
-  #- "%PYTHON%\\python.exe setup.py bdist_wheel"
-  #- "%PYTHON%\\python.exe -m pip install dist/*.whl"
+- cd %APPVEYOR_BUILD_FOLDER%
+- dir .
+- cd flame-blis
+- bash -lc "source activate && ./configure --disable-shared --disable-threading --verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
+- bash -lc "source activate && make AR=llvm-ar CPICFLAGS= LIBM= > make.log" 
+- bash -lc "python ./bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
+- bash -lc "source activate && cp flame-blis/include/x86_64/blis.h blis/_src/include/blis.h"
+- "%PYTHON%\\python.exe -m pip install wheel"
+- "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
+- "%PYTHON%\\python.exe -m pip install -r requirements.txt"
+- "%PYTHON%\\python.exe setup.py bdist_wheel"
+- "%PYTHON%\\python.exe -m pip install dist/*.whl"
 
 
 test_script:
