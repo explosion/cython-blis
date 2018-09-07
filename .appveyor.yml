@@ -40,7 +40,7 @@ build_script:
 - dir .
 - bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
 - dir C:\projects
-- bash -lc "cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
+- bash -lc "cd /c/projects/cython-blis/flame-blis && ./configure --disable-static --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis haswell"
 - bash -lc "cp /c/projects/cython-blis/extra-include/*.h /c/projects/cython-blis/flame-blis/include/x86_64"
 - bash -lc "cd /c/projects/cython-blis/flame-blis && make AR=llvm-ar CPICFLAGS= LIBM= > make.log" 
 - bash -lc "cd /c/projects/cython-blis/ && cat flame-blis/make.log | python ./bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
