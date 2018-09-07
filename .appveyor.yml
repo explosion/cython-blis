@@ -65,5 +65,5 @@ test_script:
   #- "%PYTHON%\\python.exe -m pytest tests/"
 
 artifacts:
-  - path: blis/_src/make/msvc.jsonl
+  - path: blis/_src/make
     name: msvc.jsonl
