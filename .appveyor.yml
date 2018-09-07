@@ -37,6 +37,7 @@ build_script:
 - cd %APPVEYOR_BUILD_FOLDER%
 - cd flame-blis
 - dir .
+- dir "C:\\projects"
 - bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
 - bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && make AR=llvm-ar CPICFLAGS= LIBM= > make.log" 
 - bash -lc "cd /c/projects/cython-blis/ && cat flame-blis/make.log | python ./bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
