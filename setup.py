@@ -118,7 +118,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
     def compile_objects(self, py_compiler, py_arch, obj_dir):
         objects = []
-        with open(os.path.join(SRC, 'make', '%s.jsonl' % py_compiler)) as file_:
+        with open(os.path.join(BLIS_DIR, 'make', '%s.jsonl' % py_compiler)) as file_:
             for line in file_:
                 spec = json.loads(line)
                 _, target_name = os.path.split(spec['target'])
