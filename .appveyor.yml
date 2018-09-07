@@ -37,6 +37,7 @@ build_script:
 - cd %APPVEYOR_BUILD_FOLDER%
 - dir .
 - cd flame-blis
+- dir .
 - bash -lc "source activate && ./configure --disable-shared --disable-threading --verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
 - bash -lc "source activate && make AR=llvm-ar CPICFLAGS= LIBM= > make.log" 
 - bash -lc "python ./bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
