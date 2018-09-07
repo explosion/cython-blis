@@ -43,7 +43,7 @@ build_script:
 - bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && make AR=llvm-ar CPICFLAGS= LIBM= > make.log" 
 - bash -lc "cd /c/projects/cython-blis/ && cat flame-blis/make.log | python ./bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
 - bash -lc "source activate && cd /c/projects/cython-blis/ && cp flame-blis/include/x86_64/blis.h blis/_src/include/blis.h"
-- cd /c/projects/cython-blis
+- cd C:\projects\cython-blis
 - "%PYTHON%\\python.exe -m pip install -U pip"
 - "%PYTHON%\\python.exe -m pip install wheel"
 - "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
