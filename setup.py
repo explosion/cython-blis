@@ -116,7 +116,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         else:
             return name
 
-    def compile_objects(self, compiler, arch, obj_dir):
+    def compile_objects(self, py_compiler, py_arch, obj_dir):
         objects = []
         with open(os.path.join(SRC, "make_targets.jsonl")) as file_:
             for line in file_:
@@ -124,21 +124,18 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 _, target_name = os.path.split(spec['target'])
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
-                for i, include in enumerate(spec['include']):
-                    include = include.replace('-I', '', 1)
-                    spec['include'][i] = '-I' + os.path.join(BLIS_DIR, include)
-                objects.append(self.build_object(compiler, **spec))
+                objects.append(self.build_object(**spec))
         return objects
 
     def build_object(self, compiler, source, target, flags, macros, include):
         if os.path.exists(target):
             return target
-        command = [compiler, "-O3", "-std=c99", "-c", source, "-o", target]
+        command = [compiler, "-c", source, "-o", target]
         command.extend(flags)
         command.extend(macros)
         command.extend(include)
-        print(command)
-        subprocess.check_call(command)
+        print(' '.join(command))
+        subprocess.check_call(command, cwd=BLIS_DIR)
         return target
 
 PWD = os.path.join(os.path.abspath(os.path.dirname('.')))
