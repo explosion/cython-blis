@@ -33,8 +33,8 @@ build_script:
 - set AS=llvm-as
 - set LIBPTHREAD=-lpthreads
 - bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-threading --verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
-- bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && make AR=llvm-ar CPICFLAGS= LIBM=" 
-- bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && make | python /c/projects/cython-blis/bin/munge_make_log.py > /c/projects/cython-blis/blis/make_targets.jsonl"
+- bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && make AR=llvm-ar CPICFLAGS= LIBM= > /c/projects/cython-blis/flame-blis/make.log" 
+- bash -lc "python /c/projects/cython-blis/bin/munge_make_log.py > /c/projects/cython-blis/blis/_src/make/msvc.jsonl"
 - bash -lc "source activate && cp /c/projects/cython-blis/flame-blis/include/x86_64/blis.h /c/projects/cython-blis/blis/_src/include/blis.h"
 - "%PYTHON%\\python.exe -m pip install wheel"
 - "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
