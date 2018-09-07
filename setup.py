@@ -96,7 +96,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         for e in self.extensions:
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(INCLUDE)
-            e.extra_objects = objects
+            e.extra_objects = list(objects)
         distutils.command.build_ext.build_ext.build_extensions(self)
     
     def get_arch_name(self):
@@ -108,6 +108,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
     def get_compiler_name(self):
         if 'BLIS_COMPILER' in os.environ:
             return os.environ['BLIS_COMPILER']
+        elif os.environ.get('TRAVIS_OS_NAME') == "linux":
+            return 'gcc-6'
         name = self.compiler.compiler_type
         if name.startswith('msvc'):
             return 'msvc'
