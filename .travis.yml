@@ -3,13 +3,12 @@ sudo: required
 dist: trusty
 
 python:
+  - "2.7"
   - "3.5"
   - "3.6"
 
 os:
   - linux
-  - osx
-
 
 install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo rm -f /usr/bin/as; fi
