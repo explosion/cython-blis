@@ -70,10 +70,11 @@
 
 #define PTW32_SCHED_LEVEL_MAX 3
 
-#if ( defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112 )  || !defined(PTW32_SCHED_LEVEL)
-#define PTW32_SCHED_LEVEL PTW32_SCHED_LEVEL_MAX
-/* Include everything */
-#endif
+// MH: Hack this out to avoid an annoying warning
+//#if ( defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112 )  || !defined(PTW32_SCHED_LEVEL)
+//#define PTW32_SCHED_LEVEL PTW32_SCHED_LEVEL_MAX
+///* Include everything */
+//#endif
 
 
 #if defined(__GNUC__) && !defined(__declspec)
