@@ -22,6 +22,7 @@ install:
   #- conda update --yes --quiet conda
   #- conda config --add channels conda-forge
   #- conda install --yes clangdev posix m2-make pthreads-win32
+- choco install make
 - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
 - set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
 - set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
