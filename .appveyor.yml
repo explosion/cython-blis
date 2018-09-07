@@ -33,7 +33,7 @@ build_script:
 - set AR=llvm-ar
 - set AS=llvm-as
 - set LIBPTHREAD=-lpthreads
-- bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && ls"./configure --disable-shared --disable-threading --verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
+- bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && ls"
 - bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && ./configure --disable-shared --disable-threading --verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
 - bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && make AR=llvm-ar CPICFLAGS= LIBM= > make.log" 
 - bash -lc "cd $APPVEYOR_BUILD_FOLDER && python ./bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
