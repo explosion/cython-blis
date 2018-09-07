@@ -3,7 +3,14 @@ sudo: required
 dist: trusty
 
 python:
+  - "2.7"
+  - "3.5"
   - "3.6"
+
+os:
+  - linux
+  - osx
+
 
 install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo rm -f /usr/bin/as; fi
@@ -11,9 +18,11 @@ install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo rm -f /usr/bin/ld; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo ln -s /usr/lib/binutils-2.26/bin/ld /usr/bin/ld; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sed -i 's/"gcc"/"gcc-6"/' blis/_src/make/gcc.jsonl ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CC="gcc-6"
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ./bin/generate-make-jsonl clang
   - pip install -r dev-requirements.txt
   - pip install -r requirements.txt
-  - CC="gcc-6" python setup.py bdist_wheel
+  - python setup.py bdist_wheel
   - pip install dist/*.whl
 
 addons:
