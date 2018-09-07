@@ -15,7 +15,7 @@ environment:
 #    - PYTHON: "C:\\Python35-x64"
 
 install:
-- git submodule init --recursive --remote
+- git submodule update --init --recursive
 - cd flame-blis
 - set "CONDA_INSTALL_LOCN=C:\\Miniconda36-x64"
 - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
