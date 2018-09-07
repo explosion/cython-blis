@@ -20,11 +20,11 @@ install:
 - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
 - conda update --yes --quiet conda
 - conda config --add channels conda-forge
-- conda install --yes clangdev posix m2-make pthreads-win32
-- call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
-- set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
-- set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
-- cd ..
+  #- conda install --yes clangdev posix m2-make pthreads-win32
+  #- call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+  #- set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
+  #- set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
+  #- cd ..
 
 
 build_script:
@@ -34,15 +34,15 @@ build_script:
 - set AS=llvm-as
 - set LIBPTHREAD=-lpthreads
 - bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && ls"
-- bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && ./configure --disable-shared --disable-threading --verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
-- bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && make AR=llvm-ar CPICFLAGS= LIBM= > make.log" 
-- bash -lc "cd $APPVEYOR_BUILD_FOLDER && python ./bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
-- bash -lc "cd $APPVEYOR_BUILD_FOLDER && source activate && cp flame-blis/include/x86_64/blis.h blis/_src/include/blis.h"
-- "%PYTHON%\\python.exe -m pip install wheel"
-- "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
-- "%PYTHON%\\python.exe -m pip install -r requirements.txt"
-- "%PYTHON%\\python.exe setup.py bdist_wheel"
-- "%PYTHON%\\python.exe -m pip install dist/*.whl"
+  #- bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && ./configure --disable-shared --disable-threading --verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
+  #- bash -lc "cd $APPVEYOR_BUILD_FOLDER/flame-blis && source activate && make AR=llvm-ar CPICFLAGS= LIBM= > make.log" 
+  #- bash -lc "cd $APPVEYOR_BUILD_FOLDER && python ./bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
+  #- bash -lc "cd $APPVEYOR_BUILD_FOLDER && source activate && cp flame-blis/include/x86_64/blis.h blis/_src/include/blis.h"
+  #- "%PYTHON%\\python.exe -m pip install wheel"
+  #- "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
+  #- "%PYTHON%\\python.exe -m pip install -r requirements.txt"
+  #- "%PYTHON%\\python.exe setup.py bdist_wheel"
+  #- "%PYTHON%\\python.exe -m pip install dist/*.whl"
 
 
 test_script:
