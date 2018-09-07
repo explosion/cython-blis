@@ -91,7 +91,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                                    env=os.environ)
         compiler = self.get_compiler_name()
         arch = self.get_arch_name()
-        objects = self.compile_objects(compiler, arch, OBJ_DIR)
+        objects = self.compile_objects(compiler.split('-')[0], arch, OBJ_DIR)
         extensions = []
         for e in self.extensions:
             e.include_dirs.append(numpy.get_include())
