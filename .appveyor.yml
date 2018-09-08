@@ -38,7 +38,7 @@ build_script:
 - bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --enable-cblas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis haswell"
 - bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && make AR=llvm-ar CPICFLAGS= LIBM= -j4 > make.log"
 - bash -lc "source activate && cd /c/projects/cython-blis && cat flame-blis/make.log | python bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
-- bash -lc "cp /c/projects/cython-blis/blis/_src/make/msvc.jsonl > $APPVEYOR_BUILD_FOLDER/blis/_src/make/msvc.jsonl"
+- bash -lc "cp /c/projects/cython-blis/blis/_src/make/msvc.jsonl $APPVEYOR_BUILD_FOLDER/blis/_src/make/msvc.jsonl"
   #- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -U pip"
   #- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install wheel"
   #- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r dev-requirements.txt"
