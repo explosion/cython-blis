@@ -141,7 +141,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
         if self.compiler.compiler_type == 'msvc':
             command = ["bash", "-lc", '"%s"' % ' '.join(command)]
         print(' '.join(command))
-        subprocess.check_call(command, cwd=BLIS_DIR)
+        p = subprocess.Popen(command, cwd=BLIS_DIR)
+        p.wait()
         return target
 
 PWD = os.path.join(os.path.abspath(os.path.dirname('.')))
