@@ -183,8 +183,8 @@ OBJ_DIR = tempfile.mkdtemp()
 setup(
     setup_requires=['numpy'],
     ext_modules=[
-        Extension('blis.cy', ['blis/cy.c']),
-        Extension('blis.py', ['blis/py.c'])
+        Extension('blis.cy', [os.path.join('blis', 'cy.c')]),
+        Extension('blis.py', [os.path.join('blis', 'py.c')])
     ],
     cmdclass={'build_ext': ExtensionBuilder},
     package_data={'': ['*.json', '*.jsonl', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
