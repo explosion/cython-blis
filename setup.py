@@ -84,9 +84,9 @@ class build_ext_options:
             self.compiler.include_dirs = include_dirs
 
 
-class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
+class ExtensionBuilder(distutils.command.build_ext.build_ext):
     def build_extensions(self):
-        build_ext_options.build_options(self)
+        #build_ext_options.build_options(self)
         if use_cython:
             subprocess.check_call([sys.executable, 'bin/cythonize.py'],
                                    env=os.environ)
@@ -126,6 +126,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             for line in file_:
                 spec = json.loads(line)
                 _, target_name = os.path.split(spec['target'])
+                spec['compiler'] = self.compiler.compiler[0]
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 objects.append(self.build_object(**spec))
