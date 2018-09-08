@@ -145,7 +145,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
         command.extend(macros)
         command.extend(include)
         print(' '.join(command))
-        p = subprocess.Pipe(command, cwd=BLIS_DIR)
+        p = subprocess.Popen(command, cwd=BLIS_DIR)
         p.wait()
         return target
 
