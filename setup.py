@@ -147,7 +147,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     spec['source'] = spec['source'].replace('/', '\\')
                     spec['include'] = [inc.replace('/', '\\') for inc in spec['include']]
 
-                spec['include'].append('-I' + os.path.join(INCLUDE, '%s-%s' % (platform_name, py_arch)))
+                spec['include'].append('-I' + os.path.join(
+                    INCLUDE, '%s-%s' % (platform_name, py_arch)))
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 objects.append(self.build_object(env=env, **spec))
