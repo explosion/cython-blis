@@ -90,8 +90,7 @@ extern "C" {
 
 // POSIX threads are unconditionally required, regardless of whether
 // multithreading is enabled via pthreads or OpenMP (or disabled).
-//#include <pthread.h> // skipped
-#include <sys/types.h>
+#include <pthread.h> // skipped
 
 
 #endif
@@ -166,7 +165,7 @@ extern "C" {
 
 #ifndef BLIS_ENABLE_BLAS
 #ifndef BLIS_DISABLE_BLAS
-#if 1
+#if 0
 #define BLIS_ENABLE_BLAS
 #else
 #define BLIS_DISABLE_BLAS
@@ -33941,7 +33940,7 @@ INSERT_GENTPROT_BLAS( trsm )
 
 #ifndef BLIS_ENABLE_BLAS
 #ifndef BLIS_DISABLE_BLAS
-#if 1
+#if 0
 #define BLIS_ENABLE_BLAS
 #else
 #define BLIS_DISABLE_BLAS
@@ -34909,7 +34908,7 @@ typedef struct
 
 // -- Memory broker object type --
 
-//#include <pthread.h> // skipped
+#include <pthread.h> // skipped
 // begin bli_malloc.h
 
 
