@@ -71,7 +71,7 @@ class build_ext_options:
             include_dirs = list(self.compiler.include_dirs)
             self.compiler = new_compiler(plat='nt', compiler='unix')
             self.compiler.platform = 'nt'
-            self.compiker.compiler_type = 'msvc'
+            self.compiler.compiler_type = 'msvc'
             self.compiler.compiler = [locate_windows_llvm()]
             self.compiler.compiler_so = list(self.compiler.compiler)
             self.compiler.preprocessor = list(self.compiler.compiler)
