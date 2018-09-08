@@ -133,10 +133,11 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
                 _, target_name = os.path.split(spec['target'])
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
-                objects.append(self.build_object(**spec))
+                objects.append(self.build_object(**spec, env=env))
         return objects
 
-    def build_object(self, compiler, source, target, flags, macros, include):
+    def build_object(self, compiler, source, target, flags, macros, include,
+            env={}):
         if os.path.exists(target):
             return target
         command = [compiler, "-c", source, "-o", target]
@@ -146,7 +147,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
         if self.compiler.compiler_type == 'msvc':
             command = ["bash", "-lc", '"%s"' % ' '.join(command).replace('/', '\\\\')]
         print(' '.join(command))
-        p = subprocess.Popen(command, cwd=BLIS_DIR)
+        p = subprocess.Popen(command, cwd=BLIS_DIR, env=env)
         p.wait()
         return target
 
