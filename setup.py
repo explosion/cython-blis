@@ -131,6 +131,9 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
                     print(env)
                     continue
                 _, target_name = os.path.split(spec['target'])
+                if py_compiler == 'msvc':
+                    target_name = target_name.replace('/', '\\\\')
+                    spec['source'] = spec['source'].replace('/', '\\\\')
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 objects.append(self.build_object(env=env, **spec))
@@ -140,11 +143,14 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
             env=None):
         if os.path.exists(target):
             return target
+        if not os.path.exists(source):
+            raise IOError("Cannot find source file: %s" % source)
         command = [compiler, "-c", source, "-o", target]
         command.extend(flags)
         command.extend(macros)
         command.extend(include)
-        subprocess.check_call(command, cwd=BLIS_DIR)
+        p = subprocess.Popen(command, cwd=BLIS_DIR)
+        p.wait()
         return target
 
 PWD = os.path.join(os.path.abspath(os.path.dirname('.')))
