@@ -2,7 +2,7 @@ import os
 import sys
 import json
 
-print(json.dumps({"environment": os.environ}))
+print(json.dumps({"environment": dict(os.environ)}))
 for line in sys.stdin:
     if 'flatten-headers.py' in line:
         continue
