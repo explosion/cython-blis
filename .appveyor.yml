@@ -48,6 +48,8 @@ build_script:
 - bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r requirements.txt"
 - bash -lc "source activate && cd /c/projects/cython-blis && python setup.py bdist_wheel"
 - bash -lc "source activate && cd /c/projects/cython-blis && python pip install dist/*.whl"
+- bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/dist/"
+- bash -lc "cp /c/projects/cython-blis/dist/*.whl $APPVEYOR_BUILD_FOLDER/dist/"
 
 test_script:
   # Put your test command here.
@@ -61,4 +63,6 @@ test_script:
 
 artifacts:
   - path: blis/_src/make
-    name: msvc.jsonl
+    name: make_scripts.jsonl
+  - path: blis/dist
+    name: wheels
