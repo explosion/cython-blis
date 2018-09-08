@@ -61,28 +61,28 @@ def find_in_path(name, path):
 # By subclassing build_extensions we have the actual compiler that will be used
 # which is really known only after finalize_options
 # http://stackoverflow.com/questions/724664/python-distutils-how-to-get-a-compiler-that-is-going-to-be-used
-class build_ext_options:
-    def build_options(self):
-        if hasattr(self.compiler, 'initialize'):
-            self.compiler.initialize()
-        self.compiler.platform = sys.platform[:6]
-        if self.compiler.compiler_type == 'msvc':
-            library_dirs = list(self.compiler.library_dirs)
-            include_dirs = list(self.compiler.include_dirs)
-            self.compiler = new_compiler(plat='nt', compiler='unix')
-            self.compiler.platform = 'nt'
-            self.compiler.compiler_type = 'msvc'
-            self.compiler.compiler = [locate_windows_llvm()]
-            self.compiler.compiler_so = list(self.compiler.compiler)
-            self.compiler.preprocessor = list(self.compiler.compiler)
-            self.compiler.linker = list(self.compiler.compiler) + ['-shared']
-            self.compiler.linker_so = list(self.compiler.linker) + ['-shared']
-            self.compiler.linker_exe = list(self.compiler.linker) + ['-shared']
-            self.compiler.archiver = [
-                os.path.join(os.path.dirname(self.compiler.linker[0]), 'llvm-ar.exe')]
-            self.compiler.library_dirs.extend(library_dirs)
-            self.compiler.include_dirs = include_dirs
-
+#class build_ext_options:
+#    def build_options(self):
+#        if hasattr(self.compiler, 'initialize'):
+#            self.compiler.initialize()
+#        self.compiler.platform = sys.platform[:6]
+#        if self.compiler.compiler_type == 'msvc':
+#            library_dirs = list(self.compiler.library_dirs)
+#            include_dirs = list(self.compiler.include_dirs)
+#            self.compiler = new_compiler(plat='nt', compiler='unix')
+#            self.compiler.platform = 'nt'
+#            self.compiler.compiler_type = 'msvc'
+#            self.compiler.compiler = [locate_windows_llvm()]
+#            self.compiler.compiler_so = list(self.compiler.compiler)
+#            self.compiler.preprocessor = list(self.compiler.compiler)
+#            self.compiler.linker = list(self.compiler.compiler) + ['-shared']
+#            self.compiler.linker_so = list(self.compiler.linker) + ['-shared']
+#            self.compiler.linker_exe = list(self.compiler.linker) + ['-shared']
+#            self.compiler.archiver = [
+#                os.path.join(os.path.dirname(self.compiler.linker[0]), 'llvm-ar.exe')]
+#            self.compiler.library_dirs.extend(library_dirs)
+#            self.compiler.include_dirs = include_dirs
+#
 
 class ExtensionBuilder(distutils.command.build_ext.build_ext):
     def build_extensions(self):
@@ -122,11 +122,16 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
 
     def compile_objects(self, py_compiler, py_arch, obj_dir):
         objects = []
+        if py_compiler == 'msvc':
+            overrule_compiler = locate_windows_llvm()
+        else:
+            overrule_compiler = None
         with open(os.path.join(BLIS_DIR, 'make', '%s.jsonl' % py_compiler)) as file_:
             for line in file_:
                 spec = json.loads(line)
                 _, target_name = os.path.split(spec['target'])
-                spec['compiler'] = self.compiler.compiler[0]
+                if overrule_compiler:
+                    spec['compiler'] = overrule_compiler
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 objects.append(self.build_object(**spec))
