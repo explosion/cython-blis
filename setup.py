@@ -100,7 +100,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         else:
             platform_name = 'linux'
         for e in self.extensions:
-            e.libraries.append('pthreads')
+            if platform_name == 'windows':
+                e.libraries.append('pthreads')
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
             e.extra_objects = list(objects)
@@ -162,6 +163,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         command.extend(flags)
         command.extend(macros)
         command.extend(include)
+        print(' '.join(command))
         subprocess.check_call(command, cwd=BLIS_DIR)
         return target
 
