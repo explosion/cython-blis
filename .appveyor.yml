@@ -36,14 +36,12 @@ build_script:
 - cd flame-blis
 - bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
 - bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --enable-cblas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis haswell"
-- bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && make AR=llvm-ar CPICFLAGS= LIBM= LIBPTHREAD=-lpthreads CFLAGS=-Wno-macro-redefined -j4"
+- bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && make AR=llvm-ar CPICFLAGS= LIBM= CFLAG=-Wno-macro-redefined -j4"
 - bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -U pip"
 - bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install wheel"
 - bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r dev-requirements.txt"
 - bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r requirements.txt"
-- bash -lc "source activate && cd /c/projects/cython-blis && 
-#- "%PYTHON%\\python.exe setup.py bdist_wheel"
-#- "%PYTHON%\\python.exe -m pip install dist/*.whl"
+- bash -lc "source activate && cd /c/projects/cython-blis && python setup.py bdist_wheel"
 
 test_script:
   # Put your test command here.
