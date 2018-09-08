@@ -122,16 +122,10 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
 
     def compile_objects(self, py_compiler, py_arch, obj_dir):
         objects = []
-        if py_compiler == 'msvc':
-            overrule_compiler = locate_windows_llvm()
-        else:
-            overrule_compiler = None
         with open(os.path.join(BLIS_DIR, 'make', '%s.jsonl' % py_compiler)) as file_:
             for line in file_:
                 spec = json.loads(line)
                 _, target_name = os.path.split(spec['target'])
-                if overrule_compiler:
-                    spec['compiler'] = overrule_compiler
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 objects.append(self.build_object(**spec))
@@ -144,9 +138,10 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
         command.extend(flags)
         command.extend(macros)
         command.extend(include)
+        if self.compiler.compiler_type == 'msvc':
+            command = ["bash", "-lc", '"%s"' % ' '.join(command)]
         print(' '.join(command))
-        p = subprocess.Popen(command, cwd=BLIS_DIR)
-        p.wait()
+        subprocess.check_call(command, cwd=BLIS_DIR)
         return target
 
 PWD = os.path.join(os.path.abspath(os.path.dirname('.')))
