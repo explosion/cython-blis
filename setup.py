@@ -128,7 +128,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
     def compile_objects(self, py_compiler, py_arch, obj_dir):
         objects = []
-        if compiler == 'msvc':
+        if py_compiler == 'msvc':
             platform_name = 'windows'
         else:
             platform_name = 'linux'
