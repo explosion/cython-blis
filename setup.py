@@ -95,7 +95,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
         objects = self.compile_objects(compiler.split('-')[0], arch, OBJ_DIR)
         extensions = []
         for e in self.extensions:
-            e.libraries.append('pthread')
+            e.libraries.append('pthreads')
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(INCLUDE)
             e.extra_objects = list(objects)
