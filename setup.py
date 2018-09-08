@@ -145,7 +145,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext):
         command.extend(macros)
         command.extend(include)
         if self.compiler.compiler_type == 'msvc':
-            command = ["bash", "-lc", '"%s"' % ' '.join(command).replace('\\', '/').replace('C:/', '/c/']
+            command = ["bash", "-lc", '"%s"' % ' '.join(command).replace('\\', '/').replace('C:/', '/c/')]
         print(' '.join(command))
         p = subprocess.Popen(command, cwd=BLIS_DIR, env=env)
         p.wait()
