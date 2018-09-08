@@ -96,13 +96,13 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         extensions = []
 
         if compiler == 'msvc':
-            platform = 'windows'
+            platform_name = 'windows'
         else:
-            platform = 'linux'
+            platform_name = 'linux'
         for e in self.extensions:
             e.libraries.append('pthreads')
             e.include_dirs.append(numpy.get_include())
-            e.include_dirs.append(os.path.join(INCLUDE, '%s-%s' % (platform, arch)))
+            e.include_dirs.append(os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
             e.extra_objects = list(objects)
         distutils.command.build_ext.build_ext.build_extensions(self)
     
@@ -128,6 +128,10 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
     def compile_objects(self, py_compiler, py_arch, obj_dir):
         objects = []
+        if compiler == 'msvc':
+            platform_name = 'windows'
+        else:
+            platform_name = 'linux'
         with open(os.path.join(BLIS_DIR, 'make', '%s.jsonl' % py_compiler)) as file_:
             env = {}
             for line in file_:
@@ -142,7 +146,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     spec['source'] = spec['source'].replace('/', '\\')
                     spec['include'] = [inc.replace('/', '\\') for inc in spec['include']]
 
-                spec['include'].append(os.path.join(INCLUDE, '%s-%s' % (platform, py_arch)))
+                spec['include'].append(os.path.join(INCLUDE, '%s-%s' % (platform_name, py_arch)))
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 objects.append(self.build_object(env=env, **spec))
