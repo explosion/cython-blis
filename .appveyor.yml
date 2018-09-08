@@ -17,16 +17,14 @@ environment:
 install:
 - git submodule update --init --recursive
 - cd flame-blis
-  #- set "CONDA_INSTALL_LOCN=C:\\Miniconda36-x64"
-  #- call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
-  #- conda update --yes --quiet conda
-  #- conda config --add channels conda-forge
-  #- conda install --yes clangdev posix m2-make pthreads-win32
-- choco install make
+- set "CONDA_INSTALL_LOCN=C:\\Miniconda36-x64"
+- call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
+- conda update --yes --quiet conda
+- conda config --add channels conda-forge
+- conda install --yes clangdev posix m2-make pthreads-win32
 - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
 - set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
 - set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
-#- cd ..
 
 
 build_script:
@@ -36,24 +34,16 @@ build_script:
 - set AS=llvm-as
 - cd %APPVEYOR_BUILD_FOLDER%
 - cd flame-blis
-- dir .
 - bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
-- dir C:\projects
-- bash -lc "cd /c/projects/cython-blis/flame-blis && ./configure --disable-threading --enable-verbose-make --enable-arg-max-hack haswell"
-- bash -lc "cp /c/projects/cython-blis/extra-include/*.h /c/projects/cython-blis/flame-blis/include/haswell"
-- bash -lc "cp /c/projects/cython-blis/extra-include/*.h /c/projects/cython-blis/blis/_src/include/haswell"
-- bash -lc "cp /c/projects/cython-blis/extra-include/*.h /c/projects/cython-blis/blis/_src/include/"
-- bash -lc "cd /c/projects/cython-blis/flame-blis && make CPICFLAGS= LIBM= | python ../bin/munge_make_log.py > ../blis/_src/make/msvc.jsonl"
-- bash -lc "cp /c/projects/cython-blis/blis/_src/make/msvc.jsonl $APPVEYOR_BUILD_FOLDER/blis/_src/make"
-- bash -lc "cp /c/projects/cython-blis/flame-blis/include/haswell/blis.h /c/projects/cython-blis/blis/_src/include/blis.h"
-- cd C:\projects\cython-blis
-- "%PYTHON%\\python.exe -m pip install -U pip"
-- "%PYTHON%\\python.exe -m pip install wheel"
-- "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
-- "%PYTHON%\\python.exe -m pip install -r requirements.txt"
-- "%PYTHON%\\python.exe setup.py bdist_wheel"
-- "%PYTHON%\\python.exe -m pip install dist/*.whl"
-
+- bash -lc "source activate && cd /c/projects/cython-blis && ./configure --disable-shared --enable-cblas --enable-threading=pthreads --enable-arg-max-hack --prefix=/c/blis x86_64"
+- bash -lc "source activate && cd /c/projects/cython-blis && make AR=llvm-ar CPICFLAGS= LIBM= LIBPTHREAD=-lpthreads -j4"
+#- cd C:\projects\cython-blis
+#- "%PYTHON%\\python.exe -m pip install -U pip"
+#- "%PYTHON%\\python.exe -m pip install wheel"
+#- "%PYTHON%\\python.exe -m pip install -r dev-requirements.txt"
+#- "%PYTHON%\\python.exe -m pip install -r requirements.txt"
+#- "%PYTHON%\\python.exe setup.py bdist_wheel"
+#- "%PYTHON%\\python.exe -m pip install dist/*.whl"
 
 test_script:
   # Put your test command here.
