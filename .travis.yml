@@ -1,21 +1,45 @@
 language: python
+sudo: required
+dist: trusty
 
 python:
   - "2.7"
-  - "3.4"
   - "3.5"
   - "3.6"
 
+os:
+  - linux
+
+osx_image: xcode9.3
+
 install:
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo rm -f /usr/bin/as; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo ln -s /usr/lib/binutils-2.26/bin/as /usr/bin/as; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo rm -f /usr/bin/ld; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo ln -s /usr/lib/binutils-2.26/bin/ld /usr/bin/ld; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sed -i 's/"gcc"/"gcc-6"/' blis/_src/make/gcc.jsonl ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CC="gcc-6"; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export CC=clang; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ./bin/generate-make-jsonl clang; fi
   - pip install -r dev-requirements.txt
   - pip install -r requirements.txt
-  - BLIS_ARCH=reference python setup.py build_ext --inplace
-  - BLIS_ARCH=reference pip install -e .
-  - pip install pytest-cov
-  - pip install coveralls
+  - python setup.py bdist_wheel
+  - pip install dist/*.whl
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-6
+    - binutils-2.26
+    - clang
+
 
 script:
-  - python -m pytest blis --cov=blis
+  - cp -r tests/ /tmp/blis-tests
+  - cd /tmp
+  - python -m pytest blis-tests/
 
 after_success:
   coveralls

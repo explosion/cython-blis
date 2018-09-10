@@ -3,6 +3,7 @@ import shutil
 import os
 import os.path
 import json
+import tempfile
 import distutils.command.build_ext
 from distutils.ccompiler import new_compiler
 import subprocess
@@ -70,12 +71,13 @@ class build_ext_options:
             include_dirs = list(self.compiler.include_dirs)
             self.compiler = new_compiler(plat='nt', compiler='unix')
             self.compiler.platform = 'nt'
+            self.compiler.compiler_type = 'msvc'
             self.compiler.compiler = [locate_windows_llvm()]
             self.compiler.compiler_so = list(self.compiler.compiler)
             self.compiler.preprocessor = list(self.compiler.compiler)
             self.compiler.linker = list(self.compiler.compiler) + ['-shared']
-            self.compiler.linker_so = list(self.compiler.linker) + ['-shared']
-            self.compiler.linker_exe = list(self.compiler.linker) + ['-shared']
+            self.compiler.linker_so = list(self.compiler.linker)
+            self.compiler.linker_exe = list(self.compiler.linker)
             self.compiler.archiver = [
                 os.path.join(os.path.dirname(self.compiler.linker[0]), 'llvm-ar.exe')]
             self.compiler.library_dirs.extend(library_dirs)
@@ -90,99 +92,106 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                                    env=os.environ)
         compiler = self.get_compiler_name()
         arch = self.get_arch_name()
-        print(arch)
-        cflags, ldflags = self.get_flags(arch=arch, compiler=compiler)
+        objects = self.compile_objects(compiler.split('-')[0], arch, OBJ_DIR)
         extensions = []
-        e = self.extensions.pop(0)
-        blis_dir = os.path.dirname(e.sources[0])
-        c_sources = get_c_sources(os.path.join(blis_dir, '_src', arch, 'src'))
-        include_dir = os.path.join(blis_dir, '_src', arch, 'include')
-        print(e.sources)
-        self.extensions.append(Extension(e.name, e.sources + c_sources))
+
+        if compiler == 'msvc':
+            platform_name = 'windows'
+        else:
+            platform_name = 'linux'
         for e in self.extensions:
-            e.extra_compile_args.extend(cflags)
-            e.extra_link_args.extend(ldflags),
+            if platform_name == 'windows':
+                e.libraries.append('pthreads')
             e.include_dirs.append(numpy.get_include())
-            e.include_dirs.append(os.path.abspath(include_dir)),
-            e.undef_macros.append("FORTIFY_SOURCE")
-            e.undef_macros.append("LIBM")
-        for key, value in self.compiler.__dict__.items():
-            print(key, value)
+            e.include_dirs.append(os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
+            e.extra_objects = list(objects)
         distutils.command.build_ext.build_ext.build_extensions(self)
     
     def get_arch_name(self):
         if 'BLIS_ARCH' in os.environ:
             return os.environ['BLIS_ARCH']
-        processor = platform.processor()
-        if processor == 'x86_64':
-            return 'haswell' # Best guess?
         else:
-            return 'haswell'
+            return 'x86_64'
 
     def get_compiler_name(self):
         if 'BLIS_COMPILER' in os.environ:
             return os.environ['BLIS_COMPILER']
+        elif os.environ.get('TRAVIS_OS_NAME') == "linux":
+            return 'gcc-6'
         name = self.compiler.compiler_type
+        print(name)
         if name.startswith('msvc'):
             return 'msvc'
         elif name not in ('gcc', 'clang', 'icc'):
             return 'gcc'
         else:
             return name
-    
-    def get_flags(self, arch='haswell', compiler='gcc'):
-        flags = json.load(open('blis/compilation_flags.json'))
-        if compiler != 'msvc':
-            cflags = flags['cflags'].get(compiler, {}).get(arch, [])
-            cflags += flags['cflags']['common']
-        else:
-            cflags = flags['cflags']['msvc']
-        if compiler != 'msvc':
-            ldflags = flags['ldflags'].get(compiler, [])
-            ldflags += flags['ldflags']['common']
-        else:
-            ldflags = flags['ldflags']['msvc']
-        return cflags, ldflags
 
-def get_c_sources(start_dir):
-    c_sources = []
-    excludes = ['old', 'attic', 'broken', 'tmp', 'test',
-                'cblas', 'other']
-    for path, subdirs, files in os.walk(start_dir):
-        for exc in excludes:
-            if exc in path:
-                break
+    def compile_objects(self, py_compiler, py_arch, obj_dir):
+        objects = []
+        if py_compiler == 'msvc':
+            platform_name = 'windows'
         else:
-            for name in files:
-                if name.endswith('.c'):
-                    c_sources.append(os.path.join(path, name))
-    return c_sources
+            platform_name = 'linux'
+        with open(os.path.join(BLIS_DIR, 'make', '%s.jsonl' % py_compiler)) as file_:
+            env = {}
+            for line in file_:
+                spec = json.loads(line)
+                if 'environment' in spec:
+                    env = spec['environment']
+                    print(env)
+                    continue
+                _, target_name = os.path.split(spec['target'])
+                if py_compiler == 'msvc':
+                    target_name = target_name.replace('/', '\\')
+                    spec['source'] = spec['source'].replace('/', '\\')
+                    spec['include'] = [inc.replace('/', '\\') for inc in spec['include']]
 
+                spec['include'].append('-I' + os.path.join(
+                    INCLUDE, '%s-%s' % (platform_name, py_arch)))
+                spec['target'] = os.path.join(obj_dir, target_name)
+                spec['source'] = os.path.join(BLIS_DIR, spec['source'])
+                objects.append(self.build_object(env=env, **spec))
+        return objects
 
-PWD = os.path.join(os.path.dirname(__file__))
-ARCH = os.environ.get('BLIS_ARCH', 'haswell')
-SRC = os.path.join(PWD, 'blis', '_src', ARCH, 'src')
-INCLUDE = os.path.join(PWD, 'blis', '_src', ARCH, 'include')
+    def build_object(self, compiler, source, target, flags, macros, include,
+            env=None):
+        if os.path.exists(target):
+            return target
+        if not os.path.exists(source):
+            raise IOError("Cannot find source file: %s" % source)
+        command = [compiler, "-c", source, "-o", target]
+        command.extend(flags)
+        command.extend(macros)
+        command.extend(include)
+        print(' '.join(command))
+        subprocess.check_call(command, cwd=BLIS_DIR)
+        return target
+
+PWD = os.path.join(os.path.abspath(os.path.dirname('.')))
+SRC = os.path.join(PWD, 'blis') 
+BLIS_DIR = os.path.join(SRC, '_src')
+INCLUDE = os.path.join(PWD, 'blis', '_src', 'include')
 COMPILER = os.environ.get('BLIS_COMPILER', 'gcc')
 
-c_files = get_c_sources(SRC)
+c_files = [] #get_c_sources(SRC)
  
 if len(sys.argv) > 1 and sys.argv[1] == 'clean':
     clean(PWD)
 
+OBJ_DIR = tempfile.mkdtemp()
 setup(
     setup_requires=['numpy'],
     ext_modules=[
-        Extension('blis.cy', ['blis/cy.c']),
-        Extension('blis.py', ['blis/py.c']),
-
+        Extension('blis.cy', [os.path.join('blis', 'cy.c')]),
+        Extension('blis.py', [os.path.join('blis', 'py.c')])
     ],
     cmdclass={'build_ext': ExtensionBuilder},
-    package_data={'': ['*.json', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
+    package_data={'': ['*.json', '*.jsonl', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
 
     name="blis",
     packages=['blis'],
-    version="0.0.14",
+    version="0.0.15",
     author="Matthew Honnibal",
     author_email="matt@explosion.ai",
     summary="The Blis BLAS-like linear algebra library, as a self-contained C-extension.",
@@ -204,3 +213,4 @@ setup(
         'Topic :: Scientific/Engineering'
     ],
 )
+shutil.rmtree(OBJ_DIR)
