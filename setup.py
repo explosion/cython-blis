@@ -78,8 +78,7 @@ class build_ext_options:
             self.compiler.linker = list(self.compiler.compiler) + ['-shared']
             self.compiler.linker_so = list(self.compiler.linker)
             self.compiler.linker_exe = list(self.compiler.linker)
-            self.compiler.archiver = [
-                os.path.join(os.path.dirname(self.compiler.linker[0]), 'llvm-ar.exe')]
+            self.compiler.archiver = ['llvm-ar']
             self.compiler.library_dirs.extend(library_dirs)
             self.compiler.include_dirs = include_dirs
 
