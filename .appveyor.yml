@@ -36,26 +36,14 @@ build_script:
 - cd flame-blis
 - bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
 - bash -lc "which clang"
-- bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
-- bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && make AR=llvm-ar CPICFLAGS= LIBM= -j4 > make.log"
-- bash -lc "source activate && cd /c/projects/cython-blis && cat flame-blis/make.log | python bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
-- bash -lc "mkdir -p /c/projects/cython-blis/blis/_src/include/windows-x86_64"
-- bash -lc "cp /c/projects/cython-blis/flame-blis/bli_config.h /c/projects/cython-blis/blis/_src/include/windows-x86_64"
-- bash -lc "cp /c/projects/cython-blis/flame-blis/include/x86_64/blis.h /c/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h"
-- bash -lc "cp /c/projects/cython-blis/flame-blis/include/x86_64/blis.h /c/projects/cython-blis/blis/_src/include/x86_64/blis.h"
-- bash -lc "cp /c/projects/cython-blis/flame-blis/bli_config.h /c/projects/cython-blis/blis/_src/include/windows-x86_64/bli_config.h"
-- bash -lc "cp /c/projects/cython-blis/flame-blis/bli_config.h /c/projects/cython-blis/blis/_src/include/x86_64/bli_config.h"
-- bash -lc "cp /c/projects/cython-blis/blis/_src/make/msvc.jsonl $APPVEYOR_BUILD_FOLDER/blis/_src/make/msvc.jsonl"
-- bash -lc "cp /c/projects/cython-blis/blis/_src/include/windows-x86_64/*.h $APPVEYOR_BUILD_FOLDER/blis/_src/make/"
-
-#- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -U pip"
-#- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install wheel"
-#- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r dev-requirements.txt"
-#- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r requirements.txt"
-#- bash -lc "source activate && cd /c/projects/cython-blis && python setup.py bdist_wheel"
-#- bash -lc "source activate && cd /c/projects/cython-blis && python pip install dist/*.whl"
-#- bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/dist/"
-#- bash -lc "cp /c/projects/cython-blis/dist/*.whl $APPVEYOR_BUILD_FOLDER/dist/"
+- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -U pip"
+- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install wheel"
+- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r dev-requrements.txt"
+- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r requirements.txt"
+- bash -lc "source activate && cd /c/projects/cython-blis && python setup.py bdist_wheel"
+- bash -lc "source activate && cd /c/projects/cython-blis && python pip install dist/*.whl"
+- bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/dist/"
+- bash -lc "cp /c/projects/cython-blis/dist/*.whl $APPVEYOR_BUILD_FOLDER/dist/"
 
 #test_script:
 # Put your test command here.
@@ -72,3 +60,17 @@ artifacts:
     name: make_scripts.jsonl
   - path: blis/dist
     name: wheels
+
+#- bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
+#- bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && make AR=llvm-ar CPICFLAGS= LIBM= -j4 > make.log"
+#- bash -lc "source activate && cd /c/projects/cython-blis && cat flame-blis/make.log | python bin/munge_make_log.py > blis/_src/make/msvc.jsonl"
+#- bash -lc "mkdir -p /c/projects/cython-blis/blis/_src/include/windows-x86_64"
+#- bash -lc "cp /c/projects/cython-blis/flame-blis/bli_config.h /c/projects/cython-blis/blis/_src/include/windows-x86_64"
+#- bash -lc "cp /c/projects/cython-blis/flame-blis/include/x86_64/blis.h /c/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h"
+#- bash -lc "cp /c/projects/cython-blis/flame-blis/include/x86_64/blis.h /c/projects/cython-blis/blis/_src/include/x86_64/blis.h"
+#- bash -lc "cp /c/projects/cython-blis/flame-blis/bli_config.h /c/projects/cython-blis/blis/_src/include/windows-x86_64/bli_config.h"
+#- bash -lc "cp /c/projects/cython-blis/flame-blis/bli_config.h /c/projects/cython-blis/blis/_src/include/x86_64/bli_config.h"
+#- bash -lc "cp /c/projects/cython-blis/blis/_src/make/msvc.jsonl $APPVEYOR_BUILD_FOLDER/blis/_src/make/msvc.jsonl"
+#- bash -lc "cp /c/projects/cython-blis/blis/_src/include/windows-x86_64/*.h $APPVEYOR_BUILD_FOLDER/blis/_src/make/"
+
+
