@@ -12,3 +12,4 @@ cythonize.dat
 
 # Blis stuff
 blis/include
+.fragment.mk
