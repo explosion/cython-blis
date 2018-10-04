@@ -35,10 +35,7 @@
 
 #if 0
   // Used only during standalone testing of ARM support.
-  #include <stdio.h>
-  #include <stdlib.h>
-  #include <string.h>
-  #include <stdint.h>
+  #include "bli_system.h"
   #include "bli_type_defs.h"
   #include "bli_cpuid.h"
   #undef __x86_64__
@@ -51,10 +48,7 @@
 #ifndef BLIS_CONFIGURETIME_CPUID
   #include "blis.h"
 #else
-  #include <stdlib.h>
-  #include <string.h>
-  #include <stdint.h>
-  #include <pthread.h>
+  #include "bli_system.h"
   #include "bli_type_defs.h"
   #include "bli_cpuid.h"
 #endif
@@ -430,6 +424,21 @@ arch_t bli_cpuid_query_id( void )
 }
 
 bool_t bli_cpuid_is_cortexa57
+     (
+       uint32_t family,
+       uint32_t model,
+       uint32_t features
+     )
+{
+	// Check for expected CPU features.
+	const uint32_t expected = FEATURE_NEON;
+
+	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
+
+	return TRUE;
+}
+
+bool_t bli_cpuid_is_cortexa53
      (
        uint32_t family,
        uint32_t model,

@@ -34,38 +34,44 @@
 
 #include "blis.h"
 
-#ifdef _MSC_VER
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-
-#if 0
-// NOTE: This function is no longer needed by BLIS since BLIS no longer
-// makes any attempt to change environment variables; rather, it only
-// reads them. We can keep it here for some time before removing it,
-// though.
-
-int bli_setenv( const char *name, const char *value, int overwrite )
+void bli_cntx_init_cortexa53( cntx_t* cntx )
 {
-#ifdef _MSC_VER
-	// Windows.
-	_putenv_s( name, value );
-#else
-	// Everything else: Linux, OS X, etc.
-	setenv( name, value, overwrite );
-#endif
-}
-#endif
+	blksz_t blkszs[ BLIS_NUM_BLKSZS ];
 
-void bli_sleep( unsigned int secs )
-{
-#ifdef _MSC_VER
-	// Windows.
-	Sleep( secs * 1000 );
-#else
-	// Everything else: Linux, OS X, etc.
-	sleep( secs );
-#endif
+	// Set default kernel blocksizes and functions.
+	bli_cntx_init_cortexa53_ref( cntx );
+
+	// -------------------------------------------------------------------------
+
+	// Update the context with optimized native gemm micro-kernels and
+	// their storage preferences.
+	bli_cntx_set_l3_nat_ukrs
+	(
+	  2,
+	  BLIS_GEMM_UKR, BLIS_FLOAT,    bli_sgemm_armv8a_asm_8x12, FALSE,
+	  BLIS_GEMM_UKR, BLIS_DOUBLE,   bli_dgemm_armv8a_asm_6x8,  FALSE,
+	  cntx
+	);
+
+	// Initialize level-3 blocksize objects with architecture-specific values.
+	//                                           s      d      c      z
+	bli_blksz_init_easy( &blkszs[ BLIS_MR ],     8,     6,    -1,    -1 );
+	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    12,     8,    -1,    -1 );
+	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   120,   120,    -1,    -1 );
+	bli_blksz_init_easy( &blkszs[ BLIS_KC ],   640,   240,    -1,    -1 );
+	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  3072,  3072,    -1,    -1 );
+
+	// Update the context with the current architecture's register and cache
+	// blocksizes (and multiples) for native execution.
+	bli_cntx_set_blkszs
+	(
+	  BLIS_NAT, 5,
+	  BLIS_NC, &blkszs[ BLIS_NC ], BLIS_NR,
+	  BLIS_KC, &blkszs[ BLIS_KC ], BLIS_KR,
+	  BLIS_MC, &blkszs[ BLIS_MC ], BLIS_MR,
+	  BLIS_NR, &blkszs[ BLIS_NR ], BLIS_NR,
+	  BLIS_MR, &blkszs[ BLIS_MR ], BLIS_MR,
+	  cntx
+	);
 }
 

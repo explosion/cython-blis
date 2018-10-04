@@ -91,38 +91,21 @@ extern "C" {
 // POSIX threads are unconditionally required, regardless of whether
 // multithreading is enabled via pthreads or OpenMP (or disabled).
 // begin bli_wrap_pthread.h
-#ifndef BLIS_WRAP_PTHREAD_H
-#define BLIS_WRAP_PTHREAD_H
-
 #if BLIS_OS_WINDOWS
 // By devinamatthews, see https://github.com/flame/blis/issues/247
 // This provides threading primitives on Windows, avoiding the need for
 // a pthreads dependency.
 
-enum bli_is_init
+enum
 {
   BLIS_UNINITIALIZED,
   BLIS_INITIALIZING,
   BLIS_INITIALIZED
-};
+}
 
 typedef volatile long pthread_mutex_t;
 
 typedef volatile unsigned pthread_once_t;
-
-#define GENERIC_INITIALIZER				((void *) (size_t) -1)
-#define GENERIC_ERRORCHECK_INITIALIZER			((void *) (size_t) -2)
-#define GENERIC_RECURSIVE_INITIALIZER			((void *) (size_t) -3)
-#define GENERIC_NORMAL_INITIALIZER			((void *) (size_t) -1)
-#define PTHREAD_MUTEX_INITIALIZER			(pthread_mutex_t)GENERIC_INITIALIZER
-#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_RECURSIVE_INITIALIZER
-#define PTHREAD_ERRORCHECK_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_ERRORCHECK_INITIALIZER
-#define PTHREAD_NORMAL_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_NORMAL_INITIALIZER
-#define PTHREAD_DEFAULT_MUTEX_INITIALIZER		PTHREAD_NORMAL_MUTEX_INITIALIZER
-#define PTHREAD_COND_INITIALIZER			(pthread_cond_t)GENERIC_INITIALIZER
-#define PTHREAD_RWLOCK_INITIALIZER			(pthread_rwlock_t)GENERIC_INITIALIZER
-#define PTHREAD_SPINLOCK_INITIALIZER			(pthread_spinlock_t)GENERIC_INITIALIZER
-
 
 #define PTHREAD_ONCE_INIT BLIS_UNINITIALIZED
 
@@ -187,7 +170,6 @@ void pthread_once(pthread_once_t* once, void (*init)(void))
 #else
 #include <pthread.h> // skipped
 #endif
-#endif
 // end bli_wrap_pthread.h
 
 
@@ -204,33 +186,16 @@ void pthread_once(pthread_once_t* once, void (*init)(void))
 #define BLIS_CONFIG_H
 
 // Enabled configuration "family" (config_name)
-#define BLIS_FAMILY_X86_64
+#define BLIS_FAMILY_HASWELL
 
 
 // Enabled sub-configurations (config_list)
-#define BLIS_CONFIG_SKX
-#define BLIS_CONFIG_KNL
 #define BLIS_CONFIG_HASWELL
-#define BLIS_CONFIG_SANDYBRIDGE
-#define BLIS_CONFIG_PENRYN
-#define BLIS_CONFIG_ZEN
-#define BLIS_CONFIG_EXCAVATOR
-#define BLIS_CONFIG_STEAMROLLER
-#define BLIS_CONFIG_PILEDRIVER
-#define BLIS_CONFIG_BULLDOZER
-#define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_SKX
-#define BLIS_KERNELS_KNL
 #define BLIS_KERNELS_HASWELL
-#define BLIS_KERNELS_SANDYBRIDGE
-#define BLIS_KERNELS_PENRYN
 #define BLIS_KERNELS_ZEN
-#define BLIS_KERNELS_PILEDRIVER
-#define BLIS_KERNELS_BULLDOZER
-#define BLIS_KERNELS_GENERIC
 
 
 #if 0
@@ -1242,105 +1207,7 @@ typedef struct
 
 // -- Memory broker object type --
 
-// begin bli_wrap_pthread.h
-#ifndef BLIS_WRAP_PTHREAD_H
-#define BLIS_WRAP_PTHREAD_H
-
-#if BLIS_OS_WINDOWS
-// By devinamatthews, see https://github.com/flame/blis/issues/247
-// This provides threading primitives on Windows, avoiding the need for
-// a pthreads dependency.
-
-enum bli_is_init
-{
-  BLIS_UNINITIALIZED,
-  BLIS_INITIALIZING,
-  BLIS_INITIALIZED
-};
-
-typedef volatile long pthread_mutex_t;
-
-typedef volatile unsigned pthread_once_t;
-
-#define GENERIC_INITIALIZER				((void *) (size_t) -1)
-#define GENERIC_ERRORCHECK_INITIALIZER			((void *) (size_t) -2)
-#define GENERIC_RECURSIVE_INITIALIZER			((void *) (size_t) -3)
-#define GENERIC_NORMAL_INITIALIZER			((void *) (size_t) -1)
-#define PTHREAD_MUTEX_INITIALIZER			(pthread_mutex_t)GENERIC_INITIALIZER
-#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_RECURSIVE_INITIALIZER
-#define PTHREAD_ERRORCHECK_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_ERRORCHECK_INITIALIZER
-#define PTHREAD_NORMAL_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_NORMAL_INITIALIZER
-#define PTHREAD_DEFAULT_MUTEX_INITIALIZER		PTHREAD_NORMAL_MUTEX_INITIALIZER
-#define PTHREAD_COND_INITIALIZER			(pthread_cond_t)GENERIC_INITIALIZER
-#define PTHREAD_RWLOCK_INITIALIZER			(pthread_rwlock_t)GENERIC_INITIALIZER
-#define PTHREAD_SPINLOCK_INITIALIZER			(pthread_spinlock_t)GENERIC_INITIALIZER
-
-
-#define PTHREAD_ONCE_INIT BLIS_UNINITIALIZED
-
-#define PTHREAD_MUTEX_INIT 0
-
-
-int pthread_mutex_lock(pthread_mutex_t* mutex)
-{
-    while (InterlockedbittestandsetAcquire(mutex, 0)) continue;
-    return 0;
-}
-
-
-int pthread_mutex_trylock(pthread_mutex_t* mutex)
-{
-    if (!InterlockedbittestandsetAcquire(mutex, 0))
-    {
-        return 0;
-    }
-    else
-    {
-        return EBUSY;
-    }
-}
-
-
-int pthread_mutex_unlock(pthread_mutex_t* mutex)
-{
-    InterlockedbittestandresetRelease(mutex, 0);
-    return 0;
-}
-
-
-void pthread_once(pthread_once_t* once, void (*init)(void))
-{
-  // Return fast if initialized.
-  if (*once == BLIS_INITIALIZED) return;
-
-  // Attempt to lock for initialization.
-  unsigned result =
-    InterlockedCompareExchange(once, BLIS_INITIALIZING, BLIS_UNINITIALIZED);
-
-  // If initialization completed in the meantime return.
-  if (result == BLIS_INITIALIZED) return;
-
-  // If another thread is currently initializing, spin until it is done.
-  if (result == BLIS_INITIALIZING)
-  {
-    while (*once != BLIS_INITIALIZED) continue; // or _mm_pause
-    return;
-  }
-
-  // At this point, we know that the CAS was successful and we
-  // are responsible for initialization.
-  init();
-
-  // Let the other threads know we're done.
-  // This is supposed to produce a full memory barrier.
-  InterlockedExchange(*once, BLIS_INITIALIZED);
-}
-
-#else
 #include <pthread.h> // skipped
-#endif
-#endif
-// end bli_wrap_pthread.h
 // begin bli_malloc.h
 
 
@@ -15656,38 +15523,21 @@ void       bli_thrcomm_tree_barrier( barrier_t* barack );
 #ifdef BLIS_ENABLE_PTHREADS 
 
 // begin bli_wrap_pthread.h
-#ifndef BLIS_WRAP_PTHREAD_H
-#define BLIS_WRAP_PTHREAD_H
-
 #if BLIS_OS_WINDOWS
 // By devinamatthews, see https://github.com/flame/blis/issues/247
 // This provides threading primitives on Windows, avoiding the need for
 // a pthreads dependency.
 
-enum bli_is_init
+enum
 {
   BLIS_UNINITIALIZED,
   BLIS_INITIALIZING,
   BLIS_INITIALIZED
-};
+}
 
 typedef volatile long pthread_mutex_t;
 
 typedef volatile unsigned pthread_once_t;
-
-#define GENERIC_INITIALIZER				((void *) (size_t) -1)
-#define GENERIC_ERRORCHECK_INITIALIZER			((void *) (size_t) -2)
-#define GENERIC_RECURSIVE_INITIALIZER			((void *) (size_t) -3)
-#define GENERIC_NORMAL_INITIALIZER			((void *) (size_t) -1)
-#define PTHREAD_MUTEX_INITIALIZER			(pthread_mutex_t)GENERIC_INITIALIZER
-#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_RECURSIVE_INITIALIZER
-#define PTHREAD_ERRORCHECK_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_ERRORCHECK_INITIALIZER
-#define PTHREAD_NORMAL_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_NORMAL_INITIALIZER
-#define PTHREAD_DEFAULT_MUTEX_INITIALIZER		PTHREAD_NORMAL_MUTEX_INITIALIZER
-#define PTHREAD_COND_INITIALIZER			(pthread_cond_t)GENERIC_INITIALIZER
-#define PTHREAD_RWLOCK_INITIALIZER			(pthread_rwlock_t)GENERIC_INITIALIZER
-#define PTHREAD_SPINLOCK_INITIALIZER			(pthread_spinlock_t)GENERIC_INITIALIZER
-
 
 #define PTHREAD_ONCE_INIT BLIS_UNINITIALIZED
 
@@ -15751,7 +15601,6 @@ void pthread_once(pthread_once_t* once, void (*init)(void))
 
 #else
 #include <pthread.h> // skipped
-#endif
 #endif
 // end bli_wrap_pthread.h
 
@@ -16873,218 +16722,15 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_amd64.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_X86_64
-// begin bli_family_x86_64.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-
-//#endif
-
-// end bli_family_x86_64.h
+#include "bli_family_x86_64.h" // skipped
 #endif
 
 // -- Intel64 architectures --
 #ifdef BLIS_FAMILY_SKX
-// begin bli_family_skx.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-// -- THREADING PARAMETERS -----------------------------------------------------
-
-#define BLIS_DEFAULT_M_THREAD_RATIO     3
-#define BLIS_DEFAULT_N_THREAD_RATIO     2
-
-#define BLIS_DEFAULT_MR_THREAD_MAX      1
-#define BLIS_DEFAULT_NR_THREAD_MAX      4
-
-// -- MEMORY ALLOCATION --------------------------------------------------------
-
-#define BLIS_SIMD_ALIGN_SIZE             64
-
-#define BLIS_SIMD_SIZE                   64
-#define BLIS_SIMD_NUM_REGISTERS          32
-
-//#include <stdlib.h>
-
-//#define BLIS_MALLOC_POOL malloc
-//#define BLIS_FREE_POOL free
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-// -- Cache and register blocksizes --
-
-//
-// Constraints:
-//
-// (1) MC must be a multiple of:
-//     (a) MR (for zero-padding purposes)
-//     (b) NR (for zero-padding purposes when MR and NR are "swapped")
-// (2) NC must be a multiple of
-//     (a) NR (for zero-padding purposes)
-//     (b) MR (for zero-padding purposes when MR and NR are "swapped")
-//
-
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_16x12_l2
-#define BLIS_DEFAULT_MC_D              144
-#define BLIS_DEFAULT_KC_D              336
-#define BLIS_DEFAULT_NC_D              5760
-#define BLIS_DEFAULT_MR_D              16
-#define BLIS_DEFAULT_NR_D              12
-#define BLIS_PACKDIM_MR_D              16
-#define BLIS_PACKDIM_NR_D              12
-
-// NOTE: If the micro-kernel, which is typically unrolled to a factor
-// of f, handles leftover edge cases (ie: when k % f > 0) then these
-// register blocksizes in the k dimension can be defined to 1.
-
-//#define BLIS_DEFAULT_KR_S              1
-//#define BLIS_DEFAULT_KR_D              1
-//#define BLIS_DEFAULT_KR_C              1
-//#define BLIS_DEFAULT_KR_Z              1
-
-// -- Maximum cache blocksizes (for optimizing edge cases) --
-
-// NOTE: These cache blocksize "extensions" have the same constraints as
-// the corresponding default blocksizes above. When these values are
-// larger than the default blocksizes, blocksizes used at edge cases are
-// enlarged if such an extension would encompass the remaining portion of
-// the matrix dimension.
-
-#define BLIS_MAXIMUM_MC_S              (BLIS_DEFAULT_MC_S + BLIS_DEFAULT_MC_S/4)
-#define BLIS_MAXIMUM_KC_S              (BLIS_DEFAULT_KC_S + BLIS_DEFAULT_KC_S/4)
-#define BLIS_MAXIMUM_NC_S              (BLIS_DEFAULT_NC_S +                   0)
-
-#define BLIS_MAXIMUM_MC_D              (BLIS_DEFAULT_MC_D + BLIS_DEFAULT_MC_D/4)
-#define BLIS_MAXIMUM_KC_D              (BLIS_DEFAULT_KC_D + BLIS_DEFAULT_KC_D/4)
-#define BLIS_MAXIMUM_NC_D              (BLIS_DEFAULT_NC_D +                   0)
-
-//#define BLIS_MAXIMUM_MC_C              (BLIS_DEFAULT_MC_C + BLIS_DEFAULT_MC_C/4)
-//#define BLIS_MAXIMUM_KC_C              (BLIS_DEFAULT_KC_C + BLIS_DEFAULT_KC_C/4)
-//#define BLIS_MAXIMUM_NC_C              (BLIS_DEFAULT_NC_C + BLIS_DEFAULT_NC_C/4)
-
-//#define BLIS_MAXIMUM_MC_Z              (BLIS_DEFAULT_MC_Z + BLIS_DEFAULT_MC_Z/4)
-//#define BLIS_MAXIMUM_KC_Z              (BLIS_DEFAULT_KC_Z + BLIS_DEFAULT_KC_Z/4)
-//#define BLIS_MAXIMUM_NC_Z              (BLIS_DEFAULT_NC_Z + BLIS_DEFAULT_NC_Z/4)
-
-
-#endif
-
-
-//#endif
-
-// end bli_family_skx.h
+#include "bli_family_skx.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_KNL
-// begin bli_family_knl.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-// -- THREADING PARAMETERS -----------------------------------------------------
-
-#define BLIS_DEFAULT_M_THREAD_RATIO     4
-#define BLIS_DEFAULT_N_THREAD_RATIO     1
-
-#define BLIS_DEFAULT_MR_THREAD_MAX      1
-#define BLIS_DEFAULT_NR_THREAD_MAX      1
-
-
-// -- MEMORY ALLOCATION --------------------------------------------------------
-
-//#define BLIS_TREE_BARRIER
-//#define BLIS_TREE_BARRIER_ARITY 4
-
-#define BLIS_SIMD_ALIGN_SIZE             64
-
-#define BLIS_SIMD_SIZE                   64
-#define BLIS_SIMD_NUM_REGISTERS          32
-
-
-
-//#define BLIS_MALLOC_INTL hbw_malloc
-//#define BLIS_FREE_INTL hbw_free
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-#define BLIS_SGEMM_UKERNEL_PREFERS_CONTIG_ROWS
-#define BLIS_SGEMM_UKERNEL             bli_sgemm_opt_30x16_knc
-#define BLIS_DEFAULT_MC_S              240
-#define BLIS_DEFAULT_KC_S              240
-#define BLIS_DEFAULT_NC_S              14400
-#define BLIS_DEFAULT_MR_S              30
-#define BLIS_DEFAULT_NR_S              16
-#define BLIS_PACKDIM_MR_S              32
-#define BLIS_PACKDIM_NR_S              16
-
-#if 0
-
-#define BLIS_DGEMM_UKERNEL_PREFERS_CONTIG_ROWS
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_30x8_knc
-#define BLIS_DEFAULT_MC_D              120
-#define BLIS_DEFAULT_KC_D              240
-#define BLIS_DEFAULT_NC_D              14400
-#define BLIS_DEFAULT_MR_D              30
-#define BLIS_DEFAULT_NR_D              8
-#define BLIS_PACKDIM_MR_D              32
-#define BLIS_PACKDIM_NR_D              8
-
-#elif 0
-
-#define BLIS_DGEMM_UKERNEL_PREFERS_CONTIG_ROWS
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_30x8
-#define BLIS_DEFAULT_MC_D              120
-#define BLIS_DEFAULT_KC_D              240
-#define BLIS_DEFAULT_NC_D              14400
-#define BLIS_DEFAULT_MR_D              30
-#define BLIS_DEFAULT_NR_D              8
-#define BLIS_PACKDIM_MR_D              32
-#define BLIS_PACKDIM_NR_D              8
-
-#define BLIS_DPACKM_8XK_KERNEL         bli_dpackm_8xk_opt
-#define BLIS_DPACKM_30XK_KERNEL        bli_dpackm_30xk_opt
-
-#else
-
-#define BLIS_DGEMM_UKERNEL_PREFERS_CONTIG_ROWS
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_24x8
-#define BLIS_DEFAULT_MR_D              24
-#define BLIS_DEFAULT_NR_D              8
-#define BLIS_PACKDIM_MR_D              24
-#define BLIS_PACKDIM_NR_D              8
-#define BLIS_DEFAULT_MC_D              120
-#define BLIS_DEFAULT_KC_D              336
-#define BLIS_DEFAULT_NC_D              14400
-
-#define BLIS_DPACKM_8XK_KERNEL         bli_dpackm_8xk_opt
-#define BLIS_DPACKM_24XK_KERNEL        bli_dpackm_24xk_opt
-
-#endif
-
-#define BLIS_MAXIMUM_MC_S              (BLIS_DEFAULT_MC_S + BLIS_DEFAULT_MC_S/4)
-#define BLIS_MAXIMUM_KC_S              (BLIS_DEFAULT_KC_S + BLIS_DEFAULT_KC_S/4)
-#define BLIS_MAXIMUM_NC_S              (BLIS_DEFAULT_NC_S +                   0) 
-
-#define BLIS_MAXIMUM_MC_D              (BLIS_DEFAULT_MC_D + BLIS_DEFAULT_MC_D/4)
-#define BLIS_MAXIMUM_KC_D              (BLIS_DEFAULT_KC_D + BLIS_DEFAULT_KC_D/4)
-#define BLIS_MAXIMUM_NC_D              (BLIS_DEFAULT_NC_D +                   0)
-
-#endif
-
-
-//#endif
-
-// end bli_family_knl.h
+#include "bli_family_knl.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_KNC
 #include "bli_family_knc.h" // skipped
@@ -17219,299 +16865,28 @@ CNTX_INIT_PROTS( generic )
 // end bli_family_haswell.h
 #endif
 #ifdef BLIS_FAMILY_SANDYBRIDGE
-// begin bli_family_sandybridge.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS AND DEFINITIONS ---------------------------
-
-#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_8x8
-#define BLIS_DEFAULT_MC_S          128
-#define BLIS_DEFAULT_KC_S          384
-#define BLIS_DEFAULT_NC_S          4096
-#define BLIS_DEFAULT_MR_S          8
-#define BLIS_DEFAULT_NR_S          8
-
-#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_8x4
-#define BLIS_DEFAULT_MC_D          96
-#define BLIS_DEFAULT_KC_D          256
-#define BLIS_DEFAULT_NC_D          4096
-#define BLIS_DEFAULT_MR_D          8
-#define BLIS_DEFAULT_NR_D          4
-
-#define BLIS_CGEMM_UKERNEL         bli_cgemm_asm_8x4
-#define BLIS_DEFAULT_MC_C          96
-#define BLIS_DEFAULT_KC_C          256
-#define BLIS_DEFAULT_NC_C          4096
-#define BLIS_DEFAULT_MR_C          8
-#define BLIS_DEFAULT_NR_C          4
-
-#define BLIS_ZGEMM_UKERNEL         bli_zgemm_asm_4x4
-#define BLIS_DEFAULT_MC_Z          64 
-#define BLIS_DEFAULT_KC_Z          192
-#define BLIS_DEFAULT_NC_Z          4096
-#define BLIS_DEFAULT_MR_Z          4
-#define BLIS_DEFAULT_NR_Z          4
-#endif
-
-
-
-//#endif
-
-// end bli_family_sandybridge.h
+#include "bli_family_sandybridge.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_PENRYN
-// begin bli_family_penryn.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-// -- MEMORY ALLOCATION --------------------------------------------------------
-
-#define BLIS_SIMD_ALIGN_SIZE           16
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-#define BLIS_SGEMM_UKERNEL             bli_sgemm_asm_8x4
-#define BLIS_DEFAULT_MR_S              8
-#define BLIS_DEFAULT_NR_S              4
-#define BLIS_DEFAULT_MC_S              768
-#define BLIS_DEFAULT_KC_S              384
-#define BLIS_DEFAULT_NC_S              4096
-
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_asm_4x4
-#define BLIS_DEFAULT_MR_D              4
-#define BLIS_DEFAULT_NR_D              4
-#define BLIS_DEFAULT_MC_D              384
-#define BLIS_DEFAULT_KC_D              384
-#define BLIS_DEFAULT_NC_D              4096
-
-#define BLIS_DGEMMTRSM_L_UKERNEL       bli_dgemmtrsm_l_asm_4x4
-#define BLIS_DGEMMTRSM_U_UKERNEL       bli_dgemmtrsm_u_asm_4x4
-
-
-// -- LEVEL-1F KERNEL DEFINITIONS ----------------------------------------------
-
-#define BLIS_DAXPY2V_KERNEL     bli_daxpy2v_int_var1
-#define BLIS_DDOTAXPYV_KERNEL   bli_ddotaxpyv_int_var1
-#define BLIS_DAXPYF_KERNEL      bli_daxpyf_int_var1
-#define BLIS_DDOTXF_KERNEL      bli_ddotxf_int_var1
-#define BLIS_DDOTXAXPYF_KERNEL  bli_ddotxaxpyf_int_var1
-
-
-// -- LEVEL-1V KERNEL DEFINITIONS ----------------------------------------------
-
-#define BLIS_DAXPYV_KERNEL      bli_daxpyv_opt_var1
-#define BLIS_DDOTV_KERNEL       bli_ddotv_opt_var1
-#endif
-
-
-
-//#endif
-
-// end bli_family_penryn.h
+#include "bli_family_penryn.h" // skipped
 #endif
 
 // -- AMD64 architectures --
 
 #ifdef BLIS_FAMILY_ZEN
-// begin bli_family_zen.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-// By default, it is effective to parallelize the outer loops.
-// Setting these macros to 1 will force JR and IR inner loops
-// to be not paralleized.
-#define BLIS_DEFAULT_MR_THREAD_MAX 1
-#define BLIS_DEFAULT_NR_THREAD_MAX 1
-
-#define BLIS_ENABLE_ZEN_BLOCK_SIZES
-//#define BLIS_ENABLE_SMALL_MATRIX
-
-// This will select the threshold below which small matrix code will be called.
-#define BLIS_SMALL_MATRIX_THRES        700
-#define BLIS_SMALL_M_RECT_MATRIX_THRES 160
-#define BLIS_SMALL_K_RECT_MATRIX_THRES 128
-
-
-
-//#endif
-
-// end bli_family_zen.h
+#include "bli_family_zen.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_EXCAVATOR
-// begin bli_family_excavator.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-// -- MEMORY ALLOCATION --------------------------------------------------------
-
-#define BLIS_SIMD_ALIGN_SIZE           16
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-#define BLIS_SGEMM_UKERNEL             bli_sgemm_asm_16x3
-#define BLIS_DEFAULT_MR_S              16
-#define BLIS_DEFAULT_NR_S              3
-#define BLIS_DEFAULT_MC_S              528
-#define BLIS_DEFAULT_KC_S              256
-#define BLIS_DEFAULT_NC_S              8400
-
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_asm_8x3
-#define BLIS_DEFAULT_MR_D              8
-#define BLIS_DEFAULT_NR_D              3
-#define BLIS_DEFAULT_MC_D              264
-#define BLIS_DEFAULT_KC_D              256
-#define BLIS_DEFAULT_NC_D              8400
-
-#define BLIS_CGEMM_UKERNEL             bli_cgemm_asm_4x2
-#define BLIS_DEFAULT_MR_C              4
-#define BLIS_DEFAULT_NR_C              2
-#define BLIS_DEFAULT_MC_C              264
-#define BLIS_DEFAULT_KC_C              256
-#define BLIS_DEFAULT_NC_C              8400
-
-#define BLIS_ZGEMM_UKERNEL             bli_zgemm_asm_2x2
-#define BLIS_DEFAULT_MR_Z              2
-#define BLIS_DEFAULT_NR_Z              2
-#define BLIS_DEFAULT_MC_Z              100
-#define BLIS_DEFAULT_KC_Z              320
-#define BLIS_DEFAULT_NC_Z              8400
-#endif
-
-
-//#endif
-
-// end bli_family_excavator.h
+#include "bli_family_excavator.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_STEAMROLLER
-// begin bli_family_steamroller.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-// -- MEMORY ALLOCATION --------------------------------------------------------
-
-#define BLIS_SIMD_ALIGN_SIZE             16
-
-
-//#endif
-
-// end bli_family_steamroller.h
+#include "bli_family_steamroller.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_PILEDRIVER
-// begin bli_family_piledriver.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-// -- MEMORY ALLOCATION --------------------------------------------------------
-
-#define BLIS_SIMD_ALIGN_SIZE           16
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_16x3
-#define BLIS_DEFAULT_MC_S              2016
-#define BLIS_DEFAULT_KC_S              128
-#define BLIS_DEFAULT_NC_S              8400
-#define BLIS_DEFAULT_MR_S              16
-#define BLIS_DEFAULT_NR_S              3
-
-#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_8x3
-#define BLIS_DEFAULT_MC_D              1008
-#define BLIS_DEFAULT_KC_D              128
-#define BLIS_DEFAULT_NC_D              8400
-#define BLIS_DEFAULT_MR_D              8
-#define BLIS_DEFAULT_NR_D              3
-
-#define BLIS_CGEMM_UKERNEL         bli_cgemm_asm_4x2
-#define BLIS_DEFAULT_MC_C              512
-#define BLIS_DEFAULT_KC_C              256
-#define BLIS_DEFAULT_NC_C              8400
-#define BLIS_DEFAULT_MR_C              4
-#define BLIS_DEFAULT_NR_C              2
-
-#define BLIS_ZGEMM_UKERNEL         bli_zgemm_asm_2x2
-#define BLIS_DEFAULT_MC_Z              400
-#define BLIS_DEFAULT_KC_Z              160
-#define BLIS_DEFAULT_NC_Z              8400
-#define BLIS_DEFAULT_MR_Z              2
-#define BLIS_DEFAULT_NR_Z              2
-#endif
-
-
-//#endif
-
-// end bli_family_piledriver.h
+#include "bli_family_piledriver.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_BULLDOZER
-// begin bli_family_bulldozer.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_8x8_fma4
-#define BLIS_DEFAULT_MC_S          128
-#define BLIS_DEFAULT_KC_S          384
-#define BLIS_DEFAULT_NC_S          4096
-#define BLIS_DEFAULT_MR_S          8
-#define BLIS_DEFAULT_NR_S          8
-
-#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_4x6_fma4
-#define BLIS_DEFAULT_MC_D          1080
-#define BLIS_DEFAULT_KC_D          120
-#define BLIS_DEFAULT_NC_D          8400
-#define BLIS_DEFAULT_MR_D          4
-#define BLIS_DEFAULT_NR_D          6
-
-#define BLIS_CGEMM_UKERNEL         bli_cgemm_asm_8x4_fma4
-#define BLIS_DEFAULT_MC_C          96
-#define BLIS_DEFAULT_KC_C          256
-#define BLIS_DEFAULT_NC_C          4096
-#define BLIS_DEFAULT_MR_C          8
-#define BLIS_DEFAULT_NR_C          4
-
-#define BLIS_ZGEMM_UKERNEL         bli_zgemm_asm_4x4_fma4
-#define BLIS_DEFAULT_MC_Z          64 
-#define BLIS_DEFAULT_KC_Z          192
-#define BLIS_DEFAULT_NC_Z          4096
-#define BLIS_DEFAULT_MR_Z          4
-#define BLIS_DEFAULT_NR_Z          4
-#endif
-
-
-
-//#endif
-
-// end bli_family_bulldozer.h
+#include "bli_family_bulldozer.h" // skipped
 #endif
 
 // -- ARM architectures --
@@ -17541,18 +16916,7 @@ CNTX_INIT_PROTS( generic )
 // -- Generic --
 
 #ifdef BLIS_FAMILY_GENERIC
-// begin bli_family_generic.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-
-
-//#endif
-
-// end bli_family_generic.h
+#include "bli_family_generic.h" // skipped
 #endif
 
 
@@ -17562,39 +16926,10 @@ CNTX_INIT_PROTS( generic )
 
 // -- Intel64 architectures --
 #ifdef BLIS_KERNELS_SKX
-// begin bli_kernels_skx.h
-
-
-GEMM_UKR_PROT( float ,   s, gemm_skx_asm_32x12_l2 )
-GEMM_UKR_PROT( float ,   s, gemm_skx_asm_12x32_l2 )
-
-GEMM_UKR_PROT( double,   d, gemm_skx_asm_16x12_l2 )
-GEMM_UKR_PROT( double,   d, gemm_skx_asm_16x14 )
-
-
-// end bli_kernels_skx.h
+#include "bli_kernels_skx.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_KNL
-// begin bli_kernels_knl.h
-
-
-GEMM_UKR_PROT( double,   s, gemm_knl_asm_24x16 )
-GEMM_UKR_PROT( double,   d, gemm_knl_asm_24x8 )
-
-PACKM_KER_PROT( double,   s, packm_knl_asm_24xk )
-PACKM_KER_PROT( double,   s, packm_knl_asm_16xk )
-
-PACKM_KER_PROT( double,   d, packm_knl_asm_24xk )
-PACKM_KER_PROT( double,   d, packm_knl_asm_8xk )
-
-// unused:
-GEMM_UKR_PROT( double,   d, gemm_knl_asm_12x16 )
-GEMM_UKR_PROT( double,   d, gemm_knl_asm_30x8 )
-GEMM_UKR_PROT( double,   d, gemm_knl_asm_8x24 )
-
-PACKM_KER_PROT( double,   d, packm_knl_asm_30xk )
-
-// end bli_kernels_knl.h
+#include "bli_kernels_knl.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_KNC
 #include "bli_kernels_knc.h" // skipped
@@ -17626,37 +16961,10 @@ GEMM_UKR_PROT( dcomplex, z, gemm_haswell_asm_4x3 )
 // end bli_kernels_haswell.h
 #endif
 #ifdef BLIS_KERNELS_SANDYBRIDGE
-// begin bli_kernels_sandybridge.h
-
-
-// d8x4 (assembly)
-GEMM_UKR_PROT( float,    s, gemm_sandybridge_asm_8x8 )
-GEMM_UKR_PROT( double,   d, gemm_sandybridge_asm_8x4 )
-GEMM_UKR_PROT( scomplex, c, gemm_sandybridge_asm_8x4 )
-GEMM_UKR_PROT( dcomplex, z, gemm_sandybridge_asm_4x4 )
-
-// d8x4 (intrinsics)
-GEMM_UKR_PROT( float,    s, gemm_sandybridge_int_8x8 )
-GEMM_UKR_PROT( double,   d, gemm_sandybridge_int_8x4 )
-GEMM_UKR_PROT( scomplex, c, gemm_sandybridge_int_8x4 )
-GEMM_UKR_PROT( dcomplex, z, gemm_sandybridge_int_4x4 )
-
-// end bli_kernels_sandybridge.h
+#include "bli_kernels_sandybridge.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_PENRYN
-// begin bli_kernels_penryn.h
-
-
-GEMM_UKR_PROT( float,    s, gemm_penryn_asm_8x4 )
-GEMM_UKR_PROT( double,   d, gemm_penryn_asm_4x4 )
-
-GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_l_penryn_asm_4x4 )
-GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_u_penryn_asm_4x4 )
-
-TRSM_UKR_PROT( double,   d, trsm_l_penryn_asm_4x4 )
-TRSM_UKR_PROT( double,   d, trsm_u_penryn_asm_4x4 )
-
-// end bli_kernels_penryn.h
+#include "bli_kernels_penryn.h" // skipped
 #endif
 
 // -- AMD64 architectures --
@@ -17747,27 +17055,10 @@ GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_u_zen_asm_6x8 )
 //#include "bli_kernels_steamroller.h"
 //#endif
 #ifdef BLIS_KERNELS_PILEDRIVER
-// begin bli_kernels_piledriver.h
-
-
-// d8x4 (assembly)
-GEMM_UKR_PROT( float,    s, gemm_piledriver_asm_16x3 )
-GEMM_UKR_PROT( double,   d, gemm_piledriver_asm_8x3 )
-GEMM_UKR_PROT( scomplex, c, gemm_piledriver_asm_4x2 )
-GEMM_UKR_PROT( dcomplex, z, gemm_piledriver_asm_2x2 )
-
-// end bli_kernels_piledriver.h
+#include "bli_kernels_piledriver.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_BULLDOZER
-// begin bli_kernels_bulldozer.h
-
-
-GEMM_UKR_PROT( float,    s, gemm_bulldozer_asm_8x8_fma4 )
-GEMM_UKR_PROT( double,   d, gemm_bulldozer_asm_4x6_fma4 )
-GEMM_UKR_PROT( scomplex, c, gemm_bulldozer_asm_8x4_fma4 )
-GEMM_UKR_PROT( dcomplex, z, gemm_bulldozer_asm_4x4_fma4 )
-
-// end bli_kernels_bulldozer.h
+#include "bli_kernels_bulldozer.h" // skipped
 #endif
 
 // -- ARM architectures --
@@ -34191,38 +33482,21 @@ INSERT_GENTPROT_BLAS( trsm )
 // POSIX threads are unconditionally required, regardless of whether
 // multithreading is enabled via pthreads or OpenMP (or disabled).
 // begin bli_wrap_pthread.h
-#ifndef BLIS_WRAP_PTHREAD_H
-#define BLIS_WRAP_PTHREAD_H
-
 #if BLIS_OS_WINDOWS
 // By devinamatthews, see https://github.com/flame/blis/issues/247
 // This provides threading primitives on Windows, avoiding the need for
 // a pthreads dependency.
 
-enum bli_is_init
+enum
 {
   BLIS_UNINITIALIZED,
   BLIS_INITIALIZING,
   BLIS_INITIALIZED
-};
+}
 
 typedef volatile long pthread_mutex_t;
 
 typedef volatile unsigned pthread_once_t;
-
-#define GENERIC_INITIALIZER				((void *) (size_t) -1)
-#define GENERIC_ERRORCHECK_INITIALIZER			((void *) (size_t) -2)
-#define GENERIC_RECURSIVE_INITIALIZER			((void *) (size_t) -3)
-#define GENERIC_NORMAL_INITIALIZER			((void *) (size_t) -1)
-#define PTHREAD_MUTEX_INITIALIZER			(pthread_mutex_t)GENERIC_INITIALIZER
-#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_RECURSIVE_INITIALIZER
-#define PTHREAD_ERRORCHECK_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_ERRORCHECK_INITIALIZER
-#define PTHREAD_NORMAL_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_NORMAL_INITIALIZER
-#define PTHREAD_DEFAULT_MUTEX_INITIALIZER		PTHREAD_NORMAL_MUTEX_INITIALIZER
-#define PTHREAD_COND_INITIALIZER			(pthread_cond_t)GENERIC_INITIALIZER
-#define PTHREAD_RWLOCK_INITIALIZER			(pthread_rwlock_t)GENERIC_INITIALIZER
-#define PTHREAD_SPINLOCK_INITIALIZER			(pthread_spinlock_t)GENERIC_INITIALIZER
-
 
 #define PTHREAD_ONCE_INIT BLIS_UNINITIALIZED
 
@@ -34287,7 +33561,6 @@ void pthread_once(pthread_once_t* once, void (*init)(void))
 #else
 #include <pthread.h> // skipped
 #endif
-#endif
 // end bli_wrap_pthread.h
 
 
@@ -34300,33 +33573,16 @@ void pthread_once(pthread_once_t* once, void (*init)(void))
 #define BLIS_CONFIG_H
 
 // Enabled configuration "family" (config_name)
-#define BLIS_FAMILY_X86_64
+#define BLIS_FAMILY_HASWELL
 
 
 // Enabled sub-configurations (config_list)
-#define BLIS_CONFIG_SKX
-#define BLIS_CONFIG_KNL
 #define BLIS_CONFIG_HASWELL
-#define BLIS_CONFIG_SANDYBRIDGE
-#define BLIS_CONFIG_PENRYN
-#define BLIS_CONFIG_ZEN
-#define BLIS_CONFIG_EXCAVATOR
-#define BLIS_CONFIG_STEAMROLLER
-#define BLIS_CONFIG_PILEDRIVER
-#define BLIS_CONFIG_BULLDOZER
-#define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_SKX
-#define BLIS_KERNELS_KNL
 #define BLIS_KERNELS_HASWELL
-#define BLIS_KERNELS_SANDYBRIDGE
-#define BLIS_KERNELS_PENRYN
 #define BLIS_KERNELS_ZEN
-#define BLIS_KERNELS_PILEDRIVER
-#define BLIS_KERNELS_BULLDOZER
-#define BLIS_KERNELS_GENERIC
 
 
 #if 0
@@ -35334,105 +34590,7 @@ typedef struct
 
 // -- Memory broker object type --
 
-// begin bli_wrap_pthread.h
-#ifndef BLIS_WRAP_PTHREAD_H
-#define BLIS_WRAP_PTHREAD_H
-
-#if BLIS_OS_WINDOWS
-// By devinamatthews, see https://github.com/flame/blis/issues/247
-// This provides threading primitives on Windows, avoiding the need for
-// a pthreads dependency.
-
-enum bli_is_init
-{
-  BLIS_UNINITIALIZED,
-  BLIS_INITIALIZING,
-  BLIS_INITIALIZED
-};
-
-typedef volatile long pthread_mutex_t;
-
-typedef volatile unsigned pthread_once_t;
-
-#define GENERIC_INITIALIZER				((void *) (size_t) -1)
-#define GENERIC_ERRORCHECK_INITIALIZER			((void *) (size_t) -2)
-#define GENERIC_RECURSIVE_INITIALIZER			((void *) (size_t) -3)
-#define GENERIC_NORMAL_INITIALIZER			((void *) (size_t) -1)
-#define PTHREAD_MUTEX_INITIALIZER			(pthread_mutex_t)GENERIC_INITIALIZER
-#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_RECURSIVE_INITIALIZER
-#define PTHREAD_ERRORCHECK_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_ERRORCHECK_INITIALIZER
-#define PTHREAD_NORMAL_MUTEX_INITIALIZER		(pthread_mutex_t)GENERIC_NORMAL_INITIALIZER
-#define PTHREAD_DEFAULT_MUTEX_INITIALIZER		PTHREAD_NORMAL_MUTEX_INITIALIZER
-#define PTHREAD_COND_INITIALIZER			(pthread_cond_t)GENERIC_INITIALIZER
-#define PTHREAD_RWLOCK_INITIALIZER			(pthread_rwlock_t)GENERIC_INITIALIZER
-#define PTHREAD_SPINLOCK_INITIALIZER			(pthread_spinlock_t)GENERIC_INITIALIZER
-
-
-#define PTHREAD_ONCE_INIT BLIS_UNINITIALIZED
-
-#define PTHREAD_MUTEX_INIT 0
-
-
-int pthread_mutex_lock(pthread_mutex_t* mutex)
-{
-    while (InterlockedbittestandsetAcquire(mutex, 0)) continue;
-    return 0;
-}
-
-
-int pthread_mutex_trylock(pthread_mutex_t* mutex)
-{
-    if (!InterlockedbittestandsetAcquire(mutex, 0))
-    {
-        return 0;
-    }
-    else
-    {
-        return EBUSY;
-    }
-}
-
-
-int pthread_mutex_unlock(pthread_mutex_t* mutex)
-{
-    InterlockedbittestandresetRelease(mutex, 0);
-    return 0;
-}
-
-
-void pthread_once(pthread_once_t* once, void (*init)(void))
-{
-  // Return fast if initialized.
-  if (*once == BLIS_INITIALIZED) return;
-
-  // Attempt to lock for initialization.
-  unsigned result =
-    InterlockedCompareExchange(once, BLIS_INITIALIZING, BLIS_UNINITIALIZED);
-
-  // If initialization completed in the meantime return.
-  if (result == BLIS_INITIALIZED) return;
-
-  // If another thread is currently initializing, spin until it is done.
-  if (result == BLIS_INITIALIZING)
-  {
-    while (*once != BLIS_INITIALIZED) continue; // or _mm_pause
-    return;
-  }
-
-  // At this point, we know that the CAS was successful and we
-  // are responsible for initialization.
-  init();
-
-  // Let the other threads know we're done.
-  // This is supposed to produce a full memory barrier.
-  InterlockedExchange(*once, BLIS_INITIALIZED);
-}
-
-#else
 #include <pthread.h> // skipped
-#endif
-#endif
-// end bli_wrap_pthread.h
 // begin bli_malloc.h
 
 

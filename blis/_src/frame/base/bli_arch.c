@@ -36,10 +36,7 @@
 #ifndef BLIS_CONFIGURETIME_CPUID
   #include "blis.h"
 #else
-  #include <stdlib.h>
-  #include <string.h>
-  #include <stdint.h>
-  #include <pthread.h>
+  #include "bli_system.h"
   #include "bli_type_defs.h"
   #include "bli_arch.h"
   #include "bli_cpuid.h"
@@ -124,6 +121,9 @@ void bli_arch_set_id( void )
 #ifdef BLIS_FAMILY_CORTEXA57
 	id = BLIS_ARCH_CORTEXA57;
 #endif
+#ifdef BLIS_FAMILY_CORTEXA53
+	id = BLIS_ARCH_CORTEXA53;
+#endif
 #ifdef BLIS_FAMILY_CORTEXA15
 	id = BLIS_ARCH_CORTEXA15;
 #endif
@@ -170,6 +170,7 @@ static char* config_name[ BLIS_NUM_ARCHS ] =
     "bulldozer",
 
     "cortexa57",
+    "cortexa53",
     "cortexa15",
     "cortexa9",
 
