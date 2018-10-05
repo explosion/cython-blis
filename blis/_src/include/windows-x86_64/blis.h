@@ -90,7 +90,90 @@ extern "C" {
 
 // POSIX threads are unconditionally required, regardless of whether
 // multithreading is enabled via pthreads or OpenMP (or disabled).
+// If pthreads is not available (Windows), then fake it.
+// begin bli_pthread_wrap.h
+
+
+#ifndef BLIS_PTHREAD_WRAP_H
+#define BLIS_PTHREAD_WRAP_H
+
+#if defined(_MSC_VER)
+
+typedef SRWLOCK pthread_mutex_t;
+typedef void pthread_mutexattr_t;
+
+#define PTHREAD_MUTEX_INITIALIZER SRWLOCK_INIT
+
+int pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t *attr);
+
+int pthread_mutex_destroy(pthread_mutex_t* mutex);
+
+int pthread_mutex_lock(pthread_mutex_t* mutex);
+
+int pthread_mutex_trylock(pthread_mutex_t* mutex);
+
+int pthread_mutex_unlock(pthread_mutex_t* mutex);
+
+typedef INIT_ONCE pthread_once_t;
+
+#define PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
+
+void pthread_once(pthread_once_t* once, void (*init)(void));
+
+typedef CONDITION_VARIABLE pthread_cond_t;
+typedef void pthread_condattr_t;
+
+#define PTHREAD_COND_INITIALIZER CONDITION_VARIABLE_INIT
+
+int pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr);
+
+int pthread_cond_destroy(pthread_cond_t* cond);
+
+int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
+
+int pthread_cond_broadcast(pthread_cond_t* cond);
+
+typedef struct
+{
+    HANDLE handle;
+    void* retval;
+} pthread_t;
+
+typedef void pthread_attr_t;
+
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                   void* (*start_routine)(void*), void *arg);
+
+int pthread_join(pthread_t thread, void **retval);
+
+#else
+
 #include <pthread.h> // skipped
+
+#endif
+
+#if defined(__APPLE__) || defined(_MSC_VER)
+
+typedef void pthread_barrierattr_t;
+
+typedef struct
+{
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    int count;
+    int tripCount;
+} pthread_barrier_t;
+
+int pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned int count);
+
+int pthread_barrier_destroy(pthread_barrier_t *barrier);
+
+int pthread_barrier_wait(pthread_barrier_t *barrier);
+
+#endif // _POSIX_BARRIERS
+
+#endif
+// end bli_pthread_wrap.h
 
 
 #endif
@@ -1140,7 +1223,89 @@ typedef struct
 
 // -- Memory broker object type --
 
+// begin bli_pthread_wrap.h
+
+
+#ifndef BLIS_PTHREAD_WRAP_H
+#define BLIS_PTHREAD_WRAP_H
+
+#if defined(_MSC_VER)
+
+typedef SRWLOCK pthread_mutex_t;
+typedef void pthread_mutexattr_t;
+
+#define PTHREAD_MUTEX_INITIALIZER SRWLOCK_INIT
+
+int pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t *attr);
+
+int pthread_mutex_destroy(pthread_mutex_t* mutex);
+
+int pthread_mutex_lock(pthread_mutex_t* mutex);
+
+int pthread_mutex_trylock(pthread_mutex_t* mutex);
+
+int pthread_mutex_unlock(pthread_mutex_t* mutex);
+
+typedef INIT_ONCE pthread_once_t;
+
+#define PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
+
+void pthread_once(pthread_once_t* once, void (*init)(void));
+
+typedef CONDITION_VARIABLE pthread_cond_t;
+typedef void pthread_condattr_t;
+
+#define PTHREAD_COND_INITIALIZER CONDITION_VARIABLE_INIT
+
+int pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr);
+
+int pthread_cond_destroy(pthread_cond_t* cond);
+
+int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
+
+int pthread_cond_broadcast(pthread_cond_t* cond);
+
+typedef struct
+{
+    HANDLE handle;
+    void* retval;
+} pthread_t;
+
+typedef void pthread_attr_t;
+
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                   void* (*start_routine)(void*), void *arg);
+
+int pthread_join(pthread_t thread, void **retval);
+
+#else
+
 #include <pthread.h> // skipped
+
+#endif
+
+#if defined(__APPLE__) || defined(_MSC_VER)
+
+typedef void pthread_barrierattr_t;
+
+typedef struct
+{
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    int count;
+    int tripCount;
+} pthread_barrier_t;
+
+int pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned int count);
+
+int pthread_barrier_destroy(pthread_barrier_t *barrier);
+
+int pthread_barrier_wait(pthread_barrier_t *barrier);
+
+#endif // _POSIX_BARRIERS
+
+#endif
+// end bli_pthread_wrap.h
 // begin bli_malloc.h
 
 
@@ -15454,8 +15619,6 @@ void       bli_thrcomm_tree_barrier( barrier_t* barack );
 
 // Define thrcomm_t for situations when POSIX multithreading is enabled.
 #ifdef BLIS_ENABLE_PTHREADS 
-
-#include <pthread.h> // skipped
 
 #ifdef BLIS_USE_PTHREAD_BARRIER
 struct thrcomm_s
@@ -33670,7 +33833,90 @@ INSERT_GENTPROT_BLAS( trsm )
 
 // POSIX threads are unconditionally required, regardless of whether
 // multithreading is enabled via pthreads or OpenMP (or disabled).
+// If pthreads is not available (Windows), then fake it.
+// begin bli_pthread_wrap.h
+
+
+#ifndef BLIS_PTHREAD_WRAP_H
+#define BLIS_PTHREAD_WRAP_H
+
+#if defined(_MSC_VER)
+
+typedef SRWLOCK pthread_mutex_t;
+typedef void pthread_mutexattr_t;
+
+#define PTHREAD_MUTEX_INITIALIZER SRWLOCK_INIT
+
+int pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t *attr);
+
+int pthread_mutex_destroy(pthread_mutex_t* mutex);
+
+int pthread_mutex_lock(pthread_mutex_t* mutex);
+
+int pthread_mutex_trylock(pthread_mutex_t* mutex);
+
+int pthread_mutex_unlock(pthread_mutex_t* mutex);
+
+typedef INIT_ONCE pthread_once_t;
+
+#define PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
+
+void pthread_once(pthread_once_t* once, void (*init)(void));
+
+typedef CONDITION_VARIABLE pthread_cond_t;
+typedef void pthread_condattr_t;
+
+#define PTHREAD_COND_INITIALIZER CONDITION_VARIABLE_INIT
+
+int pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr);
+
+int pthread_cond_destroy(pthread_cond_t* cond);
+
+int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
+
+int pthread_cond_broadcast(pthread_cond_t* cond);
+
+typedef struct
+{
+    HANDLE handle;
+    void* retval;
+} pthread_t;
+
+typedef void pthread_attr_t;
+
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                   void* (*start_routine)(void*), void *arg);
+
+int pthread_join(pthread_t thread, void **retval);
+
+#else
+
 #include <pthread.h> // skipped
+
+#endif
+
+#if defined(__APPLE__) || defined(_MSC_VER)
+
+typedef void pthread_barrierattr_t;
+
+typedef struct
+{
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    int count;
+    int tripCount;
+} pthread_barrier_t;
+
+int pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned int count);
+
+int pthread_barrier_destroy(pthread_barrier_t *barrier);
+
+int pthread_barrier_wait(pthread_barrier_t *barrier);
+
+#endif // _POSIX_BARRIERS
+
+#endif
+// end bli_pthread_wrap.h
 
 
 #endif
@@ -34712,7 +34958,89 @@ typedef struct
 
 // -- Memory broker object type --
 
+// begin bli_pthread_wrap.h
+
+
+#ifndef BLIS_PTHREAD_WRAP_H
+#define BLIS_PTHREAD_WRAP_H
+
+#if defined(_MSC_VER)
+
+typedef SRWLOCK pthread_mutex_t;
+typedef void pthread_mutexattr_t;
+
+#define PTHREAD_MUTEX_INITIALIZER SRWLOCK_INIT
+
+int pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t *attr);
+
+int pthread_mutex_destroy(pthread_mutex_t* mutex);
+
+int pthread_mutex_lock(pthread_mutex_t* mutex);
+
+int pthread_mutex_trylock(pthread_mutex_t* mutex);
+
+int pthread_mutex_unlock(pthread_mutex_t* mutex);
+
+typedef INIT_ONCE pthread_once_t;
+
+#define PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
+
+void pthread_once(pthread_once_t* once, void (*init)(void));
+
+typedef CONDITION_VARIABLE pthread_cond_t;
+typedef void pthread_condattr_t;
+
+#define PTHREAD_COND_INITIALIZER CONDITION_VARIABLE_INIT
+
+int pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr);
+
+int pthread_cond_destroy(pthread_cond_t* cond);
+
+int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
+
+int pthread_cond_broadcast(pthread_cond_t* cond);
+
+typedef struct
+{
+    HANDLE handle;
+    void* retval;
+} pthread_t;
+
+typedef void pthread_attr_t;
+
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                   void* (*start_routine)(void*), void *arg);
+
+int pthread_join(pthread_t thread, void **retval);
+
+#else
+
 #include <pthread.h> // skipped
+
+#endif
+
+#if defined(__APPLE__) || defined(_MSC_VER)
+
+typedef void pthread_barrierattr_t;
+
+typedef struct
+{
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    int count;
+    int tripCount;
+} pthread_barrier_t;
+
+int pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned int count);
+
+int pthread_barrier_destroy(pthread_barrier_t *barrier);
+
+int pthread_barrier_wait(pthread_barrier_t *barrier);
+
+#endif // _POSIX_BARRIERS
+
+#endif
+// end bli_pthread_wrap.h
 // begin bli_malloc.h
 
 
