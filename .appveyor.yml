@@ -32,6 +32,8 @@ build_script:
 - set RANLIB=echo
 - set AR=llvm-ar
 - set AS=llvm-as
+- bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
+- bash -lc "which clang"
 - cd %APPVEYOR_BUILD_FOLDER%
 - cd flame-blis
 - bash -lc "source activate && cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
@@ -61,8 +63,6 @@ artifacts:
   - path: blis/dist
     name: wheels
 
-#- bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
-#- bash -lc "which clang"
 #- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -U pip"
 #- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install wheel"
 #- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r dev-requirements.txt"
