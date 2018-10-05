@@ -144,8 +144,10 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     target_name = target_name.replace('/', '\\')
                     spec['source'] = spec['source'].replace('/', '\\')
                     spec['include'] = [inc.replace('/', '\\') for inc in spec['include']]
+                    spec['include'].append(os.path.join('C:', 'Program Files', 'LLVM', 'include'))
 
                 spec['include'].append('-I' + os.path.join(INCLUDE, '%s' % platform_name))
+
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 objects.append(self.build_object(env=env, **spec))
