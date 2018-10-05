@@ -67,9 +67,10 @@ class build_ext_options:
             self.compiler.initialize()
         self.compiler.platform = sys.platform[:6]
         if self.compiler.compiler_type == 'msvc':
+            self.compiler = new_compiler(plat='nt', compiler='unix')
             library_dirs = list(self.compiler.library_dirs)
             include_dirs = list(self.compiler.include_dirs)
-            self.compiler = new_compiler(plat='nt', compiler='unix')
+            include_dirs.append(os.path.join('C:', 'Program Files', 'LLVM', 'include'))
             self.compiler.platform = 'nt'
             self.compiler.compiler_type = 'msvc'
             self.compiler.compiler = ['clang']
