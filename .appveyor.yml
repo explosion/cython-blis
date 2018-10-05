@@ -16,15 +16,6 @@ environment:
 
 install:
 - git submodule update --init --recursive
-- cd flame-blis
-- set "CONDA_INSTALL_LOCN=C:\\Miniconda36-x64"
-- call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
-- conda update --yes --quiet conda
-- conda config --add channels conda-forge
-- conda install --yes clangdev posix m2-make
-- call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
-- set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
-- set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
 
 build_script:
 - set CC=clang
@@ -34,12 +25,12 @@ build_script:
 - bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
 - bash -lc "which clang"
 - cd %APPVEYOR_BUILD_FOLDER%
-- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -U pip"
-- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install wheel"
-- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r dev-requirements.txt"
-- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r requirements.txt"
-- bash -lc "source activate && cd /c/projects/cython-blis && python setup.py bdist_wheel"
-- bash -lc "source activate && cd /c/projects/cython-blis && python pip install dist/*.whl"
+- bash -lc "cd /c/projects/cython-blis && python -m pip install -U pip"
+- bash -lc "cd /c/projects/cython-blis && python -m pip install wheel"
+- bash -lc "cd /c/projects/cython-blis && python -m pip install -r dev-requirements.txt"
+- bash -lc "cd /c/projects/cython-blis && python -m pip install -r requirements.txt"
+- bash -lc "cd /c/projects/cython-blis && python setup.py bdist_wheel"
+- bash -lc "cd /c/projects/cython-blis && python pip install dist/*.whl"
 - bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/dist/"
 - bash -lc "cp /c/projects/cython-blis/dist/*.whl $APPVEYOR_BUILD_FOLDER/dist/"
 
@@ -69,3 +60,15 @@ artifacts:
 #- bash -lc "cp /c/projects/cython-blis/blis/_src/make/msvc.jsonl $APPVEYOR_BUILD_FOLDER/blis/_src/make/msvc.jsonl"
 #- bash -lc "cp /c/projects/cython-blis/blis/_src/include/windows-x86_64/*.h $APPVEYOR_BUILD_FOLDER/blis/_src/make/"
 #
+#
+#- cd flame-blis
+#- set "CONDA_INSTALL_LOCN=C:\\Miniconda36-x64"
+#- call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
+#- conda update --yes --quiet conda
+#- conda config --add channels conda-forge
+#- conda install --yes clangdev posix m2-make
+#- call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+#- set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
+#- set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
+
+
