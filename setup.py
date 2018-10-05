@@ -70,7 +70,7 @@ class build_ext_options:
             self.compiler = new_compiler(plat='nt', compiler='unix')
             library_dirs = list(self.compiler.library_dirs)
             include_dirs = list(self.compiler.include_dirs)
-            include_dirs.append(os.path.join(r'C:\\', 'Program Files', 'LLVM', 'include'))
+            include_dirs.append(os.path.join(r'C:\\Program Files', 'LLVM', 'include'))
             self.compiler.platform = 'nt'
             self.compiler.compiler_type = 'msvc'
             self.compiler.compiler = ['clang']
@@ -144,7 +144,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     target_name = target_name.replace('/', '\\')
                     spec['source'] = spec['source'].replace('/', '\\')
                     spec['include'] = [inc.replace('/', '\\') for inc in spec['include']]
-                    spec['include'].append(os.path.join(r'C:\\', 'Program Files', 'LLVM', 'include'))
+                    spec['include'].append(os.path.join(r'C:\\Program Files', 'LLVM', 'include'))
 
                 spec['include'].append('-I' + os.path.join(INCLUDE, '%s' % platform_name))
 
