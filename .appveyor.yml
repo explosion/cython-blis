@@ -25,14 +25,6 @@ install:
 - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
 - set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
 - set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
-- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -U pip"
-- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install wheel"
-- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r dev-requirements.txt"
-- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r requirements.txt"
-- bash -lc "source activate && cd /c/projects/cython-blis && python setup.py bdist_wheel"
-- bash -lc "source activate && cd /c/projects/cython-blis && python pip install dist/*.whl"
-- bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/dist/"
-- bash -lc "cp /c/projects/cython-blis/dist/*.whl $APPVEYOR_BUILD_FOLDER/dist/"
 
 build_script:
 - set CC=clang
@@ -42,6 +34,15 @@ build_script:
 - bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
 - bash -lc "which clang"
 - cd %APPVEYOR_BUILD_FOLDER%
+- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -U pip"
+- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install wheel"
+- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r dev-requirements.txt"
+- bash -lc "source activate && cd /c/projects/cython-blis && python -m pip install -r requirements.txt"
+- bash -lc "source activate && cd /c/projects/cython-blis && python setup.py bdist_wheel"
+- bash -lc "source activate && cd /c/projects/cython-blis && python pip install dist/*.whl"
+- bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/dist/"
+- bash -lc "cp /c/projects/cython-blis/dist/*.whl $APPVEYOR_BUILD_FOLDER/dist/"
+
 #test_script:
 # Put your test command here.
 # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
