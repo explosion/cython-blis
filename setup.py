@@ -127,10 +127,11 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
     def compile_objects(self, py_compiler, py_arch, obj_dir):
         objects = []
         if py_compiler == 'msvc':
-            platform_name = 'windows'
+            platform_name = 'windows' + '-' + py_arch
         else:
-            platform_name = 'linux'
-        with open(os.path.join(BLIS_DIR, 'make', '%s.jsonl' % py_compiler)) as file_:
+            platform_name = 'linux' + '-' + py_arch
+
+        with open(os.path.join(BLIS_DIR, 'make', '%s.jsonl' % platform_name)) as file_:
             env = {}
             for line in file_:
                 spec = json.loads(line)
