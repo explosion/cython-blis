@@ -100,7 +100,6 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             platform_name = 'linux'
         for e in self.extensions:
             e.include_dirs.append(numpy.get_include())
-            e.include_dirs.append(os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
             e.extra_objects = list(objects)
         distutils.command.build_ext.build_ext.build_extensions(self)
     
@@ -146,7 +145,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     spec['include'] = [inc.replace('/', '\\') for inc in spec['include']]
 
                 spec['include'].append('-I' + os.path.join(
-                    INCLUDE, '%s-%s' % (platform_name, py_arch)))
+                    INCLUDE, '%s' % platform_name)
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 objects.append(self.build_object(env=env, **spec))
