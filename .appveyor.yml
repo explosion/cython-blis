@@ -15,13 +15,13 @@ environment:
 #    - PYTHON: "C:\\Python35-x64"
 
 install:
+- call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
 #- git submodule update --init --recursive
 #- set "CONDA_INSTALL_LOCN=C:\\Miniconda36-x64"
 #- call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
 #- conda update --yes --quiet conda
 #- conda config --add channels conda-forge
 #- conda install --yes clangdev posix m2-make
-#- call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
 #- set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
 #- set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
 
