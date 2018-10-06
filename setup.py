@@ -92,8 +92,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                                    env=os.environ)
         compiler = self.get_compiler_name()
         arch = self.get_arch_name()
-        #objects = self.compile_objects(compiler.split('-')[0], arch, OBJ_DIR)
-        objects = []
+        objects = self.compile_objects(compiler.split('-')[0], arch, OBJ_DIR)
         extensions = []
 
         if compiler == 'msvc':
@@ -106,7 +105,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(
                 os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
-            e.extra_objects = list(objects)
+            e.extra_objects = list(objects)[:10]
         distutils.command.build_ext.build_ext.build_extensions(self)
     
     def get_arch_name(self):
@@ -154,6 +153,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 objects.append(self.build_object(env=env, **spec))
+                if len(objects) >= 10:
+                    break
         return objects
 
     def build_object(self, compiler, source, target, flags, macros, include,
