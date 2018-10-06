@@ -6,7 +6,6 @@ environment:
     # http://www.appveyor.com/docs/installed-software#python
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
-
     - PYTHON: "C:\\Python36-x64"
 
 #- PYTHON: "C:\\Python27"
@@ -34,12 +33,12 @@ build_script:
 - bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
 - bash -lc "which clang"
 - cd %APPVEYOR_BUILD_FOLDER%
-- bash -lc "cd /c/projects/cython-blis && python -m pip install -U pip"
-- bash -lc "cd /c/projects/cython-blis && python -m pip install wheel"
-- bash -lc "cd /c/projects/cython-blis && python -m pip install -r dev-requirements.txt"
-- bash -lc "cd /c/projects/cython-blis && python -m pip install -r requirements.txt"
-- bash -lc "cd /c/projects/cython-blis && python setup.py bdist_wheel"
-- bash -lc "cd /c/projects/cython-blis && python pip install dist/*.whl"
+- bash -lc "cd /c/projects/cython-blis && python3 -m pip install -U pip"
+- bash -lc "cd /c/projects/cython-blis && python3 -m pip install wheel"
+- bash -lc "cd /c/projects/cython-blis && python3 -m pip install -r dev-requirements.txt"
+- bash -lc "cd /c/projects/cython-blis && python3 -m pip install -r requirements.txt"
+- bash -lc "cd /c/projects/cython-blis && python3 setup.py bdist_wheel"
+- bash -lc "cd /c/projects/cython-blis && python3 pip install dist/*.whl"
 - bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/dist/"
 - bash -lc "source activate && cp /c/projects/cython-blis/dist/*.whl $APPVEYOR_BUILD_FOLDER/dist/"
 
