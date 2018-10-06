@@ -92,7 +92,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                                    env=os.environ)
         compiler = self.get_compiler_name()
         arch = self.get_arch_name()
-        objects = self.compile_objects(compiler.split('-')[0], arch, OBJ_DIR)
+        #objects = self.compile_objects(compiler.split('-')[0], arch, OBJ_DIR)
+        objects = []
         extensions = []
 
         if compiler == 'msvc':
@@ -148,8 +149,6 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     target_name = target_name.replace('/', '\\')
                     spec['source'] = spec['source'].replace('/', '\\')
                     spec['include'] = [inc.replace('/', '\\') for inc in spec['include']]
-                    spec['include'].append(os.path.join(r'C:\Program Files', 'LLVM', 'include'))
-
                 spec['include'].append('-I' + os.path.join(INCLUDE, '%s' % platform_name))
 
                 spec['target'] = os.path.join(obj_dir, target_name)
