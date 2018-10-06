@@ -67,7 +67,6 @@ class build_ext_options:
         if hasattr(self.compiler, 'initialize'):
             self.compiler.initialize()
         self.compiler.platform = sys.platform[:6]
-        print(self.compiler.platform, self.compiler.compiler_type)
         if self.compiler.compiler_type == 'msvc':
             include_dirs = list(self.compiler.include_dirs)
             library_dirs = list(self.compiler.library_dirs)
