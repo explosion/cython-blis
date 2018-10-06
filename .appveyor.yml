@@ -14,7 +14,6 @@ environment:
 #    - PYTHON: "C:\\Python35-x64"
 
 install:
-- call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
 - set "PATH=%PYTHON%;%path%"
 #- git submodule update --init --recursive
 #- set "CONDA_INSTALL_LOCN=C:\\Miniconda36-x64"
@@ -27,21 +26,11 @@ install:
 
 
 build_script:
-- set CC=clang
-- set RANLIB=echo
-- set AR=llvm-ar
-- set AS=llvm-as
-- bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
-- bash -lc "which clang"
-- cd %APPVEYOR_BUILD_FOLDER%
-- bash -lc "cd /c/projects/cython-blis && python -m pip install -U pip"
-- bash -lc "cd /c/projects/cython-blis && python -m pip install wheel"
-- bash -lc "cd /c/projects/cython-blis && python -m pip install -r dev-requirements.txt"
-- bash -lc "cd /c/projects/cython-blis && python -m pip install -r requirements.txt"
-- bash -lc "cd /c/projects/cython-blis && python setup.py bdist_wheel"
-- bash -lc "cd /c/projects/cython-blis && python pip install dist/*.whl"
-- bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/dist/"
-- bash -lc "source activate && cp /c/projects/cython-blis/dist/*.whl $APPVEYOR_BUILD_FOLDER/dist/"
+- python -m pip install -U pip wheel
+- python -m pip install -r dev-requirements.txt"
+- python -m pip install -r requirements.txt
+- python setup.py bdist_wheel
+- python -m pip install dist/*.whl
 
 #test_script:
 # Put your test command here.
