@@ -98,6 +98,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             platform_name = 'windows'
         else:
             platform_name = 'linux'
+        for object_path in objects:
+            assert os.path.exists(object_path), object_path
         for e in self.extensions:
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(
