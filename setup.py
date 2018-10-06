@@ -73,7 +73,7 @@ class build_ext_options:
             self.compiler = new_compiler(plat='nt', compiler='unix')
             self.compiler.platform = 'nt'
             self.compiler.compiler_type = 'msvc'
-            self.compiler.compiler = ['clang']
+            self.compiler.compiler = [locate_windows_llvm()]
             self.compiler.compiler_so = list(self.compiler.compiler)
             self.compiler.preprocessor = list(self.compiler.compiler)
             self.compiler.linker = list(self.compiler.compiler) + ['-shared']
@@ -99,7 +99,6 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             platform_name = 'linux'
         for object_path in objects:
             assert os.path.exists(object_path), object_path
-        print(len(objects))
         for e in self.extensions:
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(
