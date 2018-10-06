@@ -93,7 +93,6 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         compiler = self.get_compiler_name()
         arch = self.get_arch_name()
         objects = self.compile_objects(compiler.split('-')[0], arch, OBJ_DIR)
-        objects = []
         if compiler == 'msvc':
             platform_name = 'windows'
         else:
@@ -104,7 +103,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(
                 os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
-            e.extra_objects = list(objects)[:-250]
+            e.extra_objects = list(objects)[:-200]
         distutils.command.build_ext.build_ext.build_extensions(self)
     
     def get_arch_name(self):
