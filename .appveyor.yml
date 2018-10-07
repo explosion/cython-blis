@@ -1,34 +1,14 @@
 environment:
 
   matrix:
-
-    # For Python versions available on Appveyor, see
-    # http://www.appveyor.com/docs/installed-software#python
-    # The list here is complete (excluding Python 2.6, which
-    # isn't covered by this document) at the time of writing.
+    - PYTHON: "C:\\Python27-x64"
+    - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36-x64"
-
-#- PYTHON: "C:\\Python27"
-#    - PYTHON: "C:\\Python35"
-#    - PYTHON: "C:\\Python27-x64"
-#    - PYTHON: "C:\\Python35-x64"
 
 install:
 - set "PATH=%PYTHON%;%path%"
-#- git submodule update --init --recursive
-#- set "CONDA_INSTALL_LOCN=C:\\Miniconda36-x64"
-#- call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
-#- conda update --yes --quiet conda
-#- conda config --add channels conda-forge
-#- conda install --yes clangdev posix m2-make
-#- set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
-#- set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
-
 
 build_script:
-- cd C:\
-- python -m venv .env
-- cd %APPVEYOR_BUILD_FOLDER%
 - python -m pip install -U pip wheel
 - python -m pip install -r dev-requirements.txt"
 - python -m pip install -r requirements.txt
@@ -36,8 +16,11 @@ build_script:
 
 test_script:
 - cd C:\
+- python -m venv .env
+- cd %APPVEYOR_BUILD_FOLDER%
+- bash -lc "/c/.env/Scripts/python -m pip install dist/*.whl"
+- cd C:\
 - C:\.env\Scripts\activate
-- python -m pip install %APPVEYOR_BUILD_FOLDER%\dist\blis-0.0.15-cp36-cp36m-win_amd64.whl
 - python -m pip install pytest hypothesis
 - python -m pytest %APPVEYOR_BUILD_FOLDER%\tests
 
