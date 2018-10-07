@@ -37,7 +37,7 @@ build_script:
 test_script:
 - cd C:\
 - C:\.env\Scripts\activate
-- python -m pip install %APPVEYOR_BUILD_FOLDER\dist\blis-0.0.15-cp36-cp36m-win_amd64.whl
+- python -m pip install %APPVEYOR_BUILD_FOLDER%\dist\blis-0.0.15-cp36-cp36m-win_amd64.whl
 - python -m pytest %APPVEYOR_BUILD_FOLDER%\tests
 
 artifacts:
