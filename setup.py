@@ -101,7 +101,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         # Work around max line length in Windows, by making a local directory
         # for the objects
         short_dir = 'z'
-        os.path.mkdir(short_dir)
+        os.mkdir(short_dir)
         short_paths = []
         for object_path in objects:
             assert os.path.exists(object_path), object_path
@@ -116,7 +116,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
             e.extra_objects = list(short_paths)
         distutils.command.build_ext.build_ext.build_extensions(self)
-        shutil.rmtree(short_dir)
+        #shutil.rmtree(short_dir)
     
     def get_arch_name(self):
         if 'BLIS_ARCH' in os.environ:
