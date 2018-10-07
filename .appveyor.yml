@@ -18,6 +18,7 @@ test_script:
 - cd C:\
 - python -m venv .env
 - cd %APPVEYOR_BUILD_FOLDER%
+- bash -lc "rm -rf blis/"
 - bash -lc "/c/.env/Scripts/python -m pip install dist/*.whl"
 - cd C:\
 - C:\.env\Scripts\activate
