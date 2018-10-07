@@ -76,7 +76,7 @@ class build_ext_options:
             self.compiler.compiler = [locate_windows_llvm()]
             self.compiler.compiler_so = list(self.compiler.compiler)
             self.compiler.preprocessor = list(self.compiler.compiler)
-            self.compiler.linker = list(self.compiler.compiler) + ['-shared']
+            self.compiler.linker = list(self.compiler.compiler) + ['-shared', '-lm']
             self.compiler.linker_so = list(self.compiler.linker)
             self.compiler.linker_exe = list(self.compiler.linker)
             self.compiler.archiver = ['llvm-ar']
@@ -84,7 +84,6 @@ class build_ext_options:
             self.compiler.include_dirs = include_dirs
             llvm_home = os.path.dirname(os.path.dirname(self.compiler.compiler[0]))
             self.compiler.library_dirs.extend(os.path.join(llvm_home, 'lib'))
-            self.compiler.libraries.append('m')
 
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
     def build_extensions(self):
