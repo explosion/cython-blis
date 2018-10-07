@@ -4,6 +4,7 @@ import os
 import os.path
 import json
 import tempfile
+import shutil
 import distutils.command.build_ext
 from distutils.ccompiler import new_compiler
 import subprocess
@@ -97,15 +98,25 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             platform_name = 'windows'
         else:
             platform_name = 'linux'
+        # Work around max line length in Windows, by making a local directory
+        # for the objects
+        short_dir = 'z'
+        os.path.mkdir(short_dir)
+        short_paths = []
         for object_path in objects:
             assert os.path.exists(object_path), object_path
-        print(objects[-230:-220])
+            dir_name, filename = os.path.split(object_path)
+            new_path = os.path.join(dir_name, filename)
+            shutil.copyfile(object_path, new_path)
+            assert os.path.exists(new_path), new_path
+            short_paths.append(new_path)
         for e in self.extensions:
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(
                 os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
-            e.extra_objects = list(objects)[:-221]
+            e.extra_objects = list(short_paths)
         distutils.command.build_ext.build_ext.build_extensions(self)
+        shutil.rmtree(short_dir)
     
     def get_arch_name(self):
         if 'BLIS_ARCH' in os.environ:
