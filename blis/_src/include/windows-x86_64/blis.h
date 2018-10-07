@@ -3910,7 +3910,7 @@ GENTPROT3U12( dcomplex, dcomplex, scomplex, dcomplex, z, z, c, z, funcname )
 
 #ifndef BLIS_MISC_MACRO_DEFS_H
 #define BLIS_MISC_MACRO_DEFS_H
-#include <math.h>
+#include <cmath.h>
 
 // -- Miscellaneous macros --
 
