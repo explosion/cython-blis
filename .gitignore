@@ -2,6 +2,8 @@
 blis/blis.c
 *.pyc
 *.so
+blis/cy.c
+blis/py.c
 .env/
 .hypothesis/
 build/
