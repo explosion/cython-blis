@@ -84,9 +84,11 @@ class build_ext_options:
             self.compiler.include_dirs = include_dirs
             llvm_home = os.path.dirname(os.path.dirname(self.compiler.compiler[0]))
             print(os.listdir(llvm_home))
-            print(os.listdir(os.path.join(llvm_home, 'lib')))
+            print(os.listdir(os.path.join(llvm_home, 'libexec')))
+            print(os.listdir(os.path.join(llvm_home, 'share')))
             self.compiler.libraries.append('msvcrt')
-            self.compiler.library_dirs.extend(os.path.join(llvm_home, 'lib'))
+            self.compiler.libraries.append('ucrt')
+            self.compiler.library_dirs.append(os.path.join(llvm_home, 'libexec'))
 
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
     def build_extensions(self):
