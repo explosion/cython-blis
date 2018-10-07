@@ -84,9 +84,7 @@ class build_ext_options:
             self.compiler.include_dirs = include_dirs
             llvm_home = os.path.dirname(os.path.dirname(self.compiler.compiler[0]))
             self.compiler.library_dirs.extend(os.path.join(llvm_home, 'lib'))
-            self.compiler.extra_link_args.append('-lm')
-            self.compiler.extra_compile_args.append('-lm')
-
+            self.compiler.libraries.append('m')
 
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
     def build_extensions(self):
