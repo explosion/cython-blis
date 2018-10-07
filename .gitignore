@@ -11,6 +11,10 @@ cache/
 __pycache__/
 .python-version
 cythonize.dat
+dist/
+.pytest_cache
+blis.egg-info/
+tmp/
 
 # Blis stuff
 blis/include
