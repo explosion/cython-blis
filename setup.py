@@ -4,6 +4,7 @@ import os
 import os.path
 import json
 import tempfile
+import shutil
 import distutils.command.build_ext
 from distutils.ccompiler import new_compiler
 import subprocess
@@ -67,8 +68,8 @@ class build_ext_options:
             self.compiler.initialize()
         self.compiler.platform = sys.platform[:6]
         if self.compiler.compiler_type == 'msvc':
-            library_dirs = list(self.compiler.library_dirs)
             include_dirs = list(self.compiler.include_dirs)
+            library_dirs = list(self.compiler.library_dirs)
             self.compiler = new_compiler(plat='nt', compiler='unix')
             self.compiler.platform = 'nt'
             self.compiler.compiler_type = 'msvc'
@@ -78,8 +79,7 @@ class build_ext_options:
             self.compiler.linker = list(self.compiler.compiler) + ['-shared']
             self.compiler.linker_so = list(self.compiler.linker)
             self.compiler.linker_exe = list(self.compiler.linker)
-            self.compiler.archiver = [
-                os.path.join(os.path.dirname(self.compiler.linker[0]), 'llvm-ar.exe')]
+            self.compiler.archiver = ['llvm-ar']
             self.compiler.library_dirs.extend(library_dirs)
             self.compiler.include_dirs = include_dirs
 
@@ -93,19 +93,29 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         compiler = self.get_compiler_name()
         arch = self.get_arch_name()
         objects = self.compile_objects(compiler.split('-')[0], arch, OBJ_DIR)
-        extensions = []
-
         if compiler == 'msvc':
             platform_name = 'windows'
         else:
             platform_name = 'linux'
+        # Work around max line length in Windows, by making a local directory
+        # for the objects
+        short_dir = 'z'
+        os.mkdir(short_dir)
+        short_paths = []
+        for object_path in objects:
+            assert os.path.exists(object_path), object_path
+            dir_name, filename = os.path.split(object_path)
+            new_path = os.path.join(short_dir, filename)
+            shutil.copyfile(object_path, new_path)
+            assert os.path.exists(new_path), new_path
+            short_paths.append(new_path)
         for e in self.extensions:
-            if platform_name == 'windows':
-                e.libraries.append('pthreads')
             e.include_dirs.append(numpy.get_include())
-            e.include_dirs.append(os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
-            e.extra_objects = list(objects)
+            e.include_dirs.append(
+                os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
+            e.extra_objects = list(short_paths)
         distutils.command.build_ext.build_ext.build_extensions(self)
+        shutil.rmtree(short_dir)
     
     def get_arch_name(self):
         if 'BLIS_ARCH' in os.environ:
@@ -130,10 +140,11 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
     def compile_objects(self, py_compiler, py_arch, obj_dir):
         objects = []
         if py_compiler == 'msvc':
-            platform_name = 'windows'
+            platform_name = 'windows' + '-' + py_arch
         else:
-            platform_name = 'linux'
-        with open(os.path.join(BLIS_DIR, 'make', '%s.jsonl' % py_compiler)) as file_:
+            platform_name = 'linux' + '-' + py_arch
+
+        with open(os.path.join(BLIS_DIR, 'make', '%s.jsonl' % platform_name)) as file_:
             env = {}
             for line in file_:
                 spec = json.loads(line)
@@ -146,9 +157,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     target_name = target_name.replace('/', '\\')
                     spec['source'] = spec['source'].replace('/', '\\')
                     spec['include'] = [inc.replace('/', '\\') for inc in spec['include']]
+                spec['include'].append('-I' + os.path.join(INCLUDE, '%s' % platform_name))
 
-                spec['include'].append('-I' + os.path.join(
-                    INCLUDE, '%s-%s' % (platform_name, py_arch)))
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 objects.append(self.build_object(env=env, **spec))
@@ -181,7 +191,8 @@ if len(sys.argv) > 1 and sys.argv[1] == 'clean':
 
 OBJ_DIR = tempfile.mkdtemp()
 setup(
-    setup_requires=['numpy'],
+    setup_requires=['numpy>=1.15.0'],
+    install_requires=['numpy>=1.15.0'],
     ext_modules=[
         Extension('blis.cy', [os.path.join('blis', 'cy.c')]),
         Extension('blis.py', [os.path.join('blis', 'py.c')])
@@ -204,10 +215,7 @@ setup(
         'Operating System :: POSIX :: Linux',
         'Operating System :: MacOS :: MacOS X',
         'Programming Language :: Cython',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Topic :: Scientific/Engineering'

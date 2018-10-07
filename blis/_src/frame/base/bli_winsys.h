@@ -32,9 +32,6 @@
 
 */
 
+//int  bli_setenv( const char *name, const char *value, int overwrite );
+void bli_sleep( unsigned int secs );
 
-#ifdef _MSC_VER
-#include <windows.h>
-int setenv(const char *name, const char *value, int overwrite);
-void sleep(int x);
-#endif

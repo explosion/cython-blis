@@ -2,6 +2,8 @@
 blis/blis.c
 *.pyc
 *.so
+blis/cy.c
+blis/py.c
 .env/
 .hypothesis/
 build/
@@ -9,6 +11,11 @@ cache/
 __pycache__/
 .python-version
 cythonize.dat
+dist/
+.pytest_cache
+blis.egg-info/
+tmp/
 
 # Blis stuff
 blis/include
+.fragment.mk

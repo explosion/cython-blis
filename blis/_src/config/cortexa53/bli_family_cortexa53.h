@@ -32,40 +32,9 @@
 
 */
 
-#include "blis.h"
 
-#ifdef _MSC_VER
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
+// -- MEMORY ALLOCATION --------------------------------------------------------
 
-#if 0
-// NOTE: This function is no longer needed by BLIS since BLIS no longer
-// makes any attempt to change environment variables; rather, it only
-// reads them. We can keep it here for some time before removing it,
-// though.
+#define BLIS_SIMD_ALIGN_SIZE           16
 
-int bli_setenv( const char *name, const char *value, int overwrite )
-{
-#ifdef _MSC_VER
-	// Windows.
-	_putenv_s( name, value );
-#else
-	// Everything else: Linux, OS X, etc.
-	setenv( name, value, overwrite );
-#endif
-}
-#endif
-
-void bli_sleep( unsigned int secs )
-{
-#ifdef _MSC_VER
-	// Windows.
-	Sleep( secs * 1000 );
-#else
-	// Everything else: Linux, OS X, etc.
-	sleep( secs );
-#endif
-}
 
