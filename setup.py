@@ -21,9 +21,8 @@ except ImportError:
     use_cython = False
 
 MOD_NAMES = [
-    'blis.dummy',
-    #'blis.cy',
-    #'blis.py'
+    'blis.cy',
+    'blis.py'
 ]
 
 def clean(path):
@@ -116,7 +115,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
             e.extra_objects = list(short_paths)
         distutils.command.build_ext.build_ext.build_extensions(self)
-        #shutil.rmtree(short_dir)
+        shutil.rmtree(short_dir)
     
     def get_arch_name(self):
         if 'BLIS_ARCH' in os.environ:
@@ -194,9 +193,8 @@ OBJ_DIR = tempfile.mkdtemp()
 setup(
     setup_requires=['numpy'],
     ext_modules=[
-        Extension('blis.dummy', [os.path.join('blis', 'dummy.c')]),
-        #Extension('blis.cy', [os.path.join('blis', 'cy.c')]),
-        #Extension('blis.py', [os.path.join('blis', 'py.c')])
+        Extension('blis.cy', [os.path.join('blis', 'cy.c')]),
+        Extension('blis.py', [os.path.join('blis', 'py.c')])
     ],
     cmdclass={'build_ext': ExtensionBuilder},
     package_data={'': ['*.json', '*.jsonl', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
