@@ -17,7 +17,8 @@ build_script:
 test_script:
 - cd C:\
 - python -m venv .env
-- bash -lc "/c/.env/Scripts/python -m pip install $APPVEYOR_BUILD_FOLDER/dist/*.whl"
+- bash -lc "cp -r $APPVEYOR_BUILD_FOLDER /c/build"
+- bash -lc "/c/.env/Scripts/python -m pip install /c/build/dist/*.whl"
 - C:\.env\Scripts\activate
 - python -m pip install pytest hypothesis
 - python -m pytest %APPVEYOR_BUILD_FOLDER%\tests
