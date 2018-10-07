@@ -106,7 +106,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         for object_path in objects:
             assert os.path.exists(object_path), object_path
             dir_name, filename = os.path.split(object_path)
-            new_path = os.path.join(dir_name, filename)
+            new_path = os.path.join(short_dir, filename)
             shutil.copyfile(object_path, new_path)
             assert os.path.exists(new_path), new_path
             short_paths.append(new_path)
