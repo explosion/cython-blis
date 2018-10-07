@@ -191,7 +191,8 @@ if len(sys.argv) > 1 and sys.argv[1] == 'clean':
 
 OBJ_DIR = tempfile.mkdtemp()
 setup(
-    setup_requires=['numpy'],
+    setup_requires=['numpy>=1.15.0'],
+    install_requires=['numpy>=1.15.0'],
     ext_modules=[
         Extension('blis.cy', [os.path.join('blis', 'cy.c')]),
         Extension('blis.py', [os.path.join('blis', 'py.c')])
