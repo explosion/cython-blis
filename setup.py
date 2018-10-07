@@ -99,12 +99,12 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             platform_name = 'linux'
         for object_path in objects:
             assert os.path.exists(object_path), object_path
-        print(objects[-220:-230])
+        print(objects[-230:-220])
         for e in self.extensions:
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(
                 os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
-            e.extra_objects = list(objects)[:-222]
+            e.extra_objects = list(objects)[:-221]
         distutils.command.build_ext.build_ext.build_extensions(self)
     
     def get_arch_name(self):
