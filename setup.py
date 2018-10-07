@@ -83,11 +83,11 @@ class build_ext_options:
             self.compiler.library_dirs.extend(library_dirs)
             self.compiler.include_dirs = include_dirs
             llvm_home = os.path.dirname(os.path.dirname(self.compiler.compiler[0]))
-            lib0 = "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\LIB\amd64"
-            lib1 = "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\ATLMFC\LIB\amd64"
-            lib2 = "C:\Program Files (x86)\Windows Kits\10\lib\10.0.14393.0\ucrt\x64"
-            lib3 = "C:\Program Files (x86)\Windows Kits\NETFXSDK\4.6.1\lib\um\x64" 
-            lib4 = "C:\Program Files (x86)\Windows Kits\10\lib\10.0.14393.0\um\x64"
+            lib0 = r"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\LIB\amd64"
+            lib1 = r"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\ATLMFC\LIB\amd64"
+            lib2 = r"C:\Program Files (x86)\Windows Kits\10\lib\10.0.14393.0\ucrt\x64"
+            lib3 = r"C:\Program Files (x86)\Windows Kits\NETFXSDK\4.6.1\lib\um\x64" 
+            lib4 = r"C:\Program Files (x86)\Windows Kits\10\lib\10.0.14393.0\um\x64"
             for lib in [lib0, lib1, lib2, lib3, lib4]:
                 if lib not in self.compiler.library_dirs:
                     self.compiler.library_dirs.append(lib)
