@@ -26,15 +26,19 @@ install:
 
 
 build_script:
+- cd C:\
+- python -m venv .env
+- cd %APPVEYOR_BUILD_FOLDER%
 - python -m pip install -U pip wheel
 - python -m pip install -r dev-requirements.txt"
 - python -m pip install -r requirements.txt
 - python setup.py bdist_wheel
-- python -m pip install dist/blis-0.0.15-cp36-cp36m-win_amd64.whl
 
 test_script:
 - cd C:\
-- python -m pytest %APPVEYOR_BUILD_FOLDER%/tests/
+- C:\.env\Scripts\activate
+- python -m pip install %APPVEYOR_BUILD_FOLDER\dist\blis-0.0.15-cp36-cp36m-win_amd64.whl
+- python -m pytest %APPVEYOR_BUILD_FOLDER%\tests
 
 artifacts:
   - path: dist/
