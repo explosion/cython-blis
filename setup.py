@@ -86,7 +86,7 @@ class build_ext_options:
 
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
     def build_extensions(self):
-        build_ext_options.build_options(self)
+        #build_ext_options.build_options(self)
         if use_cython:
             subprocess.check_call([sys.executable, 'bin/cythonize.py'],
                                    env=os.environ)
