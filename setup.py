@@ -113,6 +113,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             e.include_dirs.append(numpy.get_include())
             e.include_dirs.append(
                 os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
+            e.include_dirs.append(os.path.join(PWD, 'extra-include', 'msvc9'))
             e.extra_objects = list(short_paths)
         distutils.command.build_ext.build_ext.build_extensions(self)
         shutil.rmtree(short_dir)
