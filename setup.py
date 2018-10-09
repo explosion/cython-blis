@@ -195,8 +195,8 @@ setup(
     setup_requires=['numpy>=1.15.0'],
     install_requires=['numpy>=1.15.0'],
     ext_modules=[
-        Extension('blis.cy', [os.path.join('blis', 'cy.c')]),
-        Extension('blis.py', [os.path.join('blis', 'py.c')])
+        Extension('blis.cy', [os.path.join('blis', 'cy.cpp')]),
+        Extension('blis.py', [os.path.join('blis', 'py.cpp')])
     ],
     cmdclass={'build_ext': ExtensionBuilder},
     package_data={'': ['*.json', '*.jsonl', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
