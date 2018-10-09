@@ -1,5 +1,6 @@
 # cython: infer_types=True
 # cython: boundscheck=False
+# distutils: language=c++
 
 import atexit
 

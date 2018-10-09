@@ -1,4 +1,5 @@
 # cython: boundscheck=False
+# distutils: language=c++
 cimport numpy as np
 from . cimport cy
 from .cy cimport reals1d_ft, reals2d_ft, float1d_t, float2d_t
