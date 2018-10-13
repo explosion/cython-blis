@@ -11,7 +11,7 @@ os:
   - linux
 
 install:
-  - ./bin/travis_setup.sh
+  - source ./bin/travis_setup.sh
   - pip install -r requirements.txt
   - python setup.py bdist_wheel
   - pip install dist/*.whl
