@@ -10,18 +10,8 @@ python:
 os:
   - linux
 
-osx_image: xcode9.3
-
 install:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo rm -f /usr/bin/as; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo ln -s /usr/lib/binutils-2.26/bin/as /usr/bin/as; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo rm -f /usr/bin/ld; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo ln -s /usr/lib/binutils-2.26/bin/ld /usr/bin/ld; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sed -i 's/"gcc"/"gcc-6"/' blis/_src/make/linux-x86_64.jsonl ; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CC="gcc-6"; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export CC=clang; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ./bin/generate-make-jsonl clang; fi
-  - pip install -r dev-requirements.txt
+  - ./bin/travis_setup.sh
   - pip install -r requirements.txt
   - python setup.py bdist_wheel
   - pip install dist/*.whl
@@ -30,10 +20,6 @@ addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-    packages:
-    - gcc-6
-    - binutils-2.26
-    - clang
 
 
 script:
