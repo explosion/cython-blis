@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test"
 sudo apt-get update -y
 sudo apt-get install -y gcc-6 binutils-2.26 clang
 

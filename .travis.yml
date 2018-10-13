@@ -16,10 +16,6 @@ install:
   - python setup.py bdist_wheel
   - pip install dist/*.whl
 
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
 script:
   - cp -r tests/ /tmp/blis-tests
   - cd /tmp
