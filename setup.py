@@ -202,7 +202,7 @@ setup(
 
     name="blis",
     packages=['blis'],
-    version="0.0.15",
+    version="0.0.16",
     author="Matthew Honnibal",
     author_email="matt@explosion.ai",
     summary="The Blis BLAS-like linear algebra library, as a self-contained C-extension.",
