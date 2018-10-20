@@ -3,6 +3,8 @@
 set -e
 
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+  sudo systemctl disable apt-daily.timer
+  sudo killall apt.systemd.daily
   sleep 5
   sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test"
   sleep 5
