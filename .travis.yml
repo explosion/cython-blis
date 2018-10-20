@@ -11,9 +11,12 @@ matrix:
 
 install:
   - source ./bin/travis_setup.sh
-  - pip install -r requirements.txt
-  - python setup.py bdist_wheel
-  - pip install dist/*.whl
+  - mkdir make-logs
+  - cp blis/_src/make/*.jsonl make-logs/
+  - cp blis/_src/include/darwin-x86_64/*.h make-logs
+    #- pip install -r requirements.txt
+    #- python setup.py bdist_wheel
+    #- pip install dist/*.whl
 
 script:
   - cp -r tests/ /tmp/blis-tests
