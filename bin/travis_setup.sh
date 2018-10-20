@@ -3,7 +3,9 @@
 set -e
 
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+  sleep 5
   sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test"
+  sleep 5
   sudo apt-get update -y
   sudo apt-get install -y gcc-6 binutils clang
   sed -i 's/"gcc"/"gcc-6"/' blis/_src/make/linux-x86_64.jsonl
