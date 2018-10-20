@@ -8,7 +8,8 @@ python:
   - "3.6"
 
 os:
-  - linux
+  - osx
+  #- linux
 
 install:
   - source ./bin/travis_setup.sh
