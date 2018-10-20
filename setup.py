@@ -96,8 +96,10 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         arch = self.get_arch_name()
         objects = self.compile_objects(compiler.split('-')[0], arch, OBJ_DIR)
         print("Compiler", compiler)
-        if compiler == 'msvc':
+        if sys.platform == 'msvc':
             platform_name = 'windows'
+        elif sys.platform == 'darwin':
+            platform_name = 'darwin'
         else:
             platform_name = 'linux'
         # Work around max line length in Windows, by making a local directory
@@ -145,6 +147,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         print("py_compiler", py_compiler)
         if py_compiler == 'msvc':
             platform_name = 'windows' + '-' + py_arch
+        elif sys.platform == 'darwin':
+            platform_name = 'darwin' + '-' + py_arch
         else:
             platform_name = 'linux' + '-' + py_arch
 
