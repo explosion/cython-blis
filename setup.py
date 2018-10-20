@@ -165,6 +165,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     target_name = target_name.replace('/', '\\')
                     spec['source'] = spec['source'].replace('/', '\\')
                     spec['include'] = [inc.replace('/', '\\') for inc in spec['include']]
+                elif py_compiler == 'clang':
+                    spec['compiler'] = 'clang'
                 spec['include'].append('-I' + os.path.join(INCLUDE, '%s' % platform_name))
 
                 spec['target'] = os.path.join(obj_dir, target_name)
