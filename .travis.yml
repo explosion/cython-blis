@@ -3,7 +3,9 @@ sudo: required
 dist: xenial
 
 matrix:
+  include:
   - os: osx
+    language: generic
     env:
     - MB_PYTHON_VERSION="3.5"
 
