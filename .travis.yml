@@ -19,7 +19,7 @@ install:
   - source ./bin/travis_setup.sh
   - python -m pip install -r requirements.txt
   - python setup.py bdist_wheel
-  - rm -rf blis/
+  - rm -rf blis*
   - python -m pip install dist/*.whl
 
 script:
