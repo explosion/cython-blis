@@ -1,6 +1,6 @@
 language: python
 sudo: required
-dist: xenial
+dist: trusty
 
 matrix:
   include:
@@ -15,7 +15,6 @@ matrix:
 
 
 install:
-  - source ./bin/travis_setup.sh
   - python -m pip install -r requirements.txt
   - python setup.py bdist_wheel
   - rm -rf blis*
@@ -23,6 +22,15 @@ install:
 
 script:
   - python -m pytest tests/
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-6
+    - binutils-2.26
+    - clang
 
 notifications:
   email: false
