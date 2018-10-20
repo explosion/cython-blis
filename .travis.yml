@@ -1,7 +1,6 @@
 language: python
 sudo: required
 dist: xenial
-osx_image: xcode10
 
 matrix:
   include:
