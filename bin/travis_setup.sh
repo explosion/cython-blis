@@ -10,6 +10,7 @@ if [ "$TRAVIS_OS_NAME" = "linux" ]; then
   export CC="gcc-6"
 fi
 
-if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-fi
+#if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+
+#fi
 
