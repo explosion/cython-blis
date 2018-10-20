@@ -8,6 +8,11 @@ matrix:
     language: generic
     env:
     - MB_PYTHON_VERSION="3.5"
+  - os: linux
+    language: generic
+    env:
+    - MB_PYTHON_VERSION="3.5"
+
 
 install:
   - source ./bin/travis_setup.sh
