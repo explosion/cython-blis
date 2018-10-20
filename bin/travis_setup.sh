@@ -13,6 +13,6 @@ fi
 if [ "$TRAVIS_OS_NAME" = "osx" ]; then
   mkdir -p blis/_src/include/darwin-x86_64
   ./bin/generate-make-jsonl darwin x86_64
-  cp flame-blis/include/blis.h blis/_src/include/darwin-x86_64/blis.h
+  cp flame-blis/include/x86_64/blis.h blis/_src/include/darwin-x86_64/blis.h
 fi
 
