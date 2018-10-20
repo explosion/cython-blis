@@ -2,14 +2,10 @@ language: python
 sudo: required
 dist: xenial
 
-python:
-  - "2.7"
-  - "3.5"
-  - "3.6"
-
-os:
-  - osx
-  #- linux
+matrix:
+  - os: osx
+    env:
+    - MB_PYTHON_VERSION="3.5"
 
 install:
   - source ./bin/travis_setup.sh
