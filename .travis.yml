@@ -26,7 +26,6 @@ addons:
     - ubuntu-toolchain-r-test
     packages:
     - gcc-6
-    - binutils-2.26
     - clang
 
 notifications:
