@@ -12,15 +12,11 @@ build_script:
 - python -m pip install -U pip wheel
 - python -m pip install -r requirements.txt
 - python setup.py bdist_wheel
+- cd ..
+- python -m pip install %APPVEYOR_BUILD_FOLDER%\dist\*.whl
 
 test_script:
-- cd C:\
-- python -m venv .env
-- bash -lc "cp -r $APPVEYOR_BUILD_FOLDER /c/build"
-- bash -lc "/c/.env/Scripts/python -m pip install /c/build/dist/*.whl"
-- C:\.env\Scripts\activate
-- python -m pip install pytest hypothesis
-- python -m pytest %APPVEYOR_BUILD_FOLDER%\tests
+- python -m pytest --pyargs blis
 
 artifacts:
   - path: dist/
