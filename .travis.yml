@@ -25,9 +25,6 @@ install:
 script:
   - python -m pytest tests/
 
-after_success:
-  coveralls
-
 notifications:
   email: false
   slack:
