@@ -1,3 +1,4 @@
 [submodule "flame-blis"]
 	path = flame-blis
+	branch = win-pthreads
 	url = https://github.com/honnibal/blis
