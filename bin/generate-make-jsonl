@@ -6,6 +6,7 @@ OS="$1"
 ARCH="$2"
 
 cd flame-blis
+git checkout win-pthreads
 ./configure --disable-blas --disable-cblas --disable-shared --disable-threading --enable-verbose-make $ARCH
 make > make.log 
 cat make.log | python ../bin/munge_make_log.py > ../blis/_src/make/$OS-$ARCH.jsonl
