@@ -22,7 +22,9 @@ install:
   - python -m pip install dist/*.whl
 
 script:
-  - python -m pytest tests/
+  - cp -r tests /tmp/blis-tests
+  - cd /tmp
+  - python -m pytest blis-tests/
 
 after_success:
   coveralls
