@@ -19,12 +19,11 @@ install:
   - source ./bin/travis_setup.sh
   - python -m pip install -r requirements.txt
   - python setup.py bdist_wheel
+  - rm -rf blis/
   - python -m pip install dist/*.whl
 
 script:
-  - cp -r tests /tmp/blis-tests
-  - cd /tmp
-  - python -m pytest blis-tests/
+  - python -m pytest tests/
 
 after_success:
   coveralls
