@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 import shutil
 import os
+
+# This is maybe not the best place to put this,
+# but we need to tell OSX to build for 10.7.
+# Otherwise, wheels don't work. We can't use 10.6,
+# it doesn't compile.
+os.environ['MACOSX_DEPLOYMENT_TARGET'] = "10.7"
+
 import os.path
 import json
 import tempfile
