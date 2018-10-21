@@ -165,7 +165,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     target_name = target_name.replace('/', '\\')
                     spec['source'] = spec['source'].replace('/', '\\')
                     spec['include'] = [inc.replace('/', '\\') for inc in spec['include']]
-                elif py_compiler == 'clang':
+                elif sys.platform == 'darwin':
                     spec['compiler'] = 'clang'
                     spec['flags'].append('-arch i386')
                     spec['flags'].append('-arch x86_64')
