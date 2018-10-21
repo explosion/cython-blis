@@ -211,7 +211,7 @@ setup(
     package_data={'': ['*.json', '*.jsonl', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
 
     name="blis",
-    packages=['blis'],
+    packages=['blis', 'blis.tests'],
     version="0.0.16",
     author="Matthew Honnibal",
     author_email="matt@explosion.ai",
