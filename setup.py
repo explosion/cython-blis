@@ -167,6 +167,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     spec['include'] = [inc.replace('/', '\\') for inc in spec['include']]
                 elif py_compiler == 'clang':
                     spec['compiler'] = 'clang'
+                    spec['flags'].append('-arch i386')
+                    spec['flags'].append('-arch x86_64')
                 spec['include'].append('-I' + os.path.join(INCLUDE, '%s' % platform_name))
 
                 spec['target'] = os.path.join(obj_dir, target_name)
