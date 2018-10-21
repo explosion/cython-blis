@@ -13,7 +13,8 @@ build_script:
 - python -m pip install -r requirements.txt
 - python setup.py bdist_wheel
 - cd ..
-- bash -lc "python -m pip install $APPVEYOR_BUILD_FOLDER/dist/*.whl"
+- bash -lc "cp -r $APPVEYOR_BUILD_FOLDER /c/build"
+- bash -lc "python -m pip install /c/build/dist/*.whl"
 
 test_script:
 - python -m pytest --pyargs blis
