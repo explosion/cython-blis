@@ -3,4 +3,5 @@
 set -e
 
 function before_install {
+  local passed=1
 }
