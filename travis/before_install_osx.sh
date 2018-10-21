@@ -7,7 +7,7 @@ MULTIBUILD_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 source $MULTIBUILD_DIR/common_utils.sh
 
-export MACOSX_DEPLOYMENT_TARGET=10.6
+export MACOSX_DEPLOYMENT_TARGET=10.7
 MACPYTHON_URL=https://www.python.org/ftp/python
 MACPYTHON_PY_PREFIX=/Library/Frameworks/Python.framework/Versions
 GET_PIP_URL=https://bootstrap.pypa.io/get-pip.py
