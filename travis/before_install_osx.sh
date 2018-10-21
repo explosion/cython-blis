@@ -259,7 +259,7 @@ function get_macpython_environment {
     fi
     
     remove_travis_ve_pip
-    install_macpython $version
+    install_mac_cpython $version
     install_pip
 
     if [ -n "$venv_dir" ]; then
@@ -323,5 +323,3 @@ function before_install {
     source venv/bin/activate
     pip install --upgrade pip wheel
 }
-
-
