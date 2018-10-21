@@ -2,6 +2,11 @@ language: python
 sudo: required
 dist: xenial
 
+env:
+  global: 
+    - PLAT=x86_64
+    - UNICODE_WIDTH=32
+
 matrix:
   include:
   - os: osx
