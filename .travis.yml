@@ -16,8 +16,8 @@ matrix:
     python: "3.7"
 
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; source ./travis/before_install_osx.sh
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; source ./travis/before_install_linux.sh
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source ./travis/before_install_osx.sh; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then source ./travis/before_install_linux.sh; fi
   - before_install
 
 install:
