@@ -8,7 +8,7 @@ git diff-index --quiet HEAD
 git checkout master
 git pull origin master
 git push origin master
-version=$(grep "__version__ = " thinc_gpu_ops/about.py)
+version=$(grep "__version__ = " blis/about.py)
 version=${version/__version__ = }
 version=${version/\'/}
 version=${version/\'/}
