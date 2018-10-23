@@ -8,6 +8,8 @@ import os
 # it doesn't compile.
 os.environ['MACOSX_DEPLOYMENT_TARGET'] = "10.7"
 
+import contextlib
+import io
 import os.path
 import json
 import tempfile
@@ -193,6 +195,18 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         subprocess.check_call(command, cwd=BLIS_DIR)
         return target
 
+@contextlib.contextmanager
+def chdir(new_dir):
+    old_dir = os.getcwd()
+    try:
+        os.chdir(new_dir)
+        sys.path.insert(0, new_dir)
+        yield
+    finally:
+        del sys.path[0]
+        os.chdir(old_dir)
+
+
 PWD = os.path.join(os.path.abspath(os.path.dirname('.')))
 SRC = os.path.join(PWD, 'blis') 
 BLIS_DIR = os.path.join(SRC, '_src')
@@ -205,6 +219,16 @@ if len(sys.argv) > 1 and sys.argv[1] == 'clean':
     clean(PWD)
 
 OBJ_DIR = tempfile.mkdtemp()
+
+root = os.path.abspath(os.path.dirname(__file__))
+with chdir(root):
+    with open(os.path.join(root, 'blis', 'about.py')) as f:
+        about = {}
+        exec(f.read(), about)
+
+    with io.open(os.path.join(root, 'README.rst'), encoding='utf8') as f:
+        readme = f.read()
+
 setup(
     setup_requires=['numpy>=1.15.0'],
     install_requires=['numpy>=1.15.0'],
@@ -215,12 +239,15 @@ setup(
     cmdclass={'build_ext': ExtensionBuilder},
     package_data={'': ['*.json', '*.jsonl', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
 
-    name="blis",
+    name=about['__title__'],
     packages=['blis', 'blis.tests'],
-    version="0.0.16",
-    author="Matthew Honnibal",
-    author_email="matt@explosion.ai",
-    summary="The Blis BLAS-like linear algebra library, as a self-contained C-extension.",
+    author=about['__author__'],
+    author_email=about['__email__'],
+    version=about['__version__'],
+    url=about['__uri__'],
+    license=about['__license__'],
+    description=about['__summary__'],
+    long_description=readme,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
