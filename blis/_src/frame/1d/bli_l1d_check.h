@@ -88,6 +88,20 @@ void PASTEMAC(opname,_check) \
 GENTPROT( scald )
 GENTPROT( setd )
 GENTPROT( setid )
+GENTPROT( shiftd )
+
+
+#undef  GENTPROT
+#define GENTPROT( opname ) \
+\
+void PASTEMAC(opname,_check) \
+     ( \
+       obj_t*  x, \
+       obj_t*  beta, \
+       obj_t*  y  \
+    );
+
+GENTPROT( xpbyd )
 
 
 // -----------------------------------------------------------------------------

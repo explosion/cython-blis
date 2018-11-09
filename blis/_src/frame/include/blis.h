@@ -68,6 +68,7 @@ extern "C" {
 // -- Threading definitions --
 
 #include "bli_thread.h"
+#include "bli_pthread.h"
 
 
 // -- Constant definitions --
@@ -126,6 +127,7 @@ extern "C" {
 #include "bli_setri.h"
 
 #include "bli_castm.h"
+#include "bli_castnzm.h"
 #include "bli_castv.h"
 #include "bli_projm.h"
 #include "bli_projv.h"
