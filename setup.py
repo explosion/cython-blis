@@ -90,8 +90,6 @@ class build_ext_options:
             self.compiler.archiver = ['llvm-ar']
             self.compiler.library_dirs.extend(library_dirs)
             self.compiler.include_dirs = include_dirs
-        elif self.compiler.compiler_type == 'gcc':
-            self.compiler.extra_compile_args.append('-std=c99')
 
 
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
@@ -210,8 +208,8 @@ setup(
     setup_requires=['numpy>=1.15.0'],
     install_requires=['numpy>=1.15.0'],
     ext_modules=[
-        Extension('blis.cy', [os.path.join('blis', 'cy.c')]),
-        Extension('blis.py', [os.path.join('blis', 'py.c')])
+        Extension('blis.cy', [os.path.join('blis', 'cy.c')], extra_compile_args=['-std=c99']),
+        Extension('blis.py', [os.path.join('blis', 'py.c')], extra_compile_args=['-std=c99'])
     ],
     cmdclass={'build_ext': ExtensionBuilder},
     package_data={'': ['*.json', '*.jsonl', '*.pyx', '*.pxd', os.path.join(INCLUDE, '*.h')] + c_files},
