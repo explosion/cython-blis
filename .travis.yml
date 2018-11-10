@@ -49,13 +49,6 @@ install:
 script:
   - python -m pytest tests/
 
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - clang
-
 notifications:
   email: false
   slack:
