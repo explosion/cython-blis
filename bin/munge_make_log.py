@@ -2,10 +2,13 @@ import os
 import sys
 import json
 
+arch_name = sys.argv[1]
+
 print(json.dumps({"environment": dict(os.environ)}))
 for line in sys.stdin:
     if 'flatten-headers.py' in line:
         continue
+    line = line.replace('include/x86_64', arch_name)
     pieces = line.split()
     args = {}
     flags = []
