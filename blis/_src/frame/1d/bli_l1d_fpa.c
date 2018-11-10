@@ -59,4 +59,6 @@ GENFRONT( invertd )
 GENFRONT( scald )
 GENFRONT( setd )
 GENFRONT( setid )
+GENFRONT( shiftd )
+GENFRONT( xpbyd )
 

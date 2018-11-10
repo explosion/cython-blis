@@ -92,4 +92,19 @@ void PASTEMAC(opname,EX_SUF) \
 GENTPROT( scald )
 GENTPROT( setd )
 GENTPROT( setid )
+GENTPROT( shiftd )
+
+
+#undef  GENTPROT
+#define GENTPROT( opname ) \
+\
+void PASTEMAC(opname,EX_SUF) \
+     ( \
+       obj_t*  x, \
+       obj_t*  beta, \
+       obj_t*  y  \
+       BLIS_OAPI_EX_PARAMS  \
+     );
+
+GENTPROT( xpbyd )
 

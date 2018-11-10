@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -69,6 +70,22 @@ void bli_gemm_ker_var2
        thrinfo_t* thread
      )
 {
+#ifdef BLIS_ENABLE_GEMM_MD
+	// By now, A and B have been packed and cast to the execution precision.
+	// In most cases, such as when storage precision of C differs from the
+	// execution precision, we utilize the mixed datatype code path. However,
+	// a few cases still fall within this kernel, such as mixed domain with
+	// equal precision (ccr, crc, rcc), hence those expressions being disabled
+	// in the conditional below.
+	if ( //( bli_obj_domain( c ) != bli_obj_domain( a ) ) ||
+	     //( bli_obj_domain( c ) != bli_obj_domain( b ) ) ||
+	     ( bli_obj_dt( c ) != bli_obj_exec_dt( c ) ) )
+	{
+		bli_gemm_ker_var2_md( a, b, c, cntx, rntm, cntl, thread );
+		return;
+	}
+#endif
+
 	num_t     dt_exec   = bli_obj_exec_dt( c );
 
 	pack_t    schema_a  = bli_obj_pack_schema( a );
@@ -112,12 +129,11 @@ void bli_gemm_ker_var2
 	buf_alpha = bli_obj_internal_scalar_buffer( &scalar_b );
 	buf_beta  = bli_obj_internal_scalar_buffer( c );
 
-    // If 1m is being employed on a column- or row-stored matrix with a
-    // real-valued beta, we can use the real domain macro-kernel, which
+	// If 1m is being employed on a column- or row-stored matrix with a
+	// real-valued beta, we can use the real domain macro-kernel, which
 	// eliminates a little overhead associated with the 1m virtual
 	// micro-kernel.
-#if 1
-	if ( bli_is_1m_packed( schema_a ) )
+	if ( bli_cntx_method( cntx ) == BLIS_1M )
 	{
 		bli_l3_ind_recast_1m_params
 		(
@@ -130,6 +146,21 @@ void bli_gemm_ker_var2
 		  rs_c, cs_c
 		);
 	}
+
+#ifdef BLIS_ENABLE_GEMM_MD
+	// Tweak parameters in select mixed domain cases cases.
+	bli_gemm_md_ker_var2_recast
+	(
+	  &dt_exec,
+	  bli_obj_dt( a ),
+	  bli_obj_dt( b ),
+	  bli_obj_dt( c ),
+	  &m, &n, &k,
+	  &pd_a, &ps_a,
+	  &pd_b, &ps_b,
+	  c,
+	  &rs_c, &cs_c
+	);
 #endif
 
 	// Index into the type combination array to extract the correct
@@ -268,14 +299,29 @@ void PASTEMAC(ch,varname) \
 	bli_auxinfo_set_is_a( is_a, &aux ); \
 	bli_auxinfo_set_is_b( is_b, &aux ); \
 \
-	thrinfo_t* caucus    = bli_thrinfo_sub_node( thread ); \
-	dim_t jr_num_threads = bli_thread_n_way( thread ); \
-	dim_t jr_thread_id   = bli_thread_work_id( thread ); \
-	dim_t ir_num_threads = bli_thread_n_way( caucus ); \
-	dim_t ir_thread_id   = bli_thread_work_id( caucus ); \
+	/* The 'thread' argument points to the thrinfo_t node for the 2nd (jr)
+	   loop around the microkernel. Here we query the thrinfo_t node for the
+	   1st (ir) loop around the microkernel. */ \
+	thrinfo_t* caucus = bli_thrinfo_sub_node( thread ); \
+\
+	/* Query the number of threads and thread ids for each loop. */ \
+	dim_t jr_nt  = bli_thread_n_way( thread ); \
+	dim_t jr_tid = bli_thread_work_id( thread ); \
+	dim_t ir_nt  = bli_thread_n_way( caucus ); \
+	dim_t ir_tid = bli_thread_work_id( caucus ); \
+\
+	dim_t jr_start, jr_end; \
+	dim_t ir_start, ir_end; \
+	dim_t jr_inc,   ir_inc; \
+\
+	/* Determine the thread range and increment for the 2nd and 1st loops.
+	   NOTE: The definition of bli_thread_range_jrir() will depend on whether
+	   slab or round-robin partitioning was requested at configure-time. */ \
+	bli_thread_range_jrir( thread, n_iter, 1, FALSE, &jr_start, &jr_end, &jr_inc ); \
+	bli_thread_range_jrir( caucus, m_iter, 1, FALSE, &ir_start, &ir_end, &ir_inc ); \
 \
 	/* Loop over the n dimension (NR columns at a time). */ \
-	for ( j = jr_thread_id; j < n_iter; j += jr_num_threads ) \
+	for ( j = jr_start; j < jr_end; j += jr_inc ) \
 	{ \
 		ctype* restrict a1; \
 		ctype* restrict c11; \
@@ -290,7 +336,7 @@ void PASTEMAC(ch,varname) \
 		b2 = b1; \
 \
 		/* Loop over the m dimension (MR rows at a time). */ \
-		for ( i = ir_thread_id; i < m_iter; i += ir_num_threads ) \
+		for ( i = ir_start; i < ir_end; i += ir_inc ) \
 		{ \
 			ctype* restrict a2; \
 \
@@ -300,12 +346,12 @@ void PASTEMAC(ch,varname) \
 			m_cur = ( bli_is_not_edge_f( i, m_iter, m_left ) ? MR : m_left ); \
 \
 			/* Compute the addresses of the next panels of A and B. */ \
-			a2 = bli_gemm_get_next_a_upanel( caucus, a1, rstep_a ); \
-			if ( bli_is_last_iter( i, m_iter, ir_thread_id, ir_num_threads ) ) \
+			a2 = bli_gemm_get_next_a_upanel( a1, rstep_a, ir_inc ); \
+			if ( bli_is_last_iter( i, ir_end, ir_tid, ir_nt ) ) \
 			{ \
 				a2 = a_cast; \
-				b2 = bli_gemm_get_next_b_upanel( thread, b1, cstep_b ); \
-				if ( bli_is_last_iter( j, n_iter, jr_thread_id, jr_num_threads ) ) \
+				b2 = bli_gemm_get_next_b_upanel( b1, cstep_b, jr_inc ); \
+				if ( bli_is_last_iter( j, jr_end, jr_tid, jr_nt ) ) \
 					b2 = b_cast; \
 			} \
 \
