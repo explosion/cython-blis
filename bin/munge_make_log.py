@@ -8,7 +8,7 @@ print(json.dumps({"environment": dict(os.environ)}))
 for line in sys.stdin:
     if 'flatten-headers.py' in line:
         continue
-    line = line.replace('include/x86_64', arch_name)
+    line = line.replace('include/x86_64', 'include/' + arch_name)
     pieces = line.split()
     args = {}
     flags = []
