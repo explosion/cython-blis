@@ -32,8 +32,6 @@ MOD_NAMES = [
     'blis.py'
 ]
 
-print('sys.platform', sys.platform)
-print(subprocess.call('gcc --version'.split()))
 
 def clean(path):
     if os.path.exists(os.path.join(PWD, 'build')):
@@ -92,6 +90,8 @@ class build_ext_options:
             self.compiler.archiver = ['llvm-ar']
             self.compiler.library_dirs.extend(library_dirs)
             self.compiler.include_dirs = include_dirs
+        elif self.compiler.compiler_type == 'gcc':
+            self.compiler.extra_compile_args.append('-std=c99')
 
 
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
