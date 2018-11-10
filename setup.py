@@ -33,6 +33,7 @@ MOD_NAMES = [
 ]
 
 print('sys.platform', sys.platform)
+print(subprocess.call('gcc --version'.split()))
 
 def clean(path):
     if os.path.exists(os.path.join(PWD, 'build')):
