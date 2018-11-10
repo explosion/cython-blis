@@ -116,7 +116,6 @@ extern "C" {
 #define BLIS_CONFIG_PENRYN
 #define BLIS_CONFIG_STEAMROLLER
 #define BLIS_CONFIG_PILEDRIVER
-#define BLIS_CONFIG_BULLDOZER
 #define BLIS_CONFIG_GENERIC
 
 
@@ -126,7 +125,6 @@ extern "C" {
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
 #define BLIS_KERNELS_PILEDRIVER
-#define BLIS_KERNELS_BULLDOZER
 #define BLIS_KERNELS_GENERIC
 
 
@@ -19017,51 +19015,7 @@ CNTX_INIT_PROTS( generic )
 // end bli_family_piledriver.h
 #endif
 #ifdef BLIS_FAMILY_BULLDOZER
-// begin bli_family_bulldozer.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_8x8_fma4
-#define BLIS_DEFAULT_MC_S          128
-#define BLIS_DEFAULT_KC_S          384
-#define BLIS_DEFAULT_NC_S          4096
-#define BLIS_DEFAULT_MR_S          8
-#define BLIS_DEFAULT_NR_S          8
-
-#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_4x6_fma4
-#define BLIS_DEFAULT_MC_D          1080
-#define BLIS_DEFAULT_KC_D          120
-#define BLIS_DEFAULT_NC_D          8400
-#define BLIS_DEFAULT_MR_D          4
-#define BLIS_DEFAULT_NR_D          6
-
-#define BLIS_CGEMM_UKERNEL         bli_cgemm_asm_8x4_fma4
-#define BLIS_DEFAULT_MC_C          96
-#define BLIS_DEFAULT_KC_C          256
-#define BLIS_DEFAULT_NC_C          4096
-#define BLIS_DEFAULT_MR_C          8
-#define BLIS_DEFAULT_NR_C          4
-
-#define BLIS_ZGEMM_UKERNEL         bli_zgemm_asm_4x4_fma4
-#define BLIS_DEFAULT_MC_Z          64 
-#define BLIS_DEFAULT_KC_Z          192
-#define BLIS_DEFAULT_NC_Z          4096
-#define BLIS_DEFAULT_MR_Z          4
-#define BLIS_DEFAULT_NR_Z          4
-#endif
-
-
-
-//#endif
-
-// end bli_family_bulldozer.h
+#include "bli_family_bulldozer.h" // skipped
 #endif
 
 // -- ARM architectures --
@@ -19260,15 +19214,7 @@ GEMM_UKR_PROT( dcomplex, z, gemm_piledriver_asm_2x2 )
 // end bli_kernels_piledriver.h
 #endif
 #ifdef BLIS_KERNELS_BULLDOZER
-// begin bli_kernels_bulldozer.h
-
-
-GEMM_UKR_PROT( float,    s, gemm_bulldozer_asm_8x8_fma4 )
-GEMM_UKR_PROT( double,   d, gemm_bulldozer_asm_4x6_fma4 )
-GEMM_UKR_PROT( scomplex, c, gemm_bulldozer_asm_8x4_fma4 )
-GEMM_UKR_PROT( dcomplex, z, gemm_bulldozer_asm_4x4_fma4 )
-
-// end bli_kernels_bulldozer.h
+#include "bli_kernels_bulldozer.h" // skipped
 #endif
 
 // -- ARM architectures --
@@ -36640,7 +36586,6 @@ void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_CONFIG_PENRYN
 #define BLIS_CONFIG_STEAMROLLER
 #define BLIS_CONFIG_PILEDRIVER
-#define BLIS_CONFIG_BULLDOZER
 #define BLIS_CONFIG_GENERIC
 
 
@@ -36650,7 +36595,6 @@ void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
 #define BLIS_KERNELS_PILEDRIVER
-#define BLIS_KERNELS_BULLDOZER
 #define BLIS_KERNELS_GENERIC
 
 
