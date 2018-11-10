@@ -4,6 +4,8 @@ Cython BLIS: Fast BLAS-like operations from Python and Cython, without the tears
 This repository provides the `Blis linear algebra <https://github.com/flame/blis>`_
 routines as a self-contained Python C-extension.
 
+Currently, we only supports single-threaded execution, as this is actually best for our workloads (ML inference).
+
 .. image:: https://img.shields.io/travis/explosion/cython-blis/master.svg?style=flat-square
     :target: https://travis-ci.org/explosion/cython-blis
     :alt: Build Status
@@ -15,17 +17,19 @@ routines as a self-contained Python C-extension.
 Overview
 --------
 
-You can install the package via pip, optionally specifying your machine's
-architecture via an environment variable:
+You can install the package via pip:
 
 .. code:: bash
 
-    BLIS_ARCH=haswell pip install blis
+    pip install blis
 
-If you're using an Intel CPU, it should autodetect ``haswell``. Other architectures available are ``sandybridge``, ``carrizo``, ``piledriver``, ``bulldozer``, ``knl`` and ``reference``. After installation, run a small matrix multiplication benchmark:
+Wheels should be available, so installation should be fast. If you want to install from source and you're on Windows, you'll need to install LLVM.
+
+After installation, run a small matrix multiplication benchmark:
 
 .. code:: bash
 
+    $ export OMP_NUM_THREADS=1 # Tell Numpy to only use one thread.
     $ python -m blis.benchmark
     Setting up data nO=384 nI=384 batch_size=2000. Running 1000 iterations
     Blis...
