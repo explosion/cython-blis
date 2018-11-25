@@ -38889,6 +38889,12 @@ void bli_sleep( unsigned int secs );
 
 // end bli_winsys.h
 
+// MH: Hack in definitions of isnan and isinf, missing on Windows Python2.7
+#ifdef _MSC_VER
+#include <float.h>
+#define isnan _isnan
+#define isinf(x) (!_finite(x))
+#endif
 
 // End extern "C" construct block.
 #ifdef __cplusplus
