@@ -1,6 +1,7 @@
 include LICENSE
 include README.rst
 include bin/cythonize.py
+recursive-include include *.h
 recursive-include blis/_src *.c
 recursive-include blis/_src *.h
 recursive-include blis/_src *.jsonl

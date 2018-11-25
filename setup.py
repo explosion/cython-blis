@@ -21,8 +21,6 @@ import sys
 from setuptools import Extension, setup
 import platform
 
-import numpy
-
 try:
     import cython
     use_cython = True
@@ -122,8 +120,9 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             shutil.copyfile(object_path, new_path)
             assert os.path.exists(new_path), new_path
             short_paths.append(new_path)
+        root = os.path.abspath(os.path.dirname(__file__))
         for e in self.extensions:
-            e.include_dirs.append(numpy.get_include())
+            e.include_dirs.append(os.path.join(root, 'include'))
             e.include_dirs.append(
                 os.path.join(INCLUDE, '%s-%s' % (platform_name, arch)))
             e.extra_objects = list(short_paths)
