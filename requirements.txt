@@ -2,4 +2,4 @@ numpy
 pytest
 cython
 hypothesis
-wheel
+wheel==0.31.1
