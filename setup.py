@@ -32,11 +32,6 @@ MOD_NAMES = [
     'blis.py'
 ]
 
-COMPILE_OPTIONS =  {
-    'msvc': ['/Ox', '/EHsc'],
-    'mingw32' : ['-O2', '-Wno-strict-prototypes', '-Wno-unused-function'],
-    'other' : ['-O2', '-Wno-strict-prototypes', '-Wno-unused-function']
-}
 
 def clean(path):
     if os.path.exists(os.path.join(PWD, 'build')):
@@ -95,9 +90,6 @@ class build_ext_options:
             self.compiler.archiver = ['llvm-ar']
             self.compiler.library_dirs.extend(library_dirs)
             self.compiler.include_dirs = include_dirs
-        for e in self.extensions:
-            e.extra_compile_args += COMPILE_OPTIONS.get(
-                self.compiler.compiler_type, COMPILE_OPTIONS['other'])
 
 
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
