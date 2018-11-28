@@ -6,8 +6,12 @@ routines as a self-contained Python C-extension.
 
 Currently, we only supports single-threaded execution, as this is actually best for our workloads (ML inference).
 
-.. image:: https://img.shields.io/travis/explosion/cython-blis/master.svg?style=flat-square
+.. image:: https://img.shields.io/travis/explosion/cython-blis/master.svg?style=flat-square&logo=travis
     :target: https://travis-ci.org/explosion/cython-blis
+    :alt: Build Status
+
+.. image:: https://img.shields.io/appveyor/ci/explosion/cython-blis/master.svg?style=flat-square&logo=appveyor
+    :target: https://ci.appveyor.com/project/explosion/cython-blis
     :alt: Build Status
 
 .. image:: https://img.shields.io/pypi/v/blis.svg?style=flat-square
@@ -43,7 +47,7 @@ After installation, run a small matrix multiplication benchmark:
     Numpy einsum ab,cb->ca
     Total: 5510596.19141
     83.18 seconds
-    
+
 The low ``numpy.einsum`` performance is
 expected, but the low `numpy.dot` performance is surprising. Linking numpy
 against MKL gives better performance:
@@ -164,6 +168,6 @@ To build the source package, you should run the following command:
 .. code:: bash
 
     ./bin/copy-source-files.sh
-    
-This populates the ``blis/_src`` folder for the various architectures, using the 
+
+This populates the ``blis/_src`` folder for the various architectures, using the
 ``flame-blis`` submodule.
