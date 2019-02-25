@@ -112,7 +112,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         # Work around max line length in Windows, by making a local directory
         # for the objects
         short_dir = 'z'
-        os.mkdir(short_dir)
+        if not os.path.exists(short_dir):
+            os.mkdir(short_dir)
         short_paths = []
         for object_path in objects:
             assert os.path.exists(object_path), object_path
