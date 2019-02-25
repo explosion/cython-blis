@@ -32,6 +32,7 @@ MOD_NAMES = [
     'blis.py'
 ]
 
+print('BLIS_COMPILER?', os.environ.get('BLIS_COMPILER', 'None'))
 
 def clean(path):
     if os.path.exists(os.path.join(PWD, 'build')):
@@ -176,6 +177,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
                 spec['target'] = os.path.join(obj_dir, target_name)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
+                if 'BLIS_COMPILER' in os.environ:
+                    spec['compiler'] = os.environ['BLIS_COMPILER']
                 objects.append(self.build_object(env=env, **spec))
         return objects
 
