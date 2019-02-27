@@ -6,7 +6,8 @@ import os
 # but we need to tell OSX to build for 10.7.
 # Otherwise, wheels don't work. We can't use 10.6,
 # it doesn't compile.
-os.environ['MACOSX_DEPLOYMENT_TARGET'] = "10.7"
+if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ:
+    os.environ['MACOSX_DEPLOYMENT_TARGET'] = "10.7"
 
 import contextlib
 import io
