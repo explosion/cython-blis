@@ -2,8 +2,8 @@ from __future__ import division
 from hypothesis import given, assume
 from math import sqrt, floor
 
-from .common import *
-from ..py import gemm
+from blis.tests.common import *
+from blis.tests.py import gemm
 
 
 def _stretch_matrix(data, m, n):

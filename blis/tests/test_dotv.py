@@ -2,9 +2,9 @@ from __future__ import division
 from hypothesis import given, assume
 from math import sqrt, floor
 
-from .common import *
-from ..py import dotv
-from ..cy import NO_CONJUGATE, CONJUGATE
+from blis.tests.common import *
+from blis.py import dotv
+from blis.cy import NO_CONJUGATE, CONJUGATE
 
 
 @given(
