@@ -12,6 +12,9 @@ cdef extern from "blis.h" nogil:
     cdef struct blis_cntx_t "cntx_t":
         pass
 
+    cdef struct blis_rntm_t "rntm_s":
+        pass
+
 
     ctypedef enum blis_trans_t "trans_t":
         BLIS_NO_TRANSPOSE
@@ -41,9 +44,10 @@ cdef extern from "blis.h" nogil:
     blis_err_t bli_init()
     blis_err_t bli_finalize()
 
+    blis_err_t bli_rntm_init(blis_rntm_t* rntm);
 
     # BLAS level 3 routines
-    void bli_dgemm(
+    void bli_dgemm_ex(
        blis_trans_t transa,
        blis_trans_t transb,
        dim_t   m,
@@ -54,9 +58,11 @@ cdef extern from "blis.h" nogil:
        double*  b, inc_t rsb, inc_t csb,
        double*  beta,
        double*  c, inc_t rsc, inc_t csc,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
     # BLAS level 3 routines
-    void bli_sgemm(
+    void bli_sgemm_ex(
        blis_trans_t transa,
        blis_trans_t transb,
        dim_t   m,
@@ -67,9 +73,11 @@ cdef extern from "blis.h" nogil:
        float*  b, inc_t rsb, inc_t csb,
        float*  beta,
        float*  c, inc_t rsc, inc_t csc,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_dger(
+    void bli_dger_ex(
        blis_conj_t  conjx,
        blis_conj_t  conjy,
        dim_t   m,
@@ -78,9 +86,11 @@ cdef extern from "blis.h" nogil:
        double*  x, inc_t incx,
        double*  y, inc_t incy,
        double*  a, inc_t rsa, inc_t csa,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_sger(
+    void bli_sger_ex(
        blis_conj_t  conjx,
        blis_conj_t  conjy,
        dim_t   m,
@@ -89,9 +99,11 @@ cdef extern from "blis.h" nogil:
        float*  x, inc_t incx,
        float*  y, inc_t incy,
        float*  a, inc_t rsa, inc_t csa,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_dgemv(
+    void bli_dgemv_ex(
        blis_trans_t transa,
        blis_conj_t  conjx,
        dim_t   m,
@@ -101,9 +113,11 @@ cdef extern from "blis.h" nogil:
        double*  x, inc_t incx,
        double*  beta,
        double*  y, inc_t incy,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
      )
 
-    void bli_sgemv(
+    void bli_sgemv_ex(
        blis_trans_t transa,
        blis_conj_t  conjx,
        dim_t   m,
@@ -113,121 +127,158 @@ cdef extern from "blis.h" nogil:
        float*  x, inc_t incx,
        float*  beta,
        float*  y, inc_t incy,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
      )
 
-    void bli_daxpyv(
+    void bli_daxpyv_ex(
        blis_conj_t  conjx,
        dim_t   m,
        double*  alpha,
        double*  x, inc_t incx,
        double*  y, inc_t incy,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
      )
 
-    void bli_saxpyv(
+    void bli_saxpyv_ex(
        blis_conj_t  conjx,
        dim_t   m,
        float*  alpha,
        float*  x, inc_t incx,
        float*  y, inc_t incy,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
      )
 
-    void bli_dscalv(
+    void bli_dscalv_ex(
        blis_conj_t  conjalpha,
        dim_t   m,
        double*  alpha,
        double*  x, inc_t incx,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_sscalv(
+    void bli_sscalv_ex(
        blis_conj_t  conjalpha,
        dim_t   m,
        float*  alpha,
        float*  x, inc_t incx,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_ddotv(
+    void bli_ddotv_ex(
        blis_conj_t  conjx,
        blis_conj_t  conjy,
        dim_t   m,
        double*  x, inc_t incx,
        double*  y, inc_t incy,
        double*  rho,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_sdotv(
+    void bli_sdotv_ex(
        blis_conj_t  conjx,
        blis_conj_t  conjy,
        dim_t   m,
        float*  x, inc_t incx,
        float*  y, inc_t incy,
        float*  rho,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_snorm1v(
+    void bli_snorm1v_ex(
        dim_t n,
        float* x, inc_t incx,
        float* norm,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_dnorm1v(
+    void bli_dnorm1v_ex(
        dim_t   n,
        double* x, inc_t incx,
        double* norm,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_snormfv(
+    void bli_snormfv_ex(
        dim_t   n,
        float*  x, inc_t incx,
        float*  norm,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_dnormfv(
+    void bli_dnormfv_ex(
        dim_t   n,
        double*  x, inc_t incx,
        double*  norm,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_snormiv(
+    void bli_snormiv_ex(
        dim_t   n,
        float*  x, inc_t incx,
        float*  norm,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_dnormiv(
+    void bli_dnormiv_ex(
        dim_t   n,
        double*  x, inc_t incx,
        double*  norm,
+       blis_cntx_t* cntx,
+       blis_rntm_t* rntm,
     )
 
-    void bli_srandv(
+    void bli_srandv_ex(
         dim_t   m,
         float*  x, inc_t incx,
+        blis_cntx_t* cntx,
+        blis_rntm_t* rntm,
     )
 
-    void bli_drandv(
+    void bli_drandv_ex(
         dim_t   m,
         double*  x, inc_t incx,
+        blis_cntx_t* cntx,
+        blis_rntm_t* rntm,
     )
 
-    void bli_ssumsqv(
+    void bli_ssumsqv_ex(
         dim_t   m,
         float*  x, inc_t incx,
         float*  scale,
         float*  sumsq,
+        blis_cntx_t* cntx,
+        blis_rntm_t* rntm,
     ) nogil
 
-    void bli_dsumsqv(
+    void bli_dsumsqv_ex(
         dim_t   m,
         double*  x, inc_t incx,
         double*  scale,
         double*  sumsq,
+        blis_cntx_t* cntx,
+        blis_rntm_t* rntm,
     ) nogil
 
 
 
 bli_init()
+cdef blis_rntm_t rntm;
+
 def init():
     bli_init()
+    bli_rntm_init(&rntm);
     assert BLIS_NO_TRANSPOSE == <blis_trans_t>NO_TRANSPOSE
     assert BLIS_TRANSPOSE == <blis_trans_t>TRANSPOSE
     assert BLIS_CONJ_NO_TRANSPOSE == <blis_trans_t>CONJ_NO_TRANSPOSE
@@ -266,27 +317,27 @@ cdef void gemm(
     cdef double alpha_d = alpha
     cdef double beta_d = beta
     if reals_ft is floats_t:
-        bli_sgemm(
+        bli_sgemm_ex(
             <blis_trans_t>trans_a, <blis_trans_t>trans_b,
             m, n, k,
-            &alpha_f, a, rsa, csa, b, rsb, csb, &beta_f, c, rsc, csc)
+            &alpha_f, a, rsa, csa, b, rsb, csb, &beta_f, c, rsc, csc, NULL, &rntm)
     elif reals_ft is doubles_t:
-        bli_dgemm(
+        bli_dgemm_ex(
             <blis_trans_t>trans_a, <blis_trans_t>trans_b,
             m, n, k,
-            &alpha_d, a, rsa, csa, b, rsb, csb, &beta_d, c, rsc, csc)
+            &alpha_d, a, rsa, csa, b, rsb, csb, &beta_d, c, rsc, csc, NULL, &rntm)
     elif reals_ft is float1d_t:
-        bli_sgemm(
+        bli_sgemm_ex(
             <blis_trans_t>trans_a, <blis_trans_t>trans_b,
             m, n, k,
             &alpha_f, &a[0], rsa, csa, &b[0], rsb, csb, &beta_f, &c[0],
-            rsc, csc)
+            rsc, csc, NULL, &rntm)
     elif reals_ft is double1d_t:
-        bli_dgemm(
+        bli_dgemm_ex(
             <blis_trans_t>trans_a, <blis_trans_t>trans_b,
             m, n, k,
             &alpha_d, &a[0], rsa, csa, &b[0], rsb, csb, &beta_d, &c[0],
-            rsc, csc)
+            rsc, csc, NULL, &rntm)
     else:
         # Impossible --- panic?
         pass
@@ -305,29 +356,29 @@ cdef void ger(
     cdef float alpha_f = alpha
     cdef double alpha_d = alpha
     if reals_ft is floats_t:
-        bli_sger(
+        bli_sger_ex(
             <blis_conj_t>conjx, <blis_conj_t>conjy,
             m, n,
             &alpha_f,
-            x, incx, y, incy, a, rsa, csa)
+            x, incx, y, incy, a, rsa, csa, NULL, &rntm)
     elif reals_ft is doubles_t:
-        bli_dger(
+        bli_dger_ex(
             <blis_conj_t>conjx, <blis_conj_t>conjy,
             m, n,
             &alpha_d,
-            x, incx, y, incy, a, rsa, csa)
+            x, incx, y, incy, a, rsa, csa, NULL, &rntm)
     elif reals_ft is float1d_t:
-        bli_sger(
+        bli_sger_ex(
             <blis_conj_t>conjx, <blis_conj_t>conjy,
             m, n,
             &alpha_f,
-            &x[0], incx, &y[0], incy, &a[0], rsa, csa)
+            &x[0], incx, &y[0], incy, &a[0], rsa, csa, NULL, &rntm)
     elif reals_ft is double1d_t:
-        bli_dger(
+        bli_dger_ex(
             <blis_conj_t>conjx, <blis_conj_t>conjy,
             m, n,
             &alpha_d,
-            &x[0], incx, &y[0], incy, &a[0], rsa, csa)
+            &x[0], incx, &y[0], incy, &a[0], rsa, csa, NULL, &rntm)
     else:
         # Impossible --- panic?
         pass
@@ -349,33 +400,33 @@ cdef void gemv(
     cdef float beta_f = alpha
     cdef double beta_d = alpha
     if reals_ft is floats_t:
-        bli_sgemv(
+        bli_sgemv_ex(
             <blis_trans_t>transa, <blis_conj_t>conjx,
             m, n,
             &alpha_f, a, rsa, csa,
             x, incx, &beta_f,
-            y, incy)
+            y, incy, NULL, &rntm)
     elif reals_ft is doubles_t:
-        bli_dgemv(
+        bli_dgemv_ex(
             <blis_trans_t>transa, <blis_conj_t>conjx,
             m, n,
             &alpha_d, a, rsa, csa,
             x, incx, &beta_d,
-            y, incy)
+            y, incy, NULL, &rntm)
     elif reals_ft is float1d_t:
-        bli_sgemv(
+        bli_sgemv_ex(
             <blis_trans_t>transa, <blis_conj_t>conjx,
             m, n,
             &alpha_f, &a[0], rsa, csa,
             &x[0], incx, &beta_f,
-            &y[0], incy)
+            &y[0], incy, NULL, &rntm)
     elif reals_ft is double1d_t:
-        bli_dgemv(
+        bli_dgemv_ex(
             <blis_trans_t>transa, <blis_conj_t>conjx,
             m, n,
             &alpha_d, &a[0], rsa, csa,
             &x[0], incx, &beta_d,
-            &y[0], incy)
+            &y[0], incy, NULL, &rntm)
     else:
         # Impossible --- panic?
         pass
@@ -391,13 +442,13 @@ cdef void axpyv(
     cdef float alpha_f = alpha
     cdef double alpha_d = alpha
     if reals_ft is floats_t:
-        bli_saxpyv(<blis_conj_t>conjx, m,  &alpha_f, x, incx, y, incy)
+        bli_saxpyv_ex(<blis_conj_t>conjx, m,  &alpha_f, x, incx, y, incy, NULL, &rntm)
     elif reals_ft is doubles_t:
-        bli_daxpyv(<blis_conj_t>conjx, m,  &alpha_d, x, incx, y, incy)
+        bli_daxpyv_ex(<blis_conj_t>conjx, m,  &alpha_d, x, incx, y, incy, NULL, &rntm)
     elif reals_ft is float1d_t:
-        bli_saxpyv(<blis_conj_t>conjx, m,  &alpha_f, &x[0], incx, &y[0], incy)
+        bli_saxpyv_ex(<blis_conj_t>conjx, m,  &alpha_f, &x[0], incx, &y[0], incy, NULL, &rntm)
     elif reals_ft is double1d_t:
-        bli_daxpyv(<blis_conj_t>conjx, m,  &alpha_d, &x[0], incx, &y[0], incy)
+        bli_daxpyv_ex(<blis_conj_t>conjx, m,  &alpha_d, &x[0], incx, &y[0], incy, NULL, &rntm)
     else:
         # Impossible --- panic?
         pass
@@ -412,13 +463,13 @@ cdef void scalv(
     cdef float alpha_f = alpha
     cdef double alpha_d = alpha
     if reals_ft is floats_t:
-        bli_sscalv(<blis_conj_t>conjalpha, m, &alpha_f, x, incx)
+        bli_sscalv_ex(<blis_conj_t>conjalpha, m, &alpha_f, x, incx, NULL, &rntm)
     elif reals_ft is doubles_t:
-        bli_dscalv(<blis_conj_t>conjalpha, m, &alpha_d, x, incx)
+        bli_dscalv_ex(<blis_conj_t>conjalpha, m, &alpha_d, x, incx, NULL, &rntm)
     elif reals_ft is float1d_t:
-        bli_sscalv(<blis_conj_t>conjalpha, m, &alpha_f, &x[0], incx)
+        bli_sscalv_ex(<blis_conj_t>conjalpha, m, &alpha_f, &x[0], incx, NULL, &rntm)
     elif reals_ft is double1d_t:
-        bli_dscalv(<blis_conj_t>conjalpha, m, &alpha_d, &x[0], incx)
+        bli_dscalv_ex(<blis_conj_t>conjalpha, m, &alpha_d, &x[0], incx, NULL, &rntm)
     else:
         # Impossible --- panic?
         pass
@@ -431,15 +482,15 @@ cdef double norm_L1(
     cdef double dnorm = 0
     cdef float snorm = 0
     if reals_ft is floats_t:
-        bli_snorm1v(n, x, incx, &snorm)
+        bli_snorm1v_ex(n, x, incx, &snorm, NULL, &rntm)
         dnorm = snorm
     elif reals_ft is doubles_t:
-        bli_dnorm1v(n, x, incx, &dnorm)
+        bli_dnorm1v_ex(n, x, incx, &dnorm, NULL, &rntm)
     elif reals_ft is float1d_t:
-        bli_snorm1v(n, &x[0], incx, &snorm)
+        bli_snorm1v_ex(n, &x[0], incx, &snorm, NULL, &rntm)
         dnorm = snorm
     elif reals_ft is double1d_t:
-        bli_dnorm1v(n, &x[0], incx, &dnorm)
+        bli_dnorm1v_ex(n, &x[0], incx, &dnorm, NULL, &rntm)
     else:
         # Impossible --- panic?
         pass
@@ -453,15 +504,15 @@ cdef double norm_L2(
     cdef double dnorm = 0
     cdef float snorm = 0
     if reals_ft is floats_t:
-        bli_snormfv(n, x, incx, &snorm)
+        bli_snormfv_ex(n, x, incx, &snorm, NULL, &rntm)
         dnorm = snorm
     elif reals_ft is doubles_t:
-        bli_dnormfv(n, x, incx, &dnorm)
+        bli_dnormfv_ex(n, x, incx, &dnorm, NULL, &rntm)
     elif reals_ft is float1d_t:
-        bli_snormfv(n, &x[0], incx, &snorm)
+        bli_snormfv_ex(n, &x[0], incx, &snorm, NULL, &rntm)
         dnorm = snorm
     elif reals_ft is double1d_t:
-        bli_dnormfv(n, &x[0], incx, &dnorm)
+        bli_dnormfv_ex(n, &x[0], incx, &dnorm, NULL, &rntm)
     else:
         # Impossible --- panic?
         pass
@@ -475,15 +526,15 @@ cdef double norm_inf(
     cdef double dnorm = 0
     cdef float snorm = 0
     if reals_ft is floats_t:
-        bli_snormiv(n, x, incx, &snorm)
+        bli_snormiv_ex(n, x, incx, &snorm, NULL, &rntm)
         dnorm = snorm
     elif reals_ft is doubles_t:
-        bli_dnormiv(n, x, incx, &dnorm)
+        bli_dnormiv_ex(n, x, incx, &dnorm, NULL, &rntm)
     elif reals_ft is float1d_t:
-        bli_snormiv(n, &x[0], incx, &snorm)
+        bli_snormiv_ex(n, &x[0], incx, &snorm, NULL, &rntm)
         dnorm = snorm
     elif reals_ft is double1d_t:
-        bli_dnormiv(n, &x[0], incx, &dnorm)
+        bli_dnormiv_ex(n, &x[0], incx, &dnorm, NULL, &rntm)
     else:
         # Impossible --- panic?
         pass
@@ -502,18 +553,18 @@ cdef double dotv(
     cdef double rho_d = 0.0
     cdef float rho_f = 0.0
     if reals_ft is floats_t:
-        bli_sdotv(<blis_conj_t>conjx, <blis_conj_t>conjy, m, x, incx, y, incy, &rho_f)
+        bli_sdotv_ex(<blis_conj_t>conjx, <blis_conj_t>conjy, m, x, incx, y, incy, &rho_f, NULL, &rntm)
         return rho_f
     elif reals_ft is doubles_t:
-        bli_ddotv(<blis_conj_t>conjx, <blis_conj_t>conjy, m, x, incx, y, incy, &rho_d)
+        bli_ddotv_ex(<blis_conj_t>conjx, <blis_conj_t>conjy, m, x, incx, y, incy, &rho_d, NULL, &rntm)
         return rho_d
     elif reals_ft is float1d_t:
-        bli_sdotv(<blis_conj_t>conjx, <blis_conj_t>conjy, m, &x[0], incx, &y[0], incy,
-                  &rho_f)
+        bli_sdotv_ex(<blis_conj_t>conjx, <blis_conj_t>conjy, m, &x[0], incx, &y[0], incy,
+                  &rho_f, NULL, &rntm)
         return rho_f
     elif reals_ft is double1d_t:
-        bli_ddotv(<blis_conj_t>conjx, <blis_conj_t>conjy, m, &x[0], incx, &y[0], incy,
-                  &rho_d)
+        bli_ddotv_ex(<blis_conj_t>conjx, <blis_conj_t>conjy, m, &x[0], incx, &y[0], incy,
+                  &rho_d, NULL, &rntm)
         return rho_d
     else:
         raise ValueError("Unhandled fused type")
@@ -521,13 +572,13 @@ cdef double dotv(
 
 cdef void randv(dim_t m, reals_ft x, inc_t incx) nogil:
     if reals_ft is floats_t:
-        bli_srandv(m, x, incx)
+        bli_srandv_ex(m, x, incx, NULL, &rntm)
     elif reals_ft is float1d_t:
-        bli_srandv(m, &x[0], incx)
+        bli_srandv_ex(m, &x[0], incx, NULL, &rntm)
     if reals_ft is doubles_t:
-        bli_drandv(m, x, incx)
+        bli_drandv_ex(m, x, incx, NULL, &rntm)
     elif reals_ft is double1d_t:
-        bli_drandv(m, &x[0], incx)
+        bli_drandv_ex(m, &x[0], incx, NULL, &rntm)
     else:
         with gil:
             raise ValueError("Unhandled fused type")
@@ -536,13 +587,13 @@ cdef void randv(dim_t m, reals_ft x, inc_t incx) nogil:
 cdef void sumsqv(dim_t   m, reals_ft  x, inc_t incx,
         reals_ft scale, reals_ft sumsq) nogil:
     if reals_ft is floats_t:
-        bli_ssumsqv(m, &x[0], incx, scale, sumsq)
+        bli_ssumsqv_ex(m, &x[0], incx, scale, sumsq, NULL, &rntm)
     elif reals_ft is float1d_t:
-        bli_ssumsqv(m, &x[0], incx, &scale[0], &sumsq[0])
+        bli_ssumsqv_ex(m, &x[0], incx, &scale[0], &sumsq[0], NULL, &rntm)
     if reals_ft is doubles_t:
-        bli_dsumsqv(m, x, incx, scale, sumsq)
+        bli_dsumsqv_ex(m, x, incx, scale, sumsq, NULL, &rntm)
     elif reals_ft is double1d_t:
-        bli_dsumsqv(m, &x[0], incx, &scale[0], &sumsq[0])
+        bli_dsumsqv_ex(m, &x[0], incx, &scale[0], &sumsq[0], NULL, &rntm)
     else:
         with gil:
             raise ValueError("Unhandled fused type")
