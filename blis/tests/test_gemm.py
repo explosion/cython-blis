@@ -3,7 +3,7 @@ from hypothesis import given, assume
 from math import sqrt, floor
 
 from blis.tests.common import *
-from blis.tests.py import gemm
+from blis.py import gemm
 
 
 def _stretch_matrix(data, m, n):
