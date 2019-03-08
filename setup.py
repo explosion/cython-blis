@@ -232,7 +232,7 @@ with chdir(root):
         about = {}
         exec(f.read(), about)
 
-    with io.open(os.path.join(root, "README.rst"), encoding="utf8") as f:
+    with io.open(os.path.join(root, "README.md"), encoding="utf8") as f:
         readme = f.read()
 
 setup(
@@ -260,6 +260,7 @@ setup(
     license=about["__license__"],
     description=about["__summary__"],
     long_description=readme,
+    long_description_content_type="text/markdown",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
