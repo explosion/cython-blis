@@ -12,6 +12,7 @@ cp -r flame-blis/ref_kernels blis/_new_src/ref_kernels
 mkdir blis/_new_src/include
 mkdir blis/_new_src/include/darwin-x86_64
 mkdir blis/_new_src/include/linux-x86_64
+mkdir blis/_new_src/include/linux-x86_64_no_skx
 mkdir blis/_new_src/include/windows-x86_64
 
 mkdir blis/_new_src/make
