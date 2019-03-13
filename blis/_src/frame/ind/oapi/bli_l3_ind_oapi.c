@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -56,9 +57,11 @@ void PASTEMAC(opname,imeth) \
 	num_t                dt   = bli_obj_dt( c ); \
 	PASTECH(opname,_oft) func = PASTEMAC(opname,ind_get_avail)( dt ); \
 \
-	/* Initialize a local runtime with global settings if necessary. */ \
+	/* Initialize a local runtime with global settings if necessary. Note
+	   that in the case that a runtime is passed in, we make a local copy. */ \
 	rntm_t rntm_l; \
-	if ( rntm == NULL ) { rntm = &rntm_l; bli_thread_init_rntm( rntm ); } \
+	if ( rntm == NULL ) { bli_thread_init_rntm( &rntm_l ); rntm = &rntm_l; } \
+	else                { rntm_l = *rntm;                  rntm = &rntm_l; } \
 \
 	func( alpha, a, b, beta, c, cntx, rntm ); \
 }
@@ -90,9 +93,11 @@ void PASTEMAC(opname,imeth) \
 	num_t                dt   = bli_obj_dt( c ); \
 	PASTECH(opname,_oft) func = PASTEMAC(opname,ind_get_avail)( dt ); \
 \
-	/* Initialize a local runtime with global settings if necessary. */ \
+	/* Initialize a local runtime with global settings if necessary. Note
+	   that in the case that a runtime is passed in, we make a local copy. */ \
 	rntm_t rntm_l; \
-	if ( rntm == NULL ) { rntm = &rntm_l; bli_thread_init_rntm( rntm ); } \
+	if ( rntm == NULL ) { bli_thread_init_rntm( &rntm_l ); rntm = &rntm_l; } \
+	else                { rntm_l = *rntm;                  rntm = &rntm_l; } \
 \
 	func( side, alpha, a, b, beta, c, cntx, rntm ); \
 }
@@ -122,9 +127,11 @@ void PASTEMAC(opname,imeth) \
 	num_t                dt   = bli_obj_dt( c ); \
 	PASTECH(opname,_oft) func = PASTEMAC(opname,ind_get_avail)( dt ); \
 \
-	/* Initialize a local runtime with global settings if necessary. */ \
+	/* Initialize a local runtime with global settings if necessary. Note
+	   that in the case that a runtime is passed in, we make a local copy. */ \
 	rntm_t rntm_l; \
-	if ( rntm == NULL ) { rntm = &rntm_l; bli_thread_init_rntm( rntm ); } \
+	if ( rntm == NULL ) { bli_thread_init_rntm( &rntm_l ); rntm = &rntm_l; } \
+	else                { rntm_l = *rntm;                  rntm = &rntm_l; } \
 \
 	func( alpha, a, beta, c, cntx, rntm ); \
 }
@@ -153,9 +160,11 @@ void PASTEMAC(opname,imeth) \
 	num_t                dt   = bli_obj_dt( b ); \
 	PASTECH(opname,_oft) func = PASTEMAC(opname,ind_get_avail)( dt ); \
 \
-	/* Initialize a local runtime with global settings if necessary. */ \
+	/* Initialize a local runtime with global settings if necessary. Note
+	   that in the case that a runtime is passed in, we make a local copy. */ \
 	rntm_t rntm_l; \
-	if ( rntm == NULL ) { rntm = &rntm_l; bli_thread_init_rntm( rntm ); } \
+	if ( rntm == NULL ) { bli_thread_init_rntm( &rntm_l ); rntm = &rntm_l; } \
+	else                { rntm_l = *rntm;                  rntm = &rntm_l; } \
 \
 	func( side, alpha, a, b, cntx, rntm ); \
 }

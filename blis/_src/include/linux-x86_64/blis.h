@@ -32,34 +32,46 @@ extern "C" {
 #include <errno.h> // skipped
 #include <ctype.h> // skipped
 
+// Determine the compiler (hopefully) and define conveniently named macros
+// accordingly.
+#if   defined(__ICC) || defined(__INTEL_COMPILER)
+  #define BLIS_ICC
+#elif defined(__clang__)
+  #define BLIS_CLANG
+#elif defined(__GNUC__)
+  #define BLIS_GCC
+#endif
+
 // Determine if we are on a 64-bit or 32-bit architecture.
 #if defined(_M_X64) || defined(__x86_64) || defined(__aarch64__) || \
     defined(_ARCH_PPC64)
-#define BLIS_ARCH_64
+  #define BLIS_ARCH_64
 #else
-#define BLIS_ARCH_32
+  #define BLIS_ARCH_32
 #endif
 
 // Determine the target operating system.
 #if defined(_WIN32) || defined(__CYGWIN__)
-#define BLIS_OS_WINDOWS 1
+  #define BLIS_OS_WINDOWS 1
+#elif defined(__gnu_hurd__)
+  #define BLIS_OS_GNU 1
 #elif defined(__APPLE__) || defined(__MACH__)
-#define BLIS_OS_OSX 1
+  #define BLIS_OS_OSX 1
 #elif defined(__ANDROID__)
-#define BLIS_OS_ANDROID 1
+  #define BLIS_OS_ANDROID 1
 #elif defined(__linux__)
-#define BLIS_OS_LINUX 1
+  #define BLIS_OS_LINUX 1
 #elif defined(__bgq__)
-#define BLIS_OS_BGQ 1
+  #define BLIS_OS_BGQ 1
 #elif defined(__bg__)
-#define BLIS_OS_BGP 1
+  #define BLIS_OS_BGP 1
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
-      defined(__bsdi__) || defined(__DragonFly__)
-#define BLIS_OS_BSD 1
+      defined(__bsdi__) || defined(__DragonFly__) || defined(__FreeBSD_kernel__)
+  #define BLIS_OS_BSD 1
 #elif defined(EMSCRIPTEN)
-#define BLIS_OS_EMSCRIPTEN
+  #define BLIS_OS_EMSCRIPTEN
 #else
-#error "Cannot determine operating system"
+  #error "Cannot determine operating system"
 #endif
 
 // A few changes that may be necessary in Windows environments.
@@ -70,11 +82,13 @@ extern "C" {
   #define VC_EXTRALEAN
 #include <windows.h> // skipped
 
-  // Undefine attribute specifiers in Windows.
-  #define __attribute__(x)
+  #if !defined(__clang__) && !defined(__GNUC__)
+    // Undefine attribute specifiers in Windows.
+    #define __attribute__(x)
 
-  // Undefine restrict.
-  #define restrict
+    // Undefine restrict.
+    #define restrict
+  #endif
 
 #endif
 
@@ -111,20 +125,28 @@ extern "C" {
 
 
 // Enabled sub-configurations (config_list)
+#define BLIS_CONFIG_SKX
+#define BLIS_CONFIG_KNL
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
 #define BLIS_CONFIG_PENRYN
+#define BLIS_CONFIG_ZEN
+#define BLIS_CONFIG_EXCAVATOR
 #define BLIS_CONFIG_STEAMROLLER
 #define BLIS_CONFIG_PILEDRIVER
+#define BLIS_CONFIG_BULLDOZER
 #define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_ZEN
-#define BLIS_KERNELS_HASWELL
+#define BLIS_KERNELS_SKX
+#define BLIS_KERNELS_KNL
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
+#define BLIS_KERNELS_HASWELL
+#define BLIS_KERNELS_ZEN
 #define BLIS_KERNELS_PILEDRIVER
+#define BLIS_KERNELS_BULLDOZER
 #define BLIS_KERNELS_GENERIC
 
 
@@ -145,7 +167,21 @@ extern "C" {
 #endif
 
 #if 1
-#define BLIS_ENABLE_PACKBUF_POOLS
+#define BLIS_ENABLE_PBA_POOLS
+#else
+#define BLIS_DISABLE_PBA_POOLS
+#endif
+
+#if 1
+#define BLIS_ENABLE_SBA_POOLS
+#else
+#define BLIS_DISABLE_SBA_POOLS
+#endif
+
+#if 0
+#define BLIS_ENABLE_MEM_TRACING
+#else
+#define BLIS_DISABLE_MEM_TRACING
 #endif
 
 #if 0 == 64
@@ -210,6 +246,12 @@ extern "C" {
 #define BLIS_DISABLE_MEMKIND
 #endif
 
+#if 1
+#define BLIS_ENABLE_PRAGMA_OMP_SIMD
+#else
+#define BLIS_DISABLE_PRAGMA_OMP_SIMD
+#endif
+
 #if 0
 #define BLIS_ENABLE_SANDBOX
 #else
@@ -221,6 +263,25 @@ extern "C" {
 #else
 #define BLIS_DISABLE_SHARED
 #endif
+
+#if !defined(BLIS_ENABLE_SHARED)
+    #define BLIS_EXPORT
+#else
+    #if defined(_WIN32) || defined(__CYGWIN__)
+        #ifdef BLIS_IS_BUILDING_LIBRARY
+            #define BLIS_EXPORT __declspec(dllexport)
+        #else
+            #define BLIS_EXPORT __declspec(dllimport)
+        #endif
+    #elif defined(__GNUC__) && __GNUC__ >= 4
+        #define BLIS_EXPORT __attribute__ ((visibility ("default")))
+    #else
+        #define BLIS_EXPORT
+    #endif
+#endif
+
+#define BLIS_EXPORT_BLIS BLIS_EXPORT
+#define BLIS_EXPORT_BLAS BLIS_EXPORT
 
 #endif
 // end bli_config.h
@@ -454,12 +515,12 @@ typedef  gint_t  bool_t;
 // interoperability with BLIS.
 #ifndef _DEFINED_DIM_T
 #define _DEFINED_DIM_T
-typedef  gint_t  dim_t;      // dimension type
+typedef   gint_t dim_t;      // dimension type
 #endif
-typedef  gint_t  inc_t;      // increment/stride type
-typedef  gint_t  doff_t;     // diagonal offset type
-typedef guint_t  siz_t;      // byte size type
-typedef guint_t  objbits_t;  // object information bit field
+typedef   gint_t inc_t;      // increment/stride type
+typedef   gint_t doff_t;     // diagonal offset type
+typedef  guint_t siz_t;      // byte size type
+typedef uint32_t objbits_t;  // object information bit field
 
 // -- Real types --
 
@@ -551,6 +612,7 @@ typedef dcomplex  f77_dcomplex;
 
 
 
+// info
 #define BLIS_DATATYPE_SHIFT                0
 #define   BLIS_DOMAIN_SHIFT                0
 #define   BLIS_PRECISION_SHIFT             1
@@ -582,10 +644,16 @@ typedef dcomplex  f77_dcomplex;
 #define   BLIS_COMP_DOMAIN_SHIFT           29
 #define   BLIS_COMP_PREC_SHIFT             30
 
+// info2
+#define BLIS_SCALAR_DT_SHIFT                0
+#define   BLIS_SCALAR_DOMAIN_SHIFT          0
+#define   BLIS_SCALAR_PREC_SHIFT            1
+
 //
 // -- BLIS info bit field masks ------------------------------------------------
 //
 
+// info
 #define BLIS_DATATYPE_BITS                 ( 0x7  << BLIS_DATATYPE_SHIFT )
 #define   BLIS_DOMAIN_BIT                  ( 0x1  << BLIS_DOMAIN_SHIFT )
 #define   BLIS_PRECISION_BIT               ( 0x1  << BLIS_PRECISION_SHIFT )
@@ -616,6 +684,11 @@ typedef dcomplex  f77_dcomplex;
 #define BLIS_COMP_DT_BITS                  ( 0x7  << BLIS_COMP_DT_SHIFT )
 #define   BLIS_COMP_DOMAIN_BIT             ( 0x1  << BLIS_COMP_DOMAIN_SHIFT )
 #define   BLIS_COMP_PREC_BIT               ( 0x1  << BLIS_COMP_PREC_SHIFT )
+
+// info2
+#define BLIS_SCALAR_DT_BITS                ( 0x7  << BLIS_SCALAR_DT_SHIFT )
+#define   BLIS_SCALAR_DOMAIN_BIT           ( 0x1  << BLIS_SCALAR_DOMAIN_SHIFT )
+#define   BLIS_SCALAR_PREC_BIT             ( 0x1  << BLIS_SCALAR_PREC_SHIFT )
 
 
 //
@@ -850,10 +923,10 @@ typedef enum
 	BLIS_SUBPART0,
 	BLIS_SUBPART1,
 	BLIS_SUBPART2,
-	BLIS_SUBPART1T,
+	BLIS_SUBPART1AND0,
+	BLIS_SUBPART1AND2,
+	BLIS_SUBPART1A,
 	BLIS_SUBPART1B,
-	BLIS_SUBPART1L,
-	BLIS_SUBPART1R,
 	BLIS_SUBPART00,
 	BLIS_SUBPART10,
 	BLIS_SUBPART20,
@@ -1156,12 +1229,14 @@ typedef enum
 	BLIS_ARCH_BULLDOZER,
 
 	// ARM
+	BLIS_ARCH_THUNDERX2,
 	BLIS_ARCH_CORTEXA57,
 	BLIS_ARCH_CORTEXA53,
 	BLIS_ARCH_CORTEXA15,
 	BLIS_ARCH_CORTEXA9,
 
 	// IBM/Power
+	BLIS_ARCH_POWER9,
 	BLIS_ARCH_POWER7,
 	BLIS_ARCH_BGQ,
 
@@ -1170,41 +1245,15 @@ typedef enum
 
 } arch_t;
 
-#define BLIS_NUM_ARCHS 18
+#define BLIS_NUM_ARCHS 20
 
 
 //
 // -- BLIS misc. structure types -----------------------------------------------
 //
 
-// -- Pool block type --
-
-typedef struct
-{
-	void* buf_sys;
-	void* buf_align;
-} pblk_t;
-
-
-// -- Pool type --
-
-typedef struct
-{
-	pblk_t* block_ptrs;
-	dim_t   block_ptrs_len;
-
-	dim_t   top_index;
-	dim_t   num_blocks;
-
-	siz_t   block_size;
-	siz_t   align_size;
-} pool_t;
-
-
-// -- Memory broker object type --
-
 // These headers must be included here (or earlier) because definitions they
-// provide are needed in the membrk_t struct.
+// provide are needed in the pool_t and related structs.
 // begin bli_pthread.h
 
 
@@ -1216,39 +1265,82 @@ typedef struct
 // This branch defines a pthread-like API, bli_pthread_*(), and implements it
 // in terms of Windows API calls.
 
+// -- pthread_mutex_*() --
+
 typedef SRWLOCK bli_pthread_mutex_t;
 typedef void bli_pthread_mutexattr_t;
 
 #define BLIS_PTHREAD_MUTEX_INITIALIZER SRWLOCK_INIT
 
-int bli_pthread_mutex_init( bli_pthread_mutex_t* mutex, const bli_pthread_mutexattr_t *attr );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_init
+     (
+       bli_pthread_mutex_t*           mutex,
+       const bli_pthread_mutexattr_t* attr
+     );
 
-int bli_pthread_mutex_destroy( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_destroy
+     (
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_mutex_lock( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_lock
+     (
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_mutex_trylock( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_trylock
+     (
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_mutex_unlock( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_unlock
+     (
+       bli_pthread_mutex_t* mutex
+     );
+
+// -- pthread_once_*() --
 
 typedef INIT_ONCE bli_pthread_once_t;
 
 #define BLIS_PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
 
-void bli_pthread_once( bli_pthread_once_t* once, void (*init)( void ) );
+BLIS_EXPORT_BLIS void bli_pthread_once
+     (
+       bli_pthread_once_t* once,
+       void              (*init)(void)
+     );
+
+// -- pthread_cond_*() --
 
 typedef CONDITION_VARIABLE bli_pthread_cond_t;
 typedef void bli_pthread_condattr_t;
 
 #define BLIS_PTHREAD_COND_INITIALIZER CONDITION_VARIABLE_INIT
 
-int bli_pthread_cond_init( bli_pthread_cond_t* cond, const bli_pthread_condattr_t* attr );
+BLIS_EXPORT_BLIS int bli_pthread_cond_init
+     (
+       bli_pthread_cond_t*           cond,
+       const bli_pthread_condattr_t* attr
+     );
 
-int bli_pthread_cond_destroy( bli_pthread_cond_t* cond );
+BLIS_EXPORT_BLIS int bli_pthread_cond_destroy
+     (
+       bli_pthread_cond_t* cond
+     );
 
-int bli_pthread_cond_wait( bli_pthread_cond_t* cond, bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_cond_wait
+     (
+       bli_pthread_cond_t*  cond,
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_cond_broadcast( bli_pthread_cond_t* cond );
+BLIS_EXPORT_BLIS int bli_pthread_cond_broadcast
+     (
+       bli_pthread_cond_t* cond
+     );
+
+// -- pthread_create(), pthread_join() --
+
 typedef struct
 {
     HANDLE handle;
@@ -1257,11 +1349,21 @@ typedef struct
 
 typedef void bli_pthread_attr_t;
 
-int bli_pthread_create( bli_pthread_t *thread, const bli_pthread_attr_t *attr, void* (*start_routine)( void* ), void *arg );
+BLIS_EXPORT_BLIS int bli_pthread_create
+     (
+       bli_pthread_t*            thread,
+       const bli_pthread_attr_t* attr,
+       void*                   (*start_routine)(void*),
+       void*                     arg
+     );
 
-int bli_pthread_join( bli_pthread_t thread, void **retval );
+BLIS_EXPORT_BLIS int bli_pthread_join
+     (
+       bli_pthread_t thread,
+       void**        retval
+     );
 
-// barrier-related definitions
+// -- pthread_barrier_*() --
 
 typedef void bli_pthread_barrierattr_t;
 
@@ -1273,11 +1375,22 @@ typedef struct
     int                 tripCount;
 } bli_pthread_barrier_t;
 
-int bli_pthread_barrier_init( bli_pthread_barrier_t *barrier, const bli_pthread_barrierattr_t *attr, unsigned int count );
+BLIS_EXPORT_BLIS int bli_pthread_barrier_init
+     (
+       bli_pthread_barrier_t*           barrier,
+       const bli_pthread_barrierattr_t* attr,
+       unsigned int                     count
+     );
 
-int bli_pthread_barrier_destroy( bli_pthread_barrier_t *barrier );
+BLIS_EXPORT_BLIS int bli_pthread_barrier_destroy
+     (
+       bli_pthread_barrier_t* barrier
+     );
 
-int bli_pthread_barrier_wait( bli_pthread_barrier_t *barrier );
+BLIS_EXPORT_BLIS int bli_pthread_barrier_wait
+     (
+       bli_pthread_barrier_t* barrier
+     );
 
 #else // !defined(_MSC_VER)
 
@@ -1330,7 +1443,7 @@ typedef pthread_barrierattr_t  bli_pthread_barrierattr_t;
 
 // -- pthread_create(), pthread_join() --
 
-int bli_pthread_create
+BLIS_EXPORT_BLIS int bli_pthread_create
      (
        bli_pthread_t*            thread,
        const bli_pthread_attr_t* attr,
@@ -1338,7 +1451,7 @@ int bli_pthread_create
        void*                     arg
      );
 
-int bli_pthread_join
+BLIS_EXPORT_BLIS int bli_pthread_join
      (
        bli_pthread_t thread,
        void**        retval
@@ -1346,59 +1459,59 @@ int bli_pthread_join
 
 // -- pthread_mutex_*() --
 
-int bli_pthread_mutex_init
+BLIS_EXPORT_BLIS int bli_pthread_mutex_init
      (
        bli_pthread_mutex_t*           mutex,
        const bli_pthread_mutexattr_t* attr
      );
 
-int bli_pthread_mutex_destroy
+BLIS_EXPORT_BLIS int bli_pthread_mutex_destroy
      (
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_mutex_lock
+BLIS_EXPORT_BLIS int bli_pthread_mutex_lock
      (
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_mutex_trylock
+BLIS_EXPORT_BLIS int bli_pthread_mutex_trylock
      (
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_mutex_unlock
+BLIS_EXPORT_BLIS int bli_pthread_mutex_unlock
      (
        bli_pthread_mutex_t* mutex
      );
 
 // -- pthread_cond_*() --
 
-int bli_pthread_cond_init
+BLIS_EXPORT_BLIS int bli_pthread_cond_init
      (
        bli_pthread_cond_t*           cond,
        const bli_pthread_condattr_t* attr
      );
 
-int bli_pthread_cond_destroy
+BLIS_EXPORT_BLIS int bli_pthread_cond_destroy
      (
        bli_pthread_cond_t* cond
      );
 
-int bli_pthread_cond_wait
+BLIS_EXPORT_BLIS int bli_pthread_cond_wait
      (
        bli_pthread_cond_t*  cond,
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_cond_broadcast
+BLIS_EXPORT_BLIS int bli_pthread_cond_broadcast
      (
        bli_pthread_cond_t* cond
      );
 
 // -- pthread_once_*() --
 
-void bli_pthread_once
+BLIS_EXPORT_BLIS void bli_pthread_once
      (
        bli_pthread_once_t* once,
        void              (*init)(void)
@@ -1406,19 +1519,19 @@ void bli_pthread_once
 
 // -- pthread_barrier_*() --
 
-int bli_pthread_barrier_init
+BLIS_EXPORT_BLIS int bli_pthread_barrier_init
      (
        bli_pthread_barrier_t*           barrier,
        const bli_pthread_barrierattr_t* attr,
        unsigned int                     count
      );
 
-int bli_pthread_barrier_destroy
+BLIS_EXPORT_BLIS int bli_pthread_barrier_destroy
      (
        bli_pthread_barrier_t* barrier
      );
 
-int bli_pthread_barrier_wait
+BLIS_EXPORT_BLIS int bli_pthread_barrier_wait
      (
        bli_pthread_barrier_t* barrier
      );
@@ -1436,35 +1549,96 @@ typedef void  (*free_ft)   ( void*  p    );
 
 // -----------------------------------------------------------------------------
 
-void* bli_malloc_pool( size_t size );
-void  bli_free_pool( void* p );
+#if 0
+BLIS_EXPORT_BLIS void* bli_malloc_pool( size_t size );
+BLIS_EXPORT_BLIS void   bli_free_pool( void* p );
+#endif
 
 void* bli_malloc_intl( size_t size );
 void* bli_calloc_intl( size_t size );
 void  bli_free_intl( void* p );
 
-void* bli_malloc_user( size_t size );
-void  bli_free_user( void* p );
+BLIS_EXPORT_BLIS void* bli_malloc_user( size_t size );
+BLIS_EXPORT_BLIS void  bli_free_user( void* p );
 
 // -----------------------------------------------------------------------------
 
-void* bli_malloc_align( malloc_ft f, size_t size, size_t align_size );
-void  bli_free_align( free_ft f, void* p );
+void* bli_fmalloc_align( malloc_ft f, size_t size, size_t align_size );
+void  bli_ffree_align( free_ft f, void* p );
 
-void* bli_malloc_noalign( malloc_ft f, size_t size );
-void  bli_free_noalign( free_ft f, void* p );
+void* bli_fmalloc_noalign( malloc_ft f, size_t size );
+void  bli_ffree_noalign( free_ft f, void* p );
 
-void  bli_malloc_align_check( malloc_ft f, size_t size, size_t align_size );
+void  bli_fmalloc_align_check( malloc_ft f, size_t size, size_t align_size );
+void  bli_fmalloc_post_check( void* p );
 
 // end bli_malloc.h
+
+// -- Pool block type --
+
+typedef struct
+{
+	void*     buf;
+	siz_t     block_size;
+
+} pblk_t;
+
+
+// -- Pool type --
+
+typedef struct
+{
+	void*     block_ptrs;
+	dim_t     block_ptrs_len;
+
+	dim_t     top_index;
+	dim_t     num_blocks;
+
+	siz_t     block_size;
+	siz_t     align_size;
+
+	malloc_ft malloc_fp;
+	free_ft   free_fp;
+
+} pool_t;
+
+
+// -- Array type --
+
+typedef struct
+{
+	void*     buf;
+
+	siz_t     num_elem;
+	siz_t     elem_size;
+
+} array_t;
+
+
+// -- Locked pool-of-arrays-of-pools type --
+
+typedef struct
+{
+	bli_pthread_mutex_t mutex;
+	pool_t              pool;
+
+	siz_t               def_array_len;
+
+} apool_t;
+
+
+// -- packing block allocator: Locked set of pools type --
 
 typedef struct membrk_s
 {
 	pool_t              pools[3];
 	bli_pthread_mutex_t mutex;
 
+	// These fields are used for general-purpose allocation.
+	siz_t               align_size;
 	malloc_ft           malloc_fp;
 	free_ft             free_fp;
+
 } membrk_t;
 
 
@@ -1475,7 +1649,6 @@ typedef struct mem_s
 	pblk_t    pblk;
 	packbuf_t buf_type;
 	pool_t*   pool;
-	membrk_t* membrk;
 	siz_t     size;
 } mem_t;
 
@@ -1488,6 +1661,7 @@ struct cntl_s
 	opid_t         family;
 	bszid_t        bszid;
 	void*          var_func;
+	struct cntl_s* sub_prenode;
 	struct cntl_s* sub_node;
 
 	// Optional fields (needed only by some operations such as packm).
@@ -1589,6 +1763,7 @@ typedef struct obj_s
 	doff_t        diag_off;
 
 	objbits_t     info;
+	objbits_t     info2;
 	siz_t         elem_size;
 
 	void*         buffer;
@@ -1623,6 +1798,7 @@ static void bli_obj_init_full_shallow_copy_of( obj_t* a, obj_t* b )
 	b->diag_off  = a->diag_off;
 
 	b->info      = a->info;
+	b->info2     = a->info2;
 	b->elem_size = a->elem_size;
 
 	b->buffer    = a->buffer;
@@ -1653,6 +1829,7 @@ static void bli_obj_init_subpart_from( obj_t* a, obj_t* b )
 	b->diag_off  = a->diag_off;
 
 	b->info      = a->info;
+	b->info2     = a->info2;
 	b->elem_size = a->elem_size;
 
 	b->buffer    = a->buffer;
@@ -1696,7 +1873,6 @@ typedef struct cntx_s
 	pack_t    schema_b_panel;
 	pack_t    schema_c_panel;
 
-	membrk_t* membrk;
 } cntx_t;
 
 
@@ -1704,8 +1880,17 @@ typedef struct cntx_s
 
 typedef struct rntm_s
 {
+	// "External" fields: these may be queried by the end-user.
 	dim_t     num_threads;
 	dim_t     thrloop[ BLIS_NUM_LOOPS ];
+
+	// "Internal" fields: these should not be exposed to the end-user.
+
+	// The small block pool, which is attached in the l3 thread decorator.
+	pool_t*   sba_pool;
+
+	// The packing block allocator, which is attached in the l3 thread decorator.
+	membrk_t* membrk;
 
 } rntm_t;
 
@@ -1793,28 +1978,31 @@ typedef enum
 	// Buffer-specific errors 
 	BLIS_EXPECTED_NONNULL_OBJECT_BUFFER        = (-110),
 
-	// Memory allocator errors
-	BLIS_INVALID_PACKBUF                       = (-120),
-	BLIS_EXHAUSTED_CONTIG_MEMORY_POOL          = (-122),
-	BLIS_INSUFFICIENT_STACK_BUF_SIZE           = (-123),
-	BLIS_ALIGNMENT_NOT_POWER_OF_TWO            = (-124),
-	BLIS_ALIGNMENT_NOT_MULT_OF_PTR_SIZE        = (-125),
+	// Memory errors
+	BLIS_MALLOC_RETURNED_NULL                  = (-120),
+
+	// Internal memory pool errors
+	BLIS_INVALID_PACKBUF                       = (-130),
+	BLIS_EXHAUSTED_CONTIG_MEMORY_POOL          = (-131),
+	BLIS_INSUFFICIENT_STACK_BUF_SIZE           = (-132),
+	BLIS_ALIGNMENT_NOT_POWER_OF_TWO            = (-133),
+	BLIS_ALIGNMENT_NOT_MULT_OF_PTR_SIZE        = (-134),
 
 	// Object-related errors
-	BLIS_EXPECTED_OBJECT_ALIAS                 = (-130),
+	BLIS_EXPECTED_OBJECT_ALIAS                 = (-140),
 
 	// Architecture-related errors
-	BLIS_INVALID_ARCH_ID                       = (-140),
+	BLIS_INVALID_ARCH_ID                       = (-150),
 
 	// Blocksize-related errors
-	BLIS_MC_DEF_NONMULTIPLE_OF_MR              = (-150),
-	BLIS_MC_MAX_NONMULTIPLE_OF_MR              = (-151),
-	BLIS_NC_DEF_NONMULTIPLE_OF_NR              = (-152),
-	BLIS_NC_MAX_NONMULTIPLE_OF_NR              = (-153),
-	BLIS_KC_DEF_NONMULTIPLE_OF_KR              = (-154),
-	BLIS_KC_MAX_NONMULTIPLE_OF_KR              = (-155),
+	BLIS_MC_DEF_NONMULTIPLE_OF_MR              = (-160),
+	BLIS_MC_MAX_NONMULTIPLE_OF_MR              = (-161),
+	BLIS_NC_DEF_NONMULTIPLE_OF_NR              = (-162),
+	BLIS_NC_MAX_NONMULTIPLE_OF_NR              = (-163),
+	BLIS_KC_DEF_NONMULTIPLE_OF_KR              = (-164),
+	BLIS_KC_MAX_NONMULTIPLE_OF_KR              = (-165),
 
-	BLIS_ERROR_CODE_MAX                        = (-160)
+	BLIS_ERROR_CODE_MAX                        = (-170)
 } err_t;
 
 #endif
@@ -1917,6 +2105,15 @@ typedef enum
 #define PASTEMAC3_(ch1,ch2,ch3,op) bli_ ## ch1 ## ch2 ## ch3 ## op
 #define PASTEMAC3(ch1,ch2,ch3,op)  PASTEMAC3_(ch1,ch2,ch3,op)
 
+#define PASTEMAC4_(ch1,ch2,ch3,ch4,op) bli_ ## ch1 ## ch2 ## ch3 ## ch4 ## op
+#define PASTEMAC4(ch1,ch2,ch3,ch4,op)  PASTEMAC4_(ch1,ch2,ch3,ch4,op)
+
+#define PASTEMAC5_(ch1,ch2,ch3,ch4,ch5,op) bli_ ## ch1 ## ch2 ## ch3 ## ch4 ## ch5 ## op
+#define PASTEMAC5(ch1,ch2,ch3,ch4,ch5,op)  PASTEMAC5_(ch1,ch2,ch3,ch4,ch5,op)
+
+#define PASTEMAC6_(ch1,ch2,ch3,ch4,ch5,ch6,op) bli_ ## ch1 ## ch2 ## ch3 ## ch4 ## ch5 ## ch6 ## op
+#define PASTEMAC6(ch1,ch2,ch3,ch4,ch5,ch6,op)  PASTEMAC6_(ch1,ch2,ch3,ch4,ch5,ch6,op)
+
 #define PASTEBLACHK_(op)           bla_ ## op ## _check
 #define PASTEBLACHK(op)            PASTEBLACHK_(op)
 
@@ -1933,10 +2130,10 @@ typedef enum
 #define STRINGIFY_INT( s )         MKSTR( s )
 
 // Fortran-77 name-mangling macros.
-#define PASTEF770(name)                            name ## _
-#define PASTEF77(ch1,name)           ch1        ## name ## _
-#define PASTEF772(ch1,ch2,name)      ch1 ## ch2 ## name ## _
-#define PASTEF773(ch1,ch2,ch3,name)  ch1 ## ch2 ## ch3 ## name ## _
+#define PASTEF770(name)                                      name ## _
+#define PASTEF77(ch1,name)                     ch1        ## name ## _
+#define PASTEF772(ch1,ch2,name)                ch1 ## ch2 ## name ## _
+#define PASTEF773(ch1,ch2,ch3,name)     ch1 ## ch2 ## ch3 ## name ## _
 
 // -- Include other groups of macros
 
@@ -2617,7 +2814,7 @@ GENTFUNC2( dcomplex, scomplex, z, c, tfuncname, varname )
 
 
 
-// -- Basic two-operand with real projection of first operand --
+// -- Basic two-operand with real projection of second operand --
 
 // -- (no auxiliary arguments) --
 
@@ -2639,7 +2836,7 @@ GENTFUNC2R( dcomplex, dcomplex, double,   z, z, d, tfuncname, varname )
 
 
 
-// -- Mixed domain two-operand with real projection of first operand --
+// -- Mixed domain two-operand with real projection of second operand --
 
 // -- (no auxiliary arguments) --
 
@@ -2663,84 +2860,83 @@ GENTFUNC2R( dcomplex, double,   double,   z, d, d, tfuncname, varname )
 
 
 
-// -- Mixed precision two-operand with real projection of first operand --
+// -- Mixed precision two-operand with real projection of second operand --
 
 // -- (no auxiliary arguments) --
 
 #define INSERT_GENTFUNC2R_MIX_P0( tfuncname ) \
 \
-GENTFUNC2R( float,    double,   float,    s, d, s, tfuncname ) \
-GENTFUNC2R( float,    dcomplex, float,    s, z, s, tfuncname ) \
+GENTFUNC2R( float,    double,   double,   s, d, d, tfuncname ) \
+GENTFUNC2R( float,    dcomplex, double,   s, z, d, tfuncname ) \
 \
-GENTFUNC2R( double,   float,    double,   d, s, d, tfuncname ) \
-GENTFUNC2R( double,   scomplex, double,   d, c, d, tfuncname ) \
+GENTFUNC2R( double,   float,    float,    d, s, s, tfuncname ) \
+GENTFUNC2R( double,   scomplex, float,    d, c, s, tfuncname ) \
 \
-GENTFUNC2R( scomplex, double,   float,    c, d, s, tfuncname ) \
-GENTFUNC2R( scomplex, dcomplex, float,    c, z, s, tfuncname ) \
+GENTFUNC2R( scomplex, double,   double,   c, d, d, tfuncname ) \
+GENTFUNC2R( scomplex, dcomplex, double,   c, z, d, tfuncname ) \
 \
-GENTFUNC2R( dcomplex, float,    double,   z, s, d, tfuncname ) \
-GENTFUNC2R( dcomplex, scomplex, double,   z, c, d, tfuncname )
+GENTFUNC2R( dcomplex, float,    float,    z, s, s, tfuncname ) \
+GENTFUNC2R( dcomplex, scomplex, float,    z, c, s, tfuncname )
 
 // -- (one auxiliary argument) --
 
 #define INSERT_GENTFUNC2R_MIX_P( tfuncname, varname ) \
 \
-GENTFUNC2R( float,    double,   float,    s, d, s, tfuncname, varname ) \
-GENTFUNC2R( float,    dcomplex, float,    s, z, s, tfuncname, varname ) \
+GENTFUNC2R( float,    double,   double,   s, d, d, tfuncname, varname ) \
+GENTFUNC2R( float,    dcomplex, double,   s, z, d, tfuncname, varname ) \
 \
-GENTFUNC2R( double,   float,    double,   d, s, d, tfuncname, varname ) \
-GENTFUNC2R( double,   scomplex, double,   d, c, d, tfuncname, varname ) \
+GENTFUNC2R( double,   float,    float,    d, s, s, tfuncname, varname ) \
+GENTFUNC2R( double,   scomplex, float,    d, c, s, tfuncname, varname ) \
 \
-GENTFUNC2R( scomplex, double,   float,    c, d, s, tfuncname, varname ) \
-GENTFUNC2R( scomplex, dcomplex, float,    c, z, s, tfuncname, varname ) \
+GENTFUNC2R( scomplex, double,   double,   c, d, d, tfuncname, varname ) \
+GENTFUNC2R( scomplex, dcomplex, double,   c, z, d, tfuncname, varname ) \
 \
-GENTFUNC2R( dcomplex, float,    double,   z, s, d, tfuncname, varname ) \
-GENTFUNC2R( dcomplex, scomplex, double,   z, c, d, tfuncname, varname )
+GENTFUNC2R( dcomplex, float,    float,    z, s, s, tfuncname, varname ) \
+GENTFUNC2R( dcomplex, scomplex, float,    z, c, s, tfuncname, varname )
 
 
 
-// -- Mixed domain/precision (all) two-operand macro with real projection of first operand --
+// -- Mixed domain/precision (all) two-operand macro with real projection of second operand --
 
 // -- (no auxiliary arguments) --
 
 #define INSERT_GENTFUNC2R_MIXDP0( tfuncname ) \
 \
-GENTFUNC2( float,    double,   s, d, tfuncname ) \
-GENTFUNC2( float,    scomplex, s, c, tfuncname ) \
-GENTFUNC2( float,    dcomplex, s, z, tfuncname ) \
+GENTFUNC2R( float,    double,   double,   s, d, d, tfuncname ) \
+GENTFUNC2R( float,    scomplex, float,    s, c, s, tfuncname ) \
+GENTFUNC2R( float,    dcomplex, double,   s, z, d, tfuncname ) \
 \
-GENTFUNC2( double,   float,    d, s, tfuncname ) \
-GENTFUNC2( double,   scomplex, d, c, tfuncname ) \
-GENTFUNC2( double,   dcomplex, d, z, tfuncname ) \
+GENTFUNC2R( double,   float,    float,    d, s, s, tfuncname ) \
+GENTFUNC2R( double,   scomplex, float,    d, c, s, tfuncname ) \
+GENTFUNC2R( double,   dcomplex, double,   d, z, d, tfuncname ) \
 \
-GENTFUNC2( scomplex, float,    c, s, tfuncname ) \
-GENTFUNC2( scomplex, double,   c, d, tfuncname ) \
-GENTFUNC2( scomplex, dcomplex, c, z, tfuncname ) \
+GENTFUNC2R( scomplex, float,    float,    c, s, s, tfuncname ) \
+GENTFUNC2R( scomplex, double,   double,   c, d, d, tfuncname ) \
+GENTFUNC2R( scomplex, dcomplex, double,   c, z, d, tfuncname ) \
 \
-GENTFUNC2( dcomplex, float,    z, s, tfuncname ) \
-GENTFUNC2( dcomplex, double,   z, d, tfuncname ) \
-GENTFUNC2( dcomplex, scomplex, z, c, tfuncname )
-
+GENTFUNC2R( dcomplex, float,    float,    z, s, s, tfuncname ) \
+GENTFUNC2R( dcomplex, double,   double,   z, d, d, tfuncname ) \
+GENTFUNC2R( dcomplex, scomplex, float,    z, c, s, tfuncname ) \
 
 // -- (one auxiliary argument) --
 
 #define INSERT_GENTFUNC2R_MIX_DP( tfuncname, varname ) \
 \
-GENTFUNC2( float,    double,   s, d, tfuncname, varname ) \
-GENTFUNC2( float,    scomplex, s, c, tfuncname, varname ) \
-GENTFUNC2( float,    dcomplex, s, z, tfuncname, varname ) \
+GENTFUNC2R( float,    double,   double,   s, d, d, tfuncname, varname ) \
+GENTFUNC2R( float,    scomplex, float,    s, c, s, tfuncname, varname ) \
+GENTFUNC2R( float,    dcomplex, double,   s, z, d, tfuncname, varname ) \
 \
-GENTFUNC2( double,   float,    d, s, tfuncname, varname ) \
-GENTFUNC2( double,   scomplex, d, c, tfuncname, varname ) \
-GENTFUNC2( double,   dcomplex, d, z, tfuncname, varname ) \
+GENTFUNC2R( double,   float,    float,    d, s, s, tfuncname, varname ) \
+GENTFUNC2R( double,   scomplex, float,    d, c, s, tfuncname, varname ) \
+GENTFUNC2R( double,   dcomplex, double,   d, z, d, tfuncname, varname ) \
 \
-GENTFUNC2( scomplex, float,    c, s, tfuncname, varname ) \
-GENTFUNC2( scomplex, double,   c, d, tfuncname, varname ) \
-GENTFUNC2( scomplex, dcomplex, c, z, tfuncname, varname ) \
+GENTFUNC2R( scomplex, float,    float,    c, s, s, tfuncname, varname ) \
+GENTFUNC2R( scomplex, double,   double,   c, d, d, tfuncname, varname ) \
+GENTFUNC2R( scomplex, dcomplex, double,   c, z, d, tfuncname, varname ) \
 \
-GENTFUNC2( dcomplex, float,    z, s, tfuncname, varname ) \
-GENTFUNC2( dcomplex, double,   z, d, tfuncname, varname ) \
-GENTFUNC2( dcomplex, scomplex, z, c, tfuncname, varname )
+GENTFUNC2R( dcomplex, float,    float,    z, s, s, tfuncname, varname ) \
+GENTFUNC2R( dcomplex, double,   double,   z, d, d, tfuncname, varname ) \
+GENTFUNC2R( dcomplex, scomplex, float,    z, c, s, tfuncname, varname ) \
 
 
 
@@ -4141,7 +4337,8 @@ static guint_t bli_round_to_mult( guint_t val, guint_t mult )
 
 // isnan, isinf
 // NOTE: These must remain macros, since isinf() and isnan() are macros
-// (defined in math.h).
+// (defined in math.h) that likely depend on the type of the argument 'a'
+// below.
 
 #define bli_isinf( a )  isinf( a )
 #define bli_isnan( a )  isnan( a )
@@ -5152,7 +5349,7 @@ static bool_t bli_is_nonnull( void* p )
 // argument.
 
 static
-void bli_set_dims_incs_uplo_1m
+void  bli_set_dims_incs_uplo_1m
      (
        doff_t  diagoffa, diag_t diaga,
        uplo_t  uploa,    dim_t  m,          dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -5247,7 +5444,7 @@ void bli_set_dims_incs_uplo_1m
 // argument (without column-wise stride optimization).
 
 static
-void bli_set_dims_incs_uplo_1m_noswap
+void  bli_set_dims_incs_uplo_1m_noswap
      (
        doff_t  diagoffa, diag_t diaga,
        uplo_t  uploa,    dim_t  m,          dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -5333,7 +5530,7 @@ void bli_set_dims_incs_uplo_1m_noswap
 // Set dimensions and increments for TWO matrix arguments.
 
 static
-void bli_set_dims_incs_2m
+void  bli_set_dims_incs_2m
      (
        trans_t transa,
        dim_t  m,      dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -5369,7 +5566,7 @@ void bli_set_dims_incs_2m
 // arguments.
 
 static
-void bli_set_dims_incs_uplo_2m
+void  bli_set_dims_incs_uplo_2m
      (
        doff_t  diagoffa, diag_t diaga, trans_t transa,
        uplo_t  uploa,    dim_t  m,          dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -5477,7 +5674,7 @@ void bli_set_dims_incs_uplo_2m
 // on the diagonal.
 
 static
-void bli_set_dims_incs_1d
+void  bli_set_dims_incs_1d
      (
        doff_t diagoffx,
        dim_t  m,    dim_t  n,      inc_t  rs_x, inc_t  cs_x,
@@ -5501,7 +5698,7 @@ void bli_set_dims_incs_1d
 // Set dimensions, increments, etc for TWO matrix arguments when operating
 // on diagonals.
 static
-void bli_set_dims_incs_2d
+void  bli_set_dims_incs_2d
      (
        doff_t diagoffx, trans_t transx,
        dim_t  m, dim_t  n, inc_t  rs_x, inc_t  cs_x,
@@ -5700,6 +5897,27 @@ static prec_t bli_obj_comp_prec( obj_t* obj )
 {
 	return ( prec_t )
 	       ( ( obj->info & BLIS_COMP_PREC_BIT ) >> BLIS_COMP_DT_SHIFT );
+}
+
+// NOTE: This function queries info2.
+static num_t bli_obj_scalar_dt( obj_t* obj )
+{
+	return ( num_t )
+	       ( ( obj->info2 & BLIS_SCALAR_DT_BITS ) >> BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries info2.
+static dom_t bli_obj_scalar_domain( obj_t* obj )
+{
+	return ( dom_t )
+	       ( ( obj->info2 & BLIS_SCALAR_DOMAIN_BIT ) >> BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries info2.
+static prec_t bli_obj_scalar_prec( obj_t* obj )
+{
+	return ( prec_t )
+	       ( ( obj->info2 & BLIS_SCALAR_PREC_BIT ) >> BLIS_SCALAR_DT_SHIFT );
 }
 
 static trans_t bli_obj_conjtrans_status( obj_t* obj )
@@ -5944,55 +6162,88 @@ static void bli_obj_set_dt( num_t dt, obj_t* obj )
 static void bli_obj_set_target_dt( num_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_TARGET_DT_BITS ) | ( dt << BLIS_TARGET_DT_SHIFT );
+	            ( obj->info & ~BLIS_TARGET_DT_BITS ) |
+	            ( dt << BLIS_TARGET_DT_SHIFT );
 }
 
 static void bli_obj_set_target_domain( dom_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_TARGET_DOMAIN_BIT ) | ( dt << BLIS_TARGET_DT_SHIFT );
+	            ( obj->info & ~BLIS_TARGET_DOMAIN_BIT ) |
+	            ( dt << BLIS_TARGET_DT_SHIFT );
 }
 
 static void bli_obj_set_target_prec( prec_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_TARGET_PREC_BIT ) | ( dt << BLIS_TARGET_DT_SHIFT );
+	            ( obj->info & ~BLIS_TARGET_PREC_BIT ) |
+	            ( dt << BLIS_TARGET_DT_SHIFT );
 }
 
 static void bli_obj_set_exec_dt( num_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_EXEC_DT_BITS ) | ( dt << BLIS_EXEC_DT_SHIFT );
+	            ( obj->info & ~BLIS_EXEC_DT_BITS ) |
+	            ( dt << BLIS_EXEC_DT_SHIFT );
 }
 
 static void bli_obj_set_exec_domain( dom_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_EXEC_DOMAIN_BIT ) | ( dt << BLIS_EXEC_DT_SHIFT );
+	            ( obj->info & ~BLIS_EXEC_DOMAIN_BIT ) |
+	            ( dt << BLIS_EXEC_DT_SHIFT );
 }
 
 static void bli_obj_set_exec_prec( prec_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_EXEC_PREC_BIT ) | ( dt << BLIS_EXEC_DT_SHIFT );
+	            ( obj->info & ~BLIS_EXEC_PREC_BIT ) |
+	            ( dt << BLIS_EXEC_DT_SHIFT );
 }
 
 static void bli_obj_set_comp_dt( num_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_COMP_DT_BITS ) | ( dt << BLIS_COMP_DT_SHIFT );
+	            ( obj->info & ~BLIS_COMP_DT_BITS ) |
+	            ( dt << BLIS_COMP_DT_SHIFT );
 }
 
 static void bli_obj_set_comp_domain( dom_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_COMP_DOMAIN_BIT ) | ( dt << BLIS_COMP_DT_SHIFT );
+	            ( obj->info & ~BLIS_COMP_DOMAIN_BIT ) |
+	            ( dt << BLIS_COMP_DT_SHIFT );
 }
 
 static void bli_obj_set_comp_prec( prec_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_COMP_PREC_BIT ) | ( dt << BLIS_COMP_DT_SHIFT );
+	            ( obj->info & ~BLIS_COMP_PREC_BIT ) |
+	            ( dt << BLIS_COMP_DT_SHIFT );
+}
+
+// NOTE: This function queries and modifies info2.
+static void bli_obj_set_scalar_dt( num_t dt, obj_t* obj )
+{
+	obj->info2 = ( objbits_t )
+	             ( obj->info2 & ~BLIS_SCALAR_DT_BITS ) |
+	             ( dt << BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries and modifies info2.
+static void bli_obj_set_scalar_domain( dom_t dt, obj_t* obj )
+{
+	obj->info2 = ( objbits_t )
+	             ( obj->info2 & ~BLIS_SCALAR_DOMAIN_BIT ) |
+	             ( dt << BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries and modifies info2.
+static void bli_obj_set_scalar_prec( prec_t dt, obj_t* obj )
+{
+	obj->info2 = ( objbits_t )
+	             ( obj->info2 & ~BLIS_SCALAR_PREC_BIT ) |
+	             ( dt << BLIS_SCALAR_DT_SHIFT );
 }
 
 static void bli_obj_set_pack_schema( pack_t schema, obj_t* obj )
@@ -6730,6 +6981,8 @@ static void bli_obj_real_part( obj_t* c, obj_t* r )
 		bli_obj_set_exec_dt(   dt_exec_r, r );
 		bli_obj_set_comp_dt(   dt_comp_r, r );
 
+		// Don't touch the attached scalar datatype.
+
 		// Update the element size.
 		siz_t es_c = bli_obj_elem_size( c );
 		bli_obj_set_elem_size( es_c/2, r );
@@ -6760,6 +7013,8 @@ static void bli_obj_imag_part( obj_t* c, obj_t* i )
 		bli_obj_set_target_dt( dt_targ_r, i );
 		bli_obj_set_exec_dt(   dt_exec_r, i );
 		bli_obj_set_comp_dt(   dt_comp_r, i );
+
+		// Don't touch the attached scalar datatype.
 
 		// Update the element size.
 		siz_t es_c = bli_obj_elem_size( c );
@@ -7418,127 +7673,55 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 
 // axpbyris
 
-#define bli_saxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
+#define bli_rxaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
 { \
-	(yr)        = (ar) * (xr)               + (br) * (yr); \
+    (yr) = (ar) * (xr) + (br) * (yr); \
 }
 
-#define bli_daxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
+#define bli_cxaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
 { \
-	(yr)        = (ar) * (xr)               + (br) * (yr); \
-}
-
-#define bli_caxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) - (ai) * (xi) + (br) * (yr) - (bi) * (yi); \
-    float  yt_i = (ai) * (xr) + (ar) * (xi) + (bi) * (yr) + (br) * (yi); \
+    const __typeof__(yr) yt_r = (ar) * (xr) - (ai) * (xi) + (br) * (yr) - (bi) * (yi); \
+    const __typeof__(yi) yt_i = (ai) * (xr) + (ar) * (xi) + (bi) * (yr) + (br) * (yi); \
     (yr) = yt_r; \
     (yi) = yt_i; \
 }
 
-#define bli_sccaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    float  yt_i = (ar) * (xi) + (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+// Notes:
+// - The first char encodes the type of a.
+// - The second char encodes the type of x.
+// - The third char encodes the type of b.
+// - The fourth char encodes the type of y.
 
-#define bli_ccsaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) - (ai) * (xi) + (br) * (yr); \
-    float  yt_i = (ai) * (xr) + (ar) * (xi) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+// -- (axby) = (??ss) ----------------------------------------------------------
 
-#define bli_cscaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    float  yt_i = (ai) * (xr) + (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+#define bli_ssssxpbyris  bli_rxxpbyris
+#define bli_dsssxpbyris  bli_rxxpbyris
+#define bli_csssxpbyris  bli_rxxpbyris
+#define bli_zsssxpbyris  bli_rxxpbyris
 
-#define bli_sscaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    float  yt_i =               (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+#define bli_sdssxpbyris  bli_rxxpbyris
+#define bli_ddssxpbyris  bli_rxxpbyris
+#define bli_cdssxpbyris  bli_rxxpbyris
+#define bli_zdssxpbyris  bli_rxxpbyris
 
-#define bli_cssaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) + (br) * (yr); \
-    float  yt_i = (ai) * (xr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+#define bli_scssxpbyris  bli_rxxpbyris
+#define bli_dcssxpbyris  bli_rxxpbyris
+#define bli_ccssxpbyris  bli_rxxpbyris
+#define bli_zcssxpbyris  bli_rxxpbyris
 
-#define bli_scsaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) + (br) * (yr); \
-    float  yt_i = (ar) * (xi) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+#define bli_szssxpbyris  bli_rxxpbyris
+#define bli_dzssxpbyris  bli_rxxpbyris
+#define bli_czssxpbyris  bli_rxxpbyris
+#define bli_zzssxpbyris  bli_rxxpbyris
 
-#define bli_zaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-	double yt_r = (ar) * (xr) - (ai) * (xi) + (br) * (yr) - (bi) * (yi); \
-	double yt_i = (ai) * (xr) + (ar) * (xi) + (bi) * (yr) + (br) * (yi); \
-	(yr) = yt_r; \
-	(yi) = yt_i; \
-}
+// NOTE: This series needs to be finished for all other char values for (by), but
+// not until something in BLIS actually needs mixed-datatype axpbyris.
 
-#define bli_dzzaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r = (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    double yt_i = (ar) * (xi) + (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
 
-#define bli_zzdaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r = (ar) * (xr) - (ai) * (xi) + (br) * (yr); \
-    double yt_i = (ai) * (xr) + (ar) * (xi) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
-
-#define bli_zdzaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r = (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    double yt_i = (ai) * (xr) + (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
-
-#define bli_ddzaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r = (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    double yt_i =               (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
-
-#define bli_zddaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r = (ar) * (xr) + (br) * (yr); \
-    double yt_i = (ai) * (xr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
-
-#define bli_dzdaxpbyris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r = (ar) * (xr) + (br) * (yr); \
-    double yt_i = (ar) * (xi) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+#define bli_saxpbyris    bli_ssssaxpbyris
+#define bli_daxpbyris    bli_ddddaxpbyris
+#define bli_caxpbyris    bli_ccccaxpbyris
+#define bli_zaxpbyris    bli_zzzzaxpbyris
 
 #endif
 
@@ -7551,127 +7734,55 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 
 // axpbyjris
 
-#define bli_saxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
+#define bli_rxaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
 { \
-	(yr)        = (ar) * (xr)               + (br) * (yr); \
+    (yr) = (ar) * (xr) + (br) * (yr); \
 }
 
-#define bli_daxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
+#define bli_cxaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
 { \
-	(yr)        = (ar) * (xr)               + (br) * (yr); \
-}
-
-#define bli_caxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) + (ai) * (xi) + (br) * (yr) - (bi) * (yi); \
-    float  yt_i = (ai) * (xr) - (ar) * (xi) + (bi) * (yr) + (br) * (yi); \
+    const __typeof__(yr) yt_r = (ar) * (xr) + (ai) * (xi) + (br) * (yr) - (bi) * (yi); \
+    const __typeof__(yi) yt_i = (ai) * (xr) - (ar) * (xi) + (bi) * (yr) + (br) * (yi); \
     (yr) = yt_r; \
     (yi) = yt_i; \
 }
 
-#define bli_sccaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r =  (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    float  yt_i = -(ar) * (xi) + (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+// Notes:
+// - The first char encodes the type of a.
+// - The second char encodes the type of x.
+// - The third char encodes the type of b.
+// - The fourth char encodes the type of y.
 
-#define bli_ccsaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) + (ai) * (xi) + (br) * (yr); \
-    float  yt_i = (ai) * (xr) - (ar) * (xi) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+// -- (axby) = (??ss) ----------------------------------------------------------
 
-#define bli_cscaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    float  yt_i = (ai) * (xr) + (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+#define bli_ssssxpbyjris  bli_rxxpbyjris
+#define bli_dsssxpbyjris  bli_rxxpbyjris
+#define bli_csssxpbyjris  bli_rxxpbyjris
+#define bli_zsssxpbyjris  bli_rxxpbyjris
 
-#define bli_sscaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    float  yt_i =               (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+#define bli_sdssxpbyjris  bli_rxxpbyjris
+#define bli_ddssxpbyjris  bli_rxxpbyjris
+#define bli_cdssxpbyjris  bli_rxxpbyjris
+#define bli_zdssxpbyjris  bli_rxxpbyjris
 
-#define bli_cssaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r = (ar) * (xr) + (br) * (yr); \
-    float  yt_i = (ai) * (xr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+#define bli_scssxpbyjris  bli_rxxpbyjris
+#define bli_dcssxpbyjris  bli_rxxpbyjris
+#define bli_ccssxpbyjris  bli_rxxpbyjris
+#define bli_zcssxpbyjris  bli_rxxpbyjris
 
-#define bli_scsaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    float  yt_r =  (ar) * (xr) + (br) * (yr); \
-    float  yt_i = -(ar) * (xi) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+#define bli_szssxpbyjris  bli_rxxpbyjris
+#define bli_dzssxpbyjris  bli_rxxpbyjris
+#define bli_czssxpbyjris  bli_rxxpbyjris
+#define bli_zzssxpbyjris  bli_rxxpbyjris
 
-#define bli_zaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-	double yt_r = (ar) * (xr) + (ai) * (xi) + (br) * (yr) - (bi) * (yi); \
-	double yt_i = (ai) * (xr) - (ar) * (xi) + (bi) * (yr) + (br) * (yi); \
-	(yr) = yt_r; \
-	(yi) = yt_i; \
-}
+// NOTE: This series needs to be finished for all other char values for (by), but
+// not until something in BLIS actually needs mixed-datatype axpbyjris.
 
-#define bli_dzzaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r =  (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    double yt_i = -(ar) * (xi) + (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
 
-#define bli_zzdaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r = (ar) * (xr) + (ai) * (xi) + (br) * (yr); \
-    double yt_i = (ai) * (xr) - (ar) * (xi) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
-
-#define bli_zdzaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r = (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    double yt_i = (ai) * (xr) + (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
-
-#define bli_ddzaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r = (ar) * (xr) + (br) * (yr) - (bi) * (yi); \
-    double yt_i =               (bi) * (yr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
-
-#define bli_zddaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r = (ar) * (xr) + (br) * (yr); \
-    double yt_i = (ai) * (xr) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
-
-#define bli_dzdaxpbyjris( ar, ai, xr, xi, br, bi, yr, yi ) \
-{ \
-    double yt_r =  (ar) * (xr) + (br) * (yr); \
-    double yt_i = -(ar) * (xi) + (br) * (yi); \
-    (yr) = yt_r; \
-    (yi) = yt_i; \
-}
+#define bli_saxpbyjris    bli_ssssaxpbyjris
+#define bli_daxpbyjris    bli_ddddaxpbyjris
+#define bli_caxpbyjris    bli_ccccaxpbyjris
+#define bli_zaxpbyjris    bli_zzzzaxpbyjris
 
 #endif
 
@@ -7685,39 +7796,133 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 
 // axpyris
 
-#define bli_saxpyris( ar, ai, xr, xi, yr, yi ) \
+#define bli_rxaxpyris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) += (ar) * (xr); \
 }
 
-#define bli_daxpyris( ar, ai, xr, xi, yr, yi ) \
-{ \
-	(yr) += (ar) * (xr); \
-}
-
-#define bli_caxpyris( ar, ai, xr, xi, yr, yi ) \
+#define bli_cxaxpyris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) += (ar) * (xr) - (ai) * (xi); \
 	(yi) += (ai) * (xr) + (ar) * (xi); \
 }
 
-#define bli_zaxpyris( ar, ai, xr, xi, yr, yi ) \
+#define bli_roaxpyris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) += (ar) * (xr) - (ai) * (xi); \
-	(yi) += (ai) * (xr) + (ar) * (xi); \
 }
 
-#define bli_scaxpyris( ar, ai, xr, xi, yr, yi ) \
+#define bli_craxpyris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) += (ar) * (xr); \
 	(yi) += (ar) * (xi); \
 }
 
-#define bli_dzaxpyris( ar, ai, xr, xi, yr, yi ) \
+#define bli_rcaxpyris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) += (ar) * (xr); \
-	(yi) += (ar) * (xi); \
+	(yi) += (ai) * (xr); \
 }
+
+// Notes:
+// - The first char encodes the type of a.
+// - The second char encodes the type of x.
+// - The third char encodes the type of y.
+
+// -- (axy) = (??s) ------------------------------------------------------------
+
+#define bli_sssaxpyris  bli_rxaxpyris
+#define bli_dssaxpyris  bli_rxaxpyris
+#define bli_cssaxpyris  bli_rxaxpyris
+#define bli_zssaxpyris  bli_rxaxpyris
+
+#define bli_sdsaxpyris  bli_rxaxpyris
+#define bli_ddsaxpyris  bli_rxaxpyris
+#define bli_cdsaxpyris  bli_rxaxpyris
+#define bli_zdsaxpyris  bli_rxaxpyris
+
+#define bli_scsaxpyris  bli_rxaxpyris
+#define bli_dcsaxpyris  bli_rxaxpyris
+#define bli_ccsaxpyris  bli_roaxpyris
+#define bli_zcsaxpyris  bli_roaxpyris
+
+#define bli_szsaxpyris  bli_rxaxpyris
+#define bli_dzsaxpyris  bli_rxaxpyris
+#define bli_czsaxpyris  bli_roaxpyris
+#define bli_zzsaxpyris  bli_roaxpyris
+
+// -- (axy) = (??d) ------------------------------------------------------------
+
+#define bli_ssdaxpyris  bli_rxaxpyris
+#define bli_dsdaxpyris  bli_rxaxpyris
+#define bli_csdaxpyris  bli_rxaxpyris
+#define bli_zsdaxpyris  bli_rxaxpyris
+
+#define bli_sddaxpyris  bli_rxaxpyris
+#define bli_dddaxpyris  bli_rxaxpyris
+#define bli_cddaxpyris  bli_rxaxpyris
+#define bli_zddaxpyris  bli_rxaxpyris
+
+#define bli_scdaxpyris  bli_rxaxpyris
+#define bli_dcdaxpyris  bli_rxaxpyris
+#define bli_ccdaxpyris  bli_roaxpyris
+#define bli_zcdaxpyris  bli_roaxpyris
+
+#define bli_szdaxpyris  bli_rxaxpyris
+#define bli_dzdaxpyris  bli_rxaxpyris
+#define bli_czdaxpyris  bli_roaxpyris
+#define bli_zzdaxpyris  bli_roaxpyris
+
+// -- (axy) = (??c) ------------------------------------------------------------
+
+#define bli_sscaxpyris  bli_rxaxpyris
+#define bli_dscaxpyris  bli_rxaxpyris
+#define bli_cscaxpyris  bli_rcaxpyris
+#define bli_zscaxpyris  bli_rcaxpyris
+
+#define bli_sdcaxpyris  bli_rxaxpyris
+#define bli_ddcaxpyris  bli_rxaxpyris
+#define bli_cdcaxpyris  bli_rcaxpyris
+#define bli_zdcaxpyris  bli_rcaxpyris
+
+#define bli_sccaxpyris  bli_craxpyris
+#define bli_dccaxpyris  bli_craxpyris
+#define bli_cccaxpyris  bli_cxaxpyris
+#define bli_zccaxpyris  bli_cxaxpyris
+
+#define bli_szcaxpyris  bli_craxpyris
+#define bli_dzcaxpyris  bli_craxpyris
+#define bli_czcaxpyris  bli_cxaxpyris
+#define bli_zzcaxpyris  bli_cxaxpyris
+
+// -- (axy) = (??z) ------------------------------------------------------------
+
+#define bli_sszaxpyris  bli_rxaxpyris
+#define bli_dszaxpyris  bli_rxaxpyris
+#define bli_cszaxpyris  bli_rcaxpyris
+#define bli_zszaxpyris  bli_rcaxpyris
+
+#define bli_sdzaxpyris  bli_rxaxpyris
+#define bli_ddzaxpyris  bli_rxaxpyris
+#define bli_cdzaxpyris  bli_rcaxpyris
+#define bli_zdzaxpyris  bli_rcaxpyris
+
+#define bli_sczaxpyris  bli_craxpyris
+#define bli_dczaxpyris  bli_craxpyris
+#define bli_cczaxpyris  bli_cxaxpyris
+#define bli_zczaxpyris  bli_cxaxpyris
+
+#define bli_szzaxpyris  bli_craxpyris
+#define bli_dzzaxpyris  bli_craxpyris
+#define bli_czzaxpyris  bli_cxaxpyris
+#define bli_zzzaxpyris  bli_cxaxpyris
+
+
+
+#define bli_saxpyris    bli_sssaxpyris
+#define bli_daxpyris    bli_dddaxpyris
+#define bli_caxpyris    bli_cccaxpyris
+#define bli_zaxpyris    bli_zzzaxpyris
 
 #endif
 
@@ -7730,39 +7935,133 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 
 // axpyjris
 
-#define bli_saxpyjris( ar, ai, xr, xi, yr, yi ) \
+#define bli_rxaxpyjris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) += (ar) * (xr); \
 }
 
-#define bli_daxpyjris( ar, ai, xr, xi, yr, yi ) \
-{ \
-	(yr) += (ar) * (xr); \
-}
-
-#define bli_caxpyjris( ar, ai, xr, xi, yr, yi ) \
+#define bli_cxaxpyjris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) += (ar) * (xr) + (ai) * (xi); \
 	(yi) += (ai) * (xr) - (ar) * (xi); \
 }
 
-#define bli_zaxpyjris( ar, ai, xr, xi, yr, yi ) \
+#define bli_roaxpyjris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) += (ar) * (xr) + (ai) * (xi); \
-	(yi) += (ai) * (xr) - (ar) * (xi); \
 }
 
-#define bli_scaxpyjris( ar, ai, xr, xi, yr, yi ) \
+#define bli_craxpyjris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) += (ar) *  (xr); \
 	(yi) += (ar) * -(xi); \
 }
 
-#define bli_dzaxpyjris( ar, ai, xr, xi, yr, yi ) \
+#define bli_rcaxpyjris( ar, ai, xr, xi, yr, yi ) \
 { \
-	(yr) += (ar) *  (xr); \
-	(yi) += (ar) * -(xi); \
+	(yr) += (ar) * (xr); \
+	(yi) += (ai) * (xr); \
 }
+
+// Notes:
+// - The first char encodes the type of a.
+// - The second char encodes the type of x.
+// - The third char encodes the type of y.
+
+// -- (axy) = (??s) ------------------------------------------------------------
+
+#define bli_sssaxpyjris  bli_rxaxpyjris
+#define bli_dssaxpyjris  bli_rxaxpyjris
+#define bli_cssaxpyjris  bli_rxaxpyjris
+#define bli_zssaxpyjris  bli_rxaxpyjris
+
+#define bli_sdsaxpyjris  bli_rxaxpyjris
+#define bli_ddsaxpyjris  bli_rxaxpyjris
+#define bli_cdsaxpyjris  bli_rxaxpyjris
+#define bli_zdsaxpyjris  bli_rxaxpyjris
+
+#define bli_scsaxpyjris  bli_rxaxpyjris
+#define bli_dcsaxpyjris  bli_rxaxpyjris
+#define bli_ccsaxpyjris  bli_roaxpyjris
+#define bli_zcsaxpyjris  bli_roaxpyjris
+
+#define bli_szsaxpyjris  bli_rxaxpyjris
+#define bli_dzsaxpyjris  bli_rxaxpyjris
+#define bli_czsaxpyjris  bli_roaxpyjris
+#define bli_zzsaxpyjris  bli_roaxpyjris
+
+// -- (axy) = (??d) ------------------------------------------------------------
+
+#define bli_ssdaxpyjris  bli_rxaxpyjris
+#define bli_dsdaxpyjris  bli_rxaxpyjris
+#define bli_csdaxpyjris  bli_rxaxpyjris
+#define bli_zsdaxpyjris  bli_rxaxpyjris
+
+#define bli_sddaxpyjris  bli_rxaxpyjris
+#define bli_dddaxpyjris  bli_rxaxpyjris
+#define bli_cddaxpyjris  bli_rxaxpyjris
+#define bli_zddaxpyjris  bli_rxaxpyjris
+
+#define bli_scdaxpyjris  bli_rxaxpyjris
+#define bli_dcdaxpyjris  bli_rxaxpyjris
+#define bli_ccdaxpyjris  bli_roaxpyjris
+#define bli_zcdaxpyjris  bli_roaxpyjris
+
+#define bli_szdaxpyjris  bli_rxaxpyjris
+#define bli_dzdaxpyjris  bli_rxaxpyjris
+#define bli_czdaxpyjris  bli_roaxpyjris
+#define bli_zzdaxpyjris  bli_roaxpyjris
+
+// -- (axy) = (??c) ------------------------------------------------------------
+
+#define bli_sscaxpyjris  bli_rxaxpyjris
+#define bli_dscaxpyjris  bli_rxaxpyjris
+#define bli_cscaxpyjris  bli_rcaxpyjris
+#define bli_zscaxpyjris  bli_rcaxpyjris
+
+#define bli_sdcaxpyjris  bli_rxaxpyjris
+#define bli_ddcaxpyjris  bli_rxaxpyjris
+#define bli_cdcaxpyjris  bli_rcaxpyjris
+#define bli_zdcaxpyjris  bli_rcaxpyjris
+
+#define bli_sccaxpyjris  bli_craxpyjris
+#define bli_dccaxpyjris  bli_craxpyjris
+#define bli_cccaxpyjris  bli_cxaxpyjris
+#define bli_zccaxpyjris  bli_cxaxpyjris
+
+#define bli_szcaxpyjris  bli_craxpyjris
+#define bli_dzcaxpyjris  bli_craxpyjris
+#define bli_czcaxpyjris  bli_cxaxpyjris
+#define bli_zzcaxpyjris  bli_cxaxpyjris
+
+// -- (axy) = (??z) ------------------------------------------------------------
+
+#define bli_sszaxpyjris  bli_rxaxpyjris
+#define bli_dszaxpyjris  bli_rxaxpyjris
+#define bli_cszaxpyjris  bli_rcaxpyjris
+#define bli_zszaxpyjris  bli_rcaxpyjris
+
+#define bli_sdzaxpyjris  bli_rxaxpyjris
+#define bli_ddzaxpyjris  bli_rxaxpyjris
+#define bli_cdzaxpyjris  bli_rcaxpyjris
+#define bli_zdzaxpyjris  bli_rcaxpyjris
+
+#define bli_sczaxpyjris  bli_craxpyjris
+#define bli_dczaxpyjris  bli_craxpyjris
+#define bli_cczaxpyjris  bli_cxaxpyjris
+#define bli_zczaxpyjris  bli_cxaxpyjris
+
+#define bli_szzaxpyjris  bli_craxpyjris
+#define bli_dzzaxpyjris  bli_craxpyjris
+#define bli_czzaxpyjris  bli_cxaxpyjris
+#define bli_zzzaxpyjris  bli_cxaxpyjris
+
+
+
+#define bli_saxpyjris    bli_sssaxpyjris
+#define bli_daxpyjris    bli_dddaxpyjris
+#define bli_caxpyjris    bli_cccaxpyjris
+#define bli_zaxpyjris    bli_zzzaxpyjris
 
 #endif
 
@@ -8294,39 +8593,133 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 
 // scal2ris
 
-#define bli_sscal2ris( ar, ai, xr, xi, yr, yi ) \
+#define bli_rxscal2ris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) = (ar) * (xr); \
 }
 
-#define bli_dscal2ris( ar, ai, xr, xi, yr, yi ) \
-{ \
-	(yr) = (ar) * (xr); \
-}
-
-#define bli_cscal2ris( ar, ai, xr, xi, yr, yi ) \
+#define bli_cxscal2ris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) = (ar) * (xr) - (ai) * (xi); \
 	(yi) = (ai) * (xr) + (ar) * (xi); \
 }
 
-#define bli_zscal2ris( ar, ai, xr, xi, yr, yi ) \
+#define bli_roscal2ris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) = (ar) * (xr) - (ai) * (xi); \
-	(yi) = (ai) * (xr) + (ar) * (xi); \
 }
 
-#define bli_scscal2ris( ar, ai, xr, xi, yr, yi ) \
+#define bli_crscal2ris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) = (ar) * (xr); \
 	(yi) = (ar) * (xi); \
 }
 
-#define bli_dzscal2ris( ar, ai, xr, xi, yr, yi ) \
+#define bli_rcscal2ris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) = (ar) * (xr); \
-	(yi) = (ar) * (xi); \
+	(yi) = (ai) * (xr); \
 }
+
+// Notes:
+// - The first char encodes the type of a.
+// - The second char encodes the type of x.
+// - The third char encodes the type of y.
+
+// -- (axy) = (??s) ------------------------------------------------------------
+
+#define bli_sssscal2ris  bli_rxscal2ris
+#define bli_dssscal2ris  bli_rxscal2ris
+#define bli_cssscal2ris  bli_rxscal2ris
+#define bli_zssscal2ris  bli_rxscal2ris
+
+#define bli_sdsscal2ris  bli_rxscal2ris
+#define bli_ddsscal2ris  bli_rxscal2ris
+#define bli_cdsscal2ris  bli_rxscal2ris
+#define bli_zdsscal2ris  bli_rxscal2ris
+
+#define bli_scsscal2ris  bli_rxscal2ris
+#define bli_dcsscal2ris  bli_rxscal2ris
+#define bli_ccsscal2ris  bli_roscal2ris
+#define bli_zcsscal2ris  bli_roscal2ris
+
+#define bli_szsscal2ris  bli_rxscal2ris
+#define bli_dzsscal2ris  bli_rxscal2ris
+#define bli_czsscal2ris  bli_roscal2ris
+#define bli_zzsscal2ris  bli_roscal2ris
+
+// -- (axy) = (??d) ------------------------------------------------------------
+
+#define bli_ssdscal2ris  bli_rxscal2ris
+#define bli_dsdscal2ris  bli_rxscal2ris
+#define bli_csdscal2ris  bli_rxscal2ris
+#define bli_zsdscal2ris  bli_rxscal2ris
+
+#define bli_sddscal2ris  bli_rxscal2ris
+#define bli_dddscal2ris  bli_rxscal2ris
+#define bli_cddscal2ris  bli_rxscal2ris
+#define bli_zddscal2ris  bli_rxscal2ris
+
+#define bli_scdscal2ris  bli_rxscal2ris
+#define bli_dcdscal2ris  bli_rxscal2ris
+#define bli_ccdscal2ris  bli_roscal2ris
+#define bli_zcdscal2ris  bli_roscal2ris
+
+#define bli_szdscal2ris  bli_rxscal2ris
+#define bli_dzdscal2ris  bli_rxscal2ris
+#define bli_czdscal2ris  bli_roscal2ris
+#define bli_zzdscal2ris  bli_roscal2ris
+
+// -- (axy) = (??c) ------------------------------------------------------------
+
+#define bli_sscscal2ris  bli_rxscal2ris
+#define bli_dscscal2ris  bli_rxscal2ris
+#define bli_cscscal2ris  bli_rcscal2ris
+#define bli_zscscal2ris  bli_rcscal2ris
+
+#define bli_sdcscal2ris  bli_rxscal2ris
+#define bli_ddcscal2ris  bli_rxscal2ris
+#define bli_cdcscal2ris  bli_rcscal2ris
+#define bli_zdcscal2ris  bli_rcscal2ris
+
+#define bli_sccscal2ris  bli_crscal2ris
+#define bli_dccscal2ris  bli_crscal2ris
+#define bli_cccscal2ris  bli_cxscal2ris
+#define bli_zccscal2ris  bli_cxscal2ris
+
+#define bli_szcscal2ris  bli_crscal2ris
+#define bli_dzcscal2ris  bli_crscal2ris
+#define bli_czcscal2ris  bli_cxscal2ris
+#define bli_zzcscal2ris  bli_cxscal2ris
+
+// -- (axy) = (??z) ------------------------------------------------------------
+
+#define bli_sszscal2ris  bli_rxscal2ris
+#define bli_dszscal2ris  bli_rxscal2ris
+#define bli_cszscal2ris  bli_rcscal2ris
+#define bli_zszscal2ris  bli_rcscal2ris
+
+#define bli_sdzscal2ris  bli_rxscal2ris
+#define bli_ddzscal2ris  bli_rxscal2ris
+#define bli_cdzscal2ris  bli_rcscal2ris
+#define bli_zdzscal2ris  bli_rcscal2ris
+
+#define bli_sczscal2ris  bli_crscal2ris
+#define bli_dczscal2ris  bli_crscal2ris
+#define bli_cczscal2ris  bli_cxscal2ris
+#define bli_zczscal2ris  bli_cxscal2ris
+
+#define bli_szzscal2ris  bli_crscal2ris
+#define bli_dzzscal2ris  bli_crscal2ris
+#define bli_czzscal2ris  bli_cxscal2ris
+#define bli_zzzscal2ris  bli_cxscal2ris
+
+
+
+#define bli_sscal2ris    bli_sssscal2ris
+#define bli_dscal2ris    bli_dddscal2ris
+#define bli_cscal2ris    bli_cccscal2ris
+#define bli_zscal2ris    bli_zzzscal2ris
 
 #endif
 
@@ -8339,39 +8732,133 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 
 // scal2jris
 
-#define bli_sscal2jris( ar, ai, xr, xi, yr, yi ) \
+#define bli_rxscal2jris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) = (ar) * (xr); \
 }
 
-#define bli_dscal2jris( ar, ai, xr, xi, yr, yi ) \
-{ \
-	(yr) = (ar) * (xr); \
-}
-
-#define bli_cscal2jris( ar, ai, xr, xi, yr, yi ) \
+#define bli_cxscal2jris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) = (ar) * (xr) + (ai) * (xi); \
 	(yi) = (ai) * (xr) - (ar) * (xi); \
 }
 
-#define bli_zscal2jris( ar, ai, xr, xi, yr, yi ) \
+#define bli_roscal2jris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) = (ar) * (xr) + (ai) * (xi); \
-	(yi) = (ai) * (xr) - (ar) * (xi); \
 }
 
-#define bli_scscal2jris( ar, ai, xr, xi, yr, yi ) \
+#define bli_crscal2jris( ar, ai, xr, xi, yr, yi ) \
 { \
 	(yr) = (ar) *  (xr); \
 	(yi) = (ar) * -(xi); \
 }
 
-#define bli_dzscal2jris( ar, ai, xr, xi, yr, yi ) \
+#define bli_rcscal2jris( ar, ai, xr, xi, yr, yi ) \
 { \
-	(yr) = (ar) *  (xr); \
-	(yi) = (ar) * -(xi); \
+	(yr) = (ar) * (xr); \
+	(yi) = (ai) * (xr); \
 }
+
+// Notes:
+// - The first char encodes the type of a.
+// - The second char encodes the type of x.
+// - The third char encodes the type of y.
+
+// -- (axy) = (??s) ------------------------------------------------------------
+
+#define bli_sssscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dssscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_cssscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zssscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_sdsscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_ddsscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_cdsscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zdsscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_scsscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dcsscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_ccsscal2jris( ar, ai, xr, xi, yr, yi ) bli_roscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zcsscal2jris( ar, ai, xr, xi, yr, yi ) bli_roscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_szsscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dzsscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_czsscal2jris( ar, ai, xr, xi, yr, yi ) bli_roscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zzsscal2jris( ar, ai, xr, xi, yr, yi ) bli_roscal2jris( ar, ai, xr, xi, yr, yi )
+
+// -- (axy) = (??d) ------------------------------------------------------------
+
+#define bli_ssdscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dsdscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_csdscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zsdscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_sddscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dddscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_cddscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zddscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_scdscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dcdscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_ccdscal2jris( ar, ai, xr, xi, yr, yi ) bli_roscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zcdscal2jris( ar, ai, xr, xi, yr, yi ) bli_roscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_szdscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dzdscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_czdscal2jris( ar, ai, xr, xi, yr, yi ) bli_roscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zzdscal2jris( ar, ai, xr, xi, yr, yi ) bli_roscal2jris( ar, ai, xr, xi, yr, yi )
+
+// -- (axy) = (??c) ------------------------------------------------------------
+
+#define bli_sscscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dscscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_cscscal2jris( ar, ai, xr, xi, yr, yi ) bli_rcscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zscscal2jris( ar, ai, xr, xi, yr, yi ) bli_rcscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_sdcscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_ddcscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_cdcscal2jris( ar, ai, xr, xi, yr, yi ) bli_rcscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zdcscal2jris( ar, ai, xr, xi, yr, yi ) bli_rcscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_sccscal2jris( ar, ai, xr, xi, yr, yi ) bli_crscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dccscal2jris( ar, ai, xr, xi, yr, yi ) bli_crscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_cccscal2jris( ar, ai, xr, xi, yr, yi ) bli_cxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zccscal2jris( ar, ai, xr, xi, yr, yi ) bli_cxscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_szcscal2jris( ar, ai, xr, xi, yr, yi ) bli_crscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dzcscal2jris( ar, ai, xr, xi, yr, yi ) bli_crscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_czcscal2jris( ar, ai, xr, xi, yr, yi ) bli_cxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zzcscal2jris( ar, ai, xr, xi, yr, yi ) bli_cxscal2jris( ar, ai, xr, xi, yr, yi )
+
+// -- (axy) = (??z) ------------------------------------------------------------
+
+#define bli_sszscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dszscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_cszscal2jris( ar, ai, xr, xi, yr, yi ) bli_rcscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zszscal2jris( ar, ai, xr, xi, yr, yi ) bli_rcscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_sdzscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_ddzscal2jris( ar, ai, xr, xi, yr, yi ) bli_rxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_cdzscal2jris( ar, ai, xr, xi, yr, yi ) bli_rcscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zdzscal2jris( ar, ai, xr, xi, yr, yi ) bli_rcscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_sczscal2jris( ar, ai, xr, xi, yr, yi ) bli_crscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dczscal2jris( ar, ai, xr, xi, yr, yi ) bli_crscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_cczscal2jris( ar, ai, xr, xi, yr, yi ) bli_cxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zczscal2jris( ar, ai, xr, xi, yr, yi ) bli_cxscal2jris( ar, ai, xr, xi, yr, yi )
+
+#define bli_szzscal2jris( ar, ai, xr, xi, yr, yi ) bli_crscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dzzscal2jris( ar, ai, xr, xi, yr, yi ) bli_crscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_czzscal2jris( ar, ai, xr, xi, yr, yi ) bli_cxscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zzzscal2jris( ar, ai, xr, xi, yr, yi ) bli_cxscal2jris( ar, ai, xr, xi, yr, yi )
+
+
+
+#define bli_sscal2jris( ar, ai, xr, xi, yr, yi ) bli_sssscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_dscal2jris( ar, ai, xr, xi, yr, yi ) bli_dddscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_cscal2jris( ar, ai, xr, xi, yr, yi ) bli_cccscal2jris( ar, ai, xr, xi, yr, yi )
+#define bli_zscal2jris( ar, ai, xr, xi, yr, yi ) bli_zzzscal2jris( ar, ai, xr, xi, yr, yi )
 
 #endif
 
@@ -8566,43 +9053,126 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 
 // xpbyris
 
-#define bli_sxpbyris( xr, xi, br, bi, yr, yi ) \
+#define bli_rxxpbyris( xr, xi, br, bi, yr, yi ) \
 { \
-	(yr)        = (xr) + (br) * (yr); \
+	(yr) = (xr) + (br) * (yr); \
 }
 
-#define bli_dxpbyris( xr, xi, br, bi, yr, yi ) \
+#define bli_cxxpbyris( xr, xi, br, bi, yr, yi ) \
 { \
-	(yr)        = (xr) + (br) * (yr); \
-}
-
-#define bli_cxpbyris( xr, xi, br, bi, yr, yi ) \
-{ \
-	float  yt_r = (xr) + (br) * (yr) - (bi) * (yi); \
-	float  yt_i = (xi) + (bi) * (yr) + (br) * (yi); \
+	const __typeof__(yr) yt_r = (xr) + (br) * (yr) - (bi) * (yi); \
+	const __typeof__(yi) yt_i = (xi) + (bi) * (yr) + (br) * (yi); \
 	(yr) = yt_r; \
 	(yi) = yt_i; \
 }
 
-#define bli_zxpbyris( xr, xi, br, bi, yr, yi ) \
+#define bli_crxpbyris( xr, xi, br, bi, yr, yi ) \
 { \
-	double yt_r = (xr) + (br) * (yr) - (bi) * (yi); \
-	double yt_i = (xi) + (bi) * (yr) + (br) * (yi); \
+	const __typeof__(yr) yt_r = (xr) + (br) * (yr); \
+	const __typeof__(yi) yt_i = (xi) + (br) * (yi); \
 	(yr) = yt_r; \
 	(yi) = yt_i; \
 }
 
-#define bli_scxpbyris( xr, xi, br, bi, yr, yi ) \
-{ \
-	(yr)        = (xr) + (br) * (yr); \
-	(yi)        = (xi) + (br) * (yi); \
-}
+// Notes:
+// - The first char encodes the type of x.
+// - The second char encodes the type of b.
+// - The third char encodes the type of y.
 
-#define bli_dzxpbyris( xr, xi, br, bi, yr, yi ) \
-{ \
-	(yr)        = (xr) + (br) * (yr); \
-	(yi)        = (xi) + (br) * (yi); \
-}
+// -- (xby) = (??s) ------------------------------------------------------------
+
+#define bli_sssxpbyris  bli_rxxpbyris
+#define bli_dssxpbyris  bli_rxxpbyris
+#define bli_cssxpbyris  bli_rxxpbyris
+#define bli_zssxpbyris  bli_rxxpbyris
+
+#define bli_sdsxpbyris  bli_rxxpbyris
+#define bli_ddsxpbyris  bli_rxxpbyris
+#define bli_cdsxpbyris  bli_rxxpbyris
+#define bli_zdsxpbyris  bli_rxxpbyris
+
+#define bli_scsxpbyris  bli_rxxpbyris
+#define bli_dcsxpbyris  bli_rxxpbyris
+#define bli_ccsxpbyris  bli_rxxpbyris
+#define bli_zcsxpbyris  bli_rxxpbyris
+
+#define bli_szsxpbyris  bli_rxxpbyris
+#define bli_dzsxpbyris  bli_rxxpbyris
+#define bli_czsxpbyris  bli_rxxpbyris
+#define bli_zzsxpbyris  bli_rxxpbyris
+
+// -- (xby) = (??d) ------------------------------------------------------------
+
+#define bli_ssdxpbyris  bli_rxxpbyris
+#define bli_dsdxpbyris  bli_rxxpbyris
+#define bli_csdxpbyris  bli_rxxpbyris
+#define bli_zsdxpbyris  bli_rxxpbyris
+
+#define bli_sddxpbyris  bli_rxxpbyris
+#define bli_dddxpbyris  bli_rxxpbyris
+#define bli_cddxpbyris  bli_rxxpbyris
+#define bli_zddxpbyris  bli_rxxpbyris
+
+#define bli_scdxpbyris  bli_rxxpbyris
+#define bli_dcdxpbyris  bli_rxxpbyris
+#define bli_ccdxpbyris  bli_rxxpbyris
+#define bli_zcdxpbyris  bli_rxxpbyris
+
+#define bli_szdxpbyris  bli_rxxpbyris
+#define bli_dzdxpbyris  bli_rxxpbyris
+#define bli_czdxpbyris  bli_rxxpbyris
+#define bli_zzdxpbyris  bli_rxxpbyris
+
+// -- (xby) = (??c) ------------------------------------------------------------
+
+#define bli_sscxpbyris  bli_rxxpbyris
+#define bli_dscxpbyris  bli_rxxpbyris
+#define bli_cscxpbyris  bli_crxpbyris
+#define bli_zscxpbyris  bli_crxpbyris
+
+#define bli_sdcxpbyris  bli_rxxpbyris
+#define bli_ddcxpbyris  bli_rxxpbyris
+#define bli_cdcxpbyris  bli_crxpbyris
+#define bli_zdcxpbyris  bli_crxpbyris
+
+#define bli_sccxpbyris  bli_cxxpbyris
+#define bli_dccxpbyris  bli_cxxpbyris
+#define bli_cccxpbyris  bli_cxxpbyris
+#define bli_zccxpbyris  bli_cxxpbyris
+
+#define bli_szcxpbyris  bli_cxxpbyris
+#define bli_dzcxpbyris  bli_cxxpbyris
+#define bli_czcxpbyris  bli_cxxpbyris
+#define bli_zzcxpbyris  bli_cxxpbyris
+
+// -- (xby) = (??z) ------------------------------------------------------------
+
+#define bli_sszxpbyris  bli_rxxpbyris
+#define bli_dszxpbyris  bli_rxxpbyris
+#define bli_cszxpbyris  bli_crxpbyris
+#define bli_zszxpbyris  bli_crxpbyris
+
+#define bli_sdzxpbyris  bli_rxxpbyris
+#define bli_ddzxpbyris  bli_rxxpbyris
+#define bli_cdzxpbyris  bli_crxpbyris
+#define bli_zdzxpbyris  bli_crxpbyris
+
+#define bli_sczxpbyris  bli_cxxpbyris
+#define bli_dczxpbyris  bli_cxxpbyris
+#define bli_cczxpbyris  bli_cxxpbyris
+#define bli_zczxpbyris  bli_cxxpbyris
+
+#define bli_szzxpbyris  bli_cxxpbyris
+#define bli_dzzxpbyris  bli_cxxpbyris
+#define bli_czzxpbyris  bli_cxxpbyris
+#define bli_zzzxpbyris  bli_cxxpbyris
+
+
+
+#define bli_sxpbyris    bli_sssxpbyris
+#define bli_dxpbyris    bli_dddxpbyris
+#define bli_cxpbyris    bli_cccxpbyris
+#define bli_zxpbyris    bli_zzzxpbyris
 
 #endif
 
@@ -8615,49 +9185,273 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 
 // xpbyjris
 
-#define bli_sxpbyjris( xr, xi, br, bi, yr, yi ) \
+#define bli_rxxpbyjris( xr, xi, br, bi, yr, yi ) \
 { \
-	(yr)        = (xr) + (br) * (yr); \
+	(yr) = (xr) + (br) * (yr); \
 }
 
-#define bli_dxpbyjris( xr, xi, br, bi, yr, yi ) \
+#define bli_cxxpbyjris( xr, xi, br, bi, yr, yi ) \
 { \
-	(yr)        = (xr) + (br) * (yr); \
-}
-
-#define bli_cxpbyjris( xr, xi, br, bi, yr, yi ) \
-{ \
-	float  yt_r =  (xr) + (br) * (yr) - (bi) * (yi); \
-	float  yt_i = -(xi) + (bi) * (yr) + (br) * (yi); \
+	const __typeof__(yr) yt_r =  (xr) + (br) * (yr) - (bi) * (yi); \
+	const __typeof__(yi) yt_i = -(xi) + (bi) * (yr) + (br) * (yi); \
 	(yr) = yt_r; \
 	(yi) = yt_i; \
 }
 
-#define bli_zxpbyjris( xr, xi, br, bi, yr, yi ) \
+#define bli_crxpbyjris( xr, xi, br, bi, yr, yi ) \
 { \
-	double yt_r =  (xr) + (br) * (yr) - (bi) * (yi); \
-	double yt_i = -(xi) + (bi) * (yr) + (br) * (yi); \
+	const __typeof__(yr) yt_r =  (xr) + (br) * (yr); \
+	const __typeof__(yi) yt_i = -(xi) + (br) * (yi); \
 	(yr) = yt_r; \
 	(yi) = yt_i; \
 }
 
-#define bli_scxpbyjris( xr, xi, br, bi, yr, yi ) \
-{ \
-	(yr)        =  (xr) + (br) * (yr); \
-	(yi)        = -(xi) + (br) * (yi); \
-}
+// Notes:
+// - The first char encodes the type of x.
+// - The second char encodes the type of b.
+// - The third char encodes the type of y.
 
-#define bli_dzxpbyjris( xr, xi, br, bi, yr, yi ) \
-{ \
-	(yr)        =  (xr) + (br) * (yr); \
-	(yi)        = -(xi) + (br) * (yi); \
-}
+// -- (xby) = (??s) ------------------------------------------------------------
+
+#define bli_sssxpbyjris  bli_rxxpbyjris
+#define bli_dssxpbyjris  bli_rxxpbyjris
+#define bli_cssxpbyjris  bli_rxxpbyjris
+#define bli_zssxpbyjris  bli_rxxpbyjris
+
+#define bli_sdsxpbyjris  bli_rxxpbyjris
+#define bli_ddsxpbyjris  bli_rxxpbyjris
+#define bli_cdsxpbyjris  bli_rxxpbyjris
+#define bli_zdsxpbyjris  bli_rxxpbyjris
+
+#define bli_scsxpbyjris  bli_rxxpbyjris
+#define bli_dcsxpbyjris  bli_rxxpbyjris
+#define bli_ccsxpbyjris  bli_rxxpbyjris
+#define bli_zcsxpbyjris  bli_rxxpbyjris
+
+#define bli_szsxpbyjris  bli_rxxpbyjris
+#define bli_dzsxpbyjris  bli_rxxpbyjris
+#define bli_czsxpbyjris  bli_rxxpbyjris
+#define bli_zzsxpbyjris  bli_rxxpbyjris
+
+// -- (xby) = (??d) ------------------------------------------------------------
+
+#define bli_ssdxpbyjris  bli_rxxpbyjris
+#define bli_dsdxpbyjris  bli_rxxpbyjris
+#define bli_csdxpbyjris  bli_rxxpbyjris
+#define bli_zsdxpbyjris  bli_rxxpbyjris
+
+#define bli_sddxpbyjris  bli_rxxpbyjris
+#define bli_dddxpbyjris  bli_rxxpbyjris
+#define bli_cddxpbyjris  bli_rxxpbyjris
+#define bli_zddxpbyjris  bli_rxxpbyjris
+
+#define bli_scdxpbyjris  bli_rxxpbyjris
+#define bli_dcdxpbyjris  bli_rxxpbyjris
+#define bli_ccdxpbyjris  bli_rxxpbyjris
+#define bli_zcdxpbyjris  bli_rxxpbyjris
+
+#define bli_szdxpbyjris  bli_rxxpbyjris
+#define bli_dzdxpbyjris  bli_rxxpbyjris
+#define bli_czdxpbyjris  bli_rxxpbyjris
+#define bli_zzdxpbyjris  bli_rxxpbyjris
+
+// -- (xby) = (??c) ------------------------------------------------------------
+
+#define bli_sscxpbyjris  bli_rxxpbyjris
+#define bli_dscxpbyjris  bli_rxxpbyjris
+#define bli_cscxpbyjris  bli_crxpbyjris
+#define bli_zscxpbyjris  bli_crxpbyjris
+
+#define bli_sdcxpbyjris  bli_rxxpbyjris
+#define bli_ddcxpbyjris  bli_rxxpbyjris
+#define bli_cdcxpbyjris  bli_crxpbyjris
+#define bli_zdcxpbyjris  bli_crxpbyjris
+
+#define bli_sccxpbyjris  bli_cxxpbyjris
+#define bli_dccxpbyjris  bli_cxxpbyjris
+#define bli_cccxpbyjris  bli_cxxpbyjris
+#define bli_zccxpbyjris  bli_cxxpbyjris
+
+#define bli_szcxpbyjris  bli_cxxpbyjris
+#define bli_dzcxpbyjris  bli_cxxpbyjris
+#define bli_czcxpbyjris  bli_cxxpbyjris
+#define bli_zzcxpbyjris  bli_cxxpbyjris
+
+// -- (xby) = (??z) ------------------------------------------------------------
+
+#define bli_sszxpbyjris  bli_rxxpbyjris
+#define bli_dszxpbyjris  bli_rxxpbyjris
+#define bli_cszxpbyjris  bli_crxpbyjris
+#define bli_zszxpbyjris  bli_crxpbyjris
+
+#define bli_sdzxpbyjris  bli_rxxpbyjris
+#define bli_ddzxpbyjris  bli_rxxpbyjris
+#define bli_cdzxpbyjris  bli_crxpbyjris
+#define bli_zdzxpbyjris  bli_crxpbyjris
+
+#define bli_sczxpbyjris  bli_cxxpbyjris
+#define bli_dczxpbyjris  bli_cxxpbyjris
+#define bli_cczxpbyjris  bli_cxxpbyjris
+#define bli_zczxpbyjris  bli_cxxpbyjris
+
+#define bli_szzxpbyjris  bli_cxxpbyjris
+#define bli_dzzxpbyjris  bli_cxxpbyjris
+#define bli_czzxpbyjris  bli_cxxpbyjris
+#define bli_zzzxpbyjris  bli_cxxpbyjris
+
+
+
+#define bli_sxpbyjris    bli_sssxpbyjris
+#define bli_dxpbyjris    bli_dddxpbyjris
+#define bli_cxpbyjris    bli_cccxpbyjris
+#define bli_zxpbyjris    bli_zzzxpbyjris
 
 #endif
 
 // end bli_xpbyjris.h
 
 // Inlined scalar macros in loops
+// begin bli_scal2ris_mxn.h
+
+
+#ifndef BLIS_SCAL2RIS_MXN_H
+#define BLIS_SCAL2RIS_MXN_H
+
+// scal2ris_mxn
+
+static void bli_cscal2ris_mxn
+     (
+       const conj_t       conjx,
+       const dim_t        m,
+       const dim_t        n,
+       scomplex* restrict alpha,
+       scomplex* restrict x, const inc_t rs_x, const inc_t cs_x,
+       scomplex* restrict y, const inc_t rs_y, const inc_t cs_y, const inc_t is_y
+     )
+{
+	float*  restrict alpha_r = ( float*  )alpha; \
+	float*  restrict alpha_i = ( float*  )alpha + 1; \
+	float*  restrict x_r     = ( float*  )x; \
+	float*  restrict x_i     = ( float*  )x + 1; \
+	float*  restrict y_r     = ( float*  )y; \
+	float*  restrict y_i     = ( float*  )y + is_y; \
+	const dim_t      incx2   = 2*rs_x; \
+	const dim_t      ldx2    = 2*cs_x; \
+
+	 \
+
+	if ( bli_is_conj( conjx ) )
+	{
+		for ( dim_t j = 0; j < n; ++j )
+		for ( dim_t i = 0; i < m; ++i )
+		{
+			float*  restrict chi11_r = x_r + (i  )*incx2 + (j  )*ldx2;
+			float*  restrict chi11_i = x_i + (i  )*incx2 + (j  )*ldx2;
+			float*  restrict psi11_r = y_r + (i  )*1     + (j  )*cs_y;
+			float*  restrict psi11_i = y_i + (i  )*1     + (j  )*cs_y;
+
+			bli_cscal2jris
+			(
+			  *alpha_r,
+			  *alpha_i,
+			  *chi11_r,
+			  *chi11_i,
+			  *psi11_r,
+			  *psi11_i
+			);
+		}
+	}
+	else 
+	{
+		for ( dim_t j = 0; j < n; ++j )
+		for ( dim_t i = 0; i < m; ++i )
+		{
+			float*  restrict chi11_r = x_r + (i  )*incx2 + (j  )*ldx2;
+			float*  restrict chi11_i = x_i + (i  )*incx2 + (j  )*ldx2;
+			float*  restrict psi11_r = y_r + (i  )*1     + (j  )*cs_y;
+			float*  restrict psi11_i = y_i + (i  )*1     + (j  )*cs_y;
+
+			bli_cscal2ris
+			(
+			  *alpha_r,
+			  *alpha_i,
+			  *chi11_r,
+			  *chi11_i,
+			  *psi11_r,
+			  *psi11_i
+			);
+		}
+	}
+}
+
+static void bli_zscal2ris_mxn
+     (
+       const conj_t       conjx,
+       const dim_t        m,
+       const dim_t        n,
+       dcomplex* restrict alpha,
+       dcomplex* restrict x, const inc_t rs_x, const inc_t cs_x,
+       dcomplex* restrict y, const inc_t rs_y, const inc_t cs_y, const inc_t is_y
+     )
+{
+	double* restrict alpha_r = ( double* )alpha; \
+	double* restrict alpha_i = ( double* )alpha + 1; \
+	double* restrict x_r     = ( double* )x; \
+	double* restrict x_i     = ( double* )x + 1; \
+	double* restrict y_r     = ( double* )y; \
+	double* restrict y_i     = ( double* )y + is_y; \
+	const dim_t      incx2   = 2*rs_x; \
+	const dim_t      ldx2    = 2*cs_x; \
+
+	 \
+
+	if ( bli_is_conj( conjx ) )
+	{
+		for ( dim_t j = 0; j < n; ++j )
+		for ( dim_t i = 0; i < m; ++i )
+		{
+			double* restrict chi11_r = x_r + (i  )*incx2 + (j  )*ldx2;
+			double* restrict chi11_i = x_i + (i  )*incx2 + (j  )*ldx2;
+			double* restrict psi11_r = y_r + (i  )*1     + (j  )*cs_y;
+			double* restrict psi11_i = y_i + (i  )*1     + (j  )*cs_y;
+
+			bli_zscal2jris
+			(
+			  *alpha_r,
+			  *alpha_i,
+			  *chi11_r,
+			  *chi11_i,
+			  *psi11_r,
+			  *psi11_i
+			);
+		}
+	}
+	else 
+	{
+		for ( dim_t j = 0; j < n; ++j )
+		for ( dim_t i = 0; i < m; ++i )
+		{
+			double* restrict chi11_r = x_r + (i  )*incx2 + (j  )*ldx2;
+			double* restrict chi11_i = x_i + (i  )*incx2 + (j  )*ldx2;
+			double* restrict psi11_r = y_r + (i  )*1     + (j  )*cs_y;
+			double* restrict psi11_i = y_i + (i  )*1     + (j  )*cs_y;
+
+			bli_zscal2ris
+			(
+			  *alpha_r,
+			  *alpha_i,
+			  *chi11_r,
+			  *chi11_i,
+			  *psi11_r,
+			  *psi11_i
+			);
+		}
+	}
+}
+
+
+#endif
+// end bli_scal2ris_mxn.h
 // begin bli_scalris_mxn_uplo.h
 
 
@@ -9165,288 +9959,287 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 // - The third char encodes the type of b.
 // - The fourth char encodes the type of y.
 
-
 // -- (axby) = (???s) ----------------------------------------------------------
 
-#define bli_ssssaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dsssaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_csssaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zsssaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sdssaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ddssaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cdssaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zdssaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_scssaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dcssaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ccssaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zcssaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_szssaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dzssaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_czssaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zzssaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ssssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dsssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_csssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zsssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sdssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ddssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cdssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zdssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_scssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dcssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ccssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zcssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_szssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dzssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_czssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zzssaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_ssdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dsdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_csdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zsdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sddsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dddsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cddsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zddsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_scdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dcdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ccdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zcdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_szdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dzdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_czdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zzdsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ssdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dsdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_csdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zsdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sddsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dddsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cddsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zddsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_scdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dcdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ccdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zcdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_szdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dzdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_czdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zzdsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_sscsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dscsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cscsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zscsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sdcsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ddcsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cdcsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zdcsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sccsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dccsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cccsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zccsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_szcsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dzcsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_czcsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zzcsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sscsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dscsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cscsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zscsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sdcsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ddcsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cdcsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zdcsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sccsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dccsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cccsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zccsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_szcsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dzcsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_czcsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zzcsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_sszsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dszsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cszsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zszsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sdzsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ddzsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cdzsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zdzsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sczsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dczsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cczsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zczsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_szzsaxpbys( a, x, b, y )  bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dzzsaxpbys( a, x, b, y )  bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_czzsaxpbys( a, x, b, y )  bli_saxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zzzsaxpbys( a, x, b, y )  bli_saxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sszsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dszsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cszsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zszsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sdzsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ddzsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cdzsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zdzsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sczsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dczsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cczsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zczsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_szzsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dzzsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_czzsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zzzsaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
 
 // -- (axby) = (???d) ----------------------------------------------------------
 
-#define bli_sssdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dssdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cssdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zssdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sdsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ddsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cdsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zdsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_scsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dcsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ccsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zcsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_szsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dzsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_czsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zzsdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sssdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dssdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cssdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zssdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sdsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ddsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cdsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zdsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_scsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dcsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ccsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zcsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_szsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dzsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_czsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zzsdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_ssddaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dsddaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_csddaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zsddaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sdddaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ddddaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cdddaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zdddaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_scddaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dcddaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ccddaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zcddaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_szddaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dzddaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_czddaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zzddaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ssddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dsddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_csddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zsddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sdddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ddddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cdddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zdddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_scddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dcddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ccddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zcddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_szddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dzddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_czddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zzddaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_sscdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dscdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cscdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zscdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sdcdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ddcdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cdcdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zdcdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sccdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dccdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cccdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zccdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_szcdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dzcdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_czcdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zzcdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sscdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dscdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cscdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zscdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sdcdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ddcdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cdcdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zdcdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sccdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dccdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cccdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zccdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_szcdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dzcdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_czcdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zzcdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_sszdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dszdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cszdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zszdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sdzdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ddzdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cdzdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zdzdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sczdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dczdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cczdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zczdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_szzdaxpbys( a, x, b, y )  bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dzzdaxpbys( a, x, b, y )  bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_czzdaxpbys( a, x, b, y )  bli_daxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zzzdaxpbys( a, x, b, y )  bli_daxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sszdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dszdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cszdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zszdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sdzdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ddzdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cdzdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zdzdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sczdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dczdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cczdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zczdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_szzdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dzzdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_czzdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zzzdaxpbys( a, x, b, y )  bli_rxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
 
 #ifndef BLIS_ENABLE_C99_COMPLEX
 
 // -- (axby) = (???c) ----------------------------------------------------------
 
-#define bli_ssscaxpbys( a, x, b, y )    bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dsscaxpbys( a, x, b, y )    bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_csscaxpbys( a, x, b, y )  bli_cssaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zsscaxpbys( a, x, b, y )  bli_cssaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_sdscaxpbys( a, x, b, y )    bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ddscaxpbys( a, x, b, y )    bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cdscaxpbys( a, x, b, y )  bli_cssaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zdscaxpbys( a, x, b, y )  bli_cssaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_scscaxpbys( a, x, b, y )  bli_scsaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dcscaxpbys( a, x, b, y )  bli_scsaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ccscaxpbys( a, x, b, y )  bli_ccsaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zcscaxpbys( a, x, b, y )  bli_ccsaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_szscaxpbys( a, x, b, y )  bli_scsaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dzscaxpbys( a, x, b, y )  bli_scsaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_czscaxpbys( a, x, b, y )  bli_ccsaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zzscaxpbys( a, x, b, y )  bli_ccsaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ssscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dsscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_csscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zsscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sdscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ddscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cdscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zdscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_scscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dcscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ccscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zcscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_szscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dzscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_czscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zzscaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_ssdcaxpbys( a, x, b, y )    bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dsdcaxpbys( a, x, b, y )    bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_csdcaxpbys( a, x, b, y )  bli_cssaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zsdcaxpbys( a, x, b, y )  bli_cssaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_sddcaxpbys( a, x, b, y )    bli_saxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dddcaxpbys( a, x, b, y )    bli_saxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cddcaxpbys( a, x, b, y )  bli_cssaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zddcaxpbys( a, x, b, y )  bli_cssaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_scdcaxpbys( a, x, b, y )  bli_scsaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dcdcaxpbys( a, x, b, y )  bli_scsaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ccdcaxpbys( a, x, b, y )  bli_ccsaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zcdcaxpbys( a, x, b, y )  bli_ccsaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_szdcaxpbys( a, x, b, y )  bli_scsaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dzdcaxpbys( a, x, b, y )  bli_scsaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_czdcaxpbys( a, x, b, y )  bli_ccsaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zzdcaxpbys( a, x, b, y )  bli_ccsaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ssdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dsdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_csdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zsdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sddcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dddcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cddcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zddcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_scdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dcdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ccdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zcdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_szdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dzdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_czdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zzdcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_ssccaxpbys( a, x, b, y )  bli_sscaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dsccaxpbys( a, x, b, y )  bli_sscaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_csccaxpbys( a, x, b, y )  bli_cscaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zsccaxpbys( a, x, b, y )  bli_cscaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_sdccaxpbys( a, x, b, y )  bli_sscaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ddccaxpbys( a, x, b, y )  bli_sscaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cdccaxpbys( a, x, b, y )  bli_cscaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zdccaxpbys( a, x, b, y )  bli_cscaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_scccaxpbys( a, x, b, y )  bli_sccaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dcccaxpbys( a, x, b, y )  bli_sccaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ccccaxpbys( a, x, b, y )    bli_caxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zcccaxpbys( a, x, b, y )    bli_caxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_szccaxpbys( a, x, b, y )  bli_sccaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dzccaxpbys( a, x, b, y )  bli_sccaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_czccaxpbys( a, x, b, y )    bli_caxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zzccaxpbys( a, x, b, y )    bli_caxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ssccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dsccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_csccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zsccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sdccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ddccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cdccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zdccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_scccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dcccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ccccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zcccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_szccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dzccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_czccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zzccaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_sszcaxpbys( a, x, b, y )  bli_sscaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dszcaxpbys( a, x, b, y )  bli_sscaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cszcaxpbys( a, x, b, y )  bli_cscaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zszcaxpbys( a, x, b, y )  bli_cscaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_sdzcaxpbys( a, x, b, y )  bli_sscaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ddzcaxpbys( a, x, b, y )  bli_sscaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cdzcaxpbys( a, x, b, y )  bli_cscaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zdzcaxpbys( a, x, b, y )  bli_cscaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_sczcaxpbys( a, x, b, y )  bli_sccaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dczcaxpbys( a, x, b, y )  bli_sccaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cczcaxpbys( a, x, b, y )    bli_caxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zczcaxpbys( a, x, b, y )    bli_caxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_szzcaxpbys( a, x, b, y )  bli_sccaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dzzcaxpbys( a, x, b, y )  bli_sccaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_czzcaxpbys( a, x, b, y )    bli_caxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zzzcaxpbys( a, x, b, y )    bli_caxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sszcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dszcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cszcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zszcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sdzcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ddzcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cdzcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zdzcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sczcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dczcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cczcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zczcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_szzcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dzzcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_czzcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zzzcaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
 
 // -- (axby) = (???z) ----------------------------------------------------------
 
-#define bli_ssszaxpbys( a, x, b, y )    bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dsszaxpbys( a, x, b, y )    bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_csszaxpbys( a, x, b, y )  bli_zddaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zsszaxpbys( a, x, b, y )  bli_zddaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_sdszaxpbys( a, x, b, y )    bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ddszaxpbys( a, x, b, y )    bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cdszaxpbys( a, x, b, y )  bli_zddaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zdszaxpbys( a, x, b, y )  bli_zddaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_scszaxpbys( a, x, b, y )  bli_dzdaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dcszaxpbys( a, x, b, y )  bli_dzdaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ccszaxpbys( a, x, b, y )  bli_zzdaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zcszaxpbys( a, x, b, y )  bli_zzdaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_szszaxpbys( a, x, b, y )  bli_dzdaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dzszaxpbys( a, x, b, y )  bli_dzdaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_czszaxpbys( a, x, b, y )  bli_zzdaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zzszaxpbys( a, x, b, y )  bli_zzdaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ssszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dsszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_csszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zsszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sdszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ddszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cdszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zdszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_scszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dcszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ccszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zcszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_szszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dzszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_czszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zzszaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_ssdzaxpbys( a, x, b, y )    bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dsdzaxpbys( a, x, b, y )    bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_csdzaxpbys( a, x, b, y )  bli_zddaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zsdzaxpbys( a, x, b, y )  bli_zddaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_sddzaxpbys( a, x, b, y )    bli_daxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dddzaxpbys( a, x, b, y )    bli_daxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cddzaxpbys( a, x, b, y )  bli_zddaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zddzaxpbys( a, x, b, y )  bli_zddaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_scdzaxpbys( a, x, b, y )  bli_dzdaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dcdzaxpbys( a, x, b, y )  bli_dzdaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ccdzaxpbys( a, x, b, y )  bli_zzdaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zcdzaxpbys( a, x, b, y )  bli_zzdaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_szdzaxpbys( a, x, b, y )  bli_dzdaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dzdzaxpbys( a, x, b, y )  bli_dzdaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_czdzaxpbys( a, x, b, y )  bli_zzdaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zzdzaxpbys( a, x, b, y )  bli_zzdaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ssdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dsdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_csdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zsdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sddzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dddzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cddzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zddzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_scdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dcdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ccdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zcdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_szdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dzdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_czdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zzdzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_ssczaxpbys( a, x, b, y )  bli_ddzaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dsczaxpbys( a, x, b, y )  bli_ddzaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_csczaxpbys( a, x, b, y )  bli_zdzaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zsczaxpbys( a, x, b, y )  bli_zdzaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_sdczaxpbys( a, x, b, y )  bli_ddzaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ddczaxpbys( a, x, b, y )  bli_ddzaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cdczaxpbys( a, x, b, y )  bli_zdzaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zdczaxpbys( a, x, b, y )  bli_zdzaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_scczaxpbys( a, x, b, y )  bli_dzzaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dcczaxpbys( a, x, b, y )  bli_dzzaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ccczaxpbys( a, x, b, y )    bli_zaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zcczaxpbys( a, x, b, y )    bli_zaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_szczaxpbys( a, x, b, y )  bli_dzzaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dzczaxpbys( a, x, b, y )  bli_dzzaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_czczaxpbys( a, x, b, y )    bli_zaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zzczaxpbys( a, x, b, y )    bli_zaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ssczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dsczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_csczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zsczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sdczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ddczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cdczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zdczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_scczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dcczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ccczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zcczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_szczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dzczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_czczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zzczaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_sszzaxpbys( a, x, b, y )  bli_ddzaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dszzaxpbys( a, x, b, y )  bli_ddzaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cszzaxpbys( a, x, b, y )  bli_zdzaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zszzaxpbys( a, x, b, y )  bli_zdzaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_sdzzaxpbys( a, x, b, y )  bli_ddzaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ddzzaxpbys( a, x, b, y )  bli_ddzaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cdzzaxpbys( a, x, b, y )  bli_zdzaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zdzzaxpbys( a, x, b, y )  bli_zdzaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_sczzaxpbys( a, x, b, y )  bli_dzzaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dczzaxpbys( a, x, b, y )  bli_dzzaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cczzaxpbys( a, x, b, y )    bli_zaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zczzaxpbys( a, x, b, y )    bli_zaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_szzzaxpbys( a, x, b, y )  bli_dzzaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dzzzaxpbys( a, x, b, y )  bli_dzzaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_czzzaxpbys( a, x, b, y )    bli_zaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zzzzaxpbys( a, x, b, y )    bli_zaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sszzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dszzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cszzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zszzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sdzzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ddzzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cdzzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zdzzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sczzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dczzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cczzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zczzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_szzzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dzzzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_czzzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zzzzaxpbys( a, x, b, y )  bli_cxaxpbyris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
 
 #else // ifdef BLIS_ENABLE_C99_COMPLEX
 
@@ -9616,288 +10409,287 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 // - The third char encodes the type of b.
 // - The fourth char encodes the type of y.
 
-
 // -- (axby) = (???s) ----------------------------------------------------------
 
-#define bli_ssssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dsssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_csssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zsssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sdssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ddssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cdssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zdssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_scssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dcssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ccssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zcssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_szssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dzssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_czssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zzssaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ssssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dsssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_csssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zsssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sdssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ddssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cdssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zdssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_scssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dcssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ccssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zcssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_szssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dzssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_czssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zzssaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_ssdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dsdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_csdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zsdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sddsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dddsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cddsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zddsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_scdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dcdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ccdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zcdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_szdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dzdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_czdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zzdsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ssdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dsdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_csdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zsdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sddsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dddsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cddsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zddsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_scdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dcdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ccdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zcdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_szdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dzdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_czdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zzdsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_sscsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dscsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cscsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zscsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sdcsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ddcsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cdcsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zdcsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sccsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dccsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cccsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zccsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_szcsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dzcsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_czcsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zzcsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sscsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dscsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cscsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zscsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sdcsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ddcsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cdcsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zdcsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sccsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dccsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cccsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zccsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_szcsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dzcsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_czcsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zzcsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_sszsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dszsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cszsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zszsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sdzsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ddzsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cdzsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zdzsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_sczsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dczsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cczsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zczsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_szzsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dzzsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_czzsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zzzsaxpbyjs( a, x, b, y )  bli_saxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sszsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dszsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cszsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zszsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sdzsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ddzsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cdzsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zdzsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sczsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dczsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cczsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zczsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_szzsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dzzsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_czzsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zzzsaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
 
 // -- (axby) = (???d) ----------------------------------------------------------
 
-#define bli_sssdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dssdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cssdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zssdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sdsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ddsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cdsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zdsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_scsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dcsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ccsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zcsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_szsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dzsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_czsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zzsdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sssdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dssdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cssdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zssdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sdsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ddsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cdsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zdsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_scsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dcsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ccsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zcsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_szsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dzsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_czsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zzsdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_ssddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dsddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_csddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zsddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sdddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ddddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cdddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zdddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_scddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dcddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ccddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zcddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_szddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dzddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_czddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zzddaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ssddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dsddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_csddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zsddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sdddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ddddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cdddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zdddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_scddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dcddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ccddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zcddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_szddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dzddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_czddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zzddaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_sscdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dscdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cscdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zscdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sdcdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ddcdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cdcdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zdcdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sccdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dccdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cccdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zccdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_szcdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dzcdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_czcdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zzcdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sscdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dscdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cscdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zscdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sdcdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ddcdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cdcdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zdcdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sccdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dccdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cccdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zccdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_szcdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dzcdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_czcdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zzcdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_sszdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dszdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cszdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zszdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sdzdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ddzdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cdzdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zdzdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_sczdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dczdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cczdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zczdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_szzdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dzzdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_czzdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zzzdaxpbyjs( a, x, b, y )  bli_daxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sszdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dszdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cszdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zszdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sdzdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ddzdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cdzdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zdzdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sczdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dczdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cczdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zczdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_szzdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dzzdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_czzdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zzzdaxpbyjs( a, x, b, y )  bli_rxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
 
 #ifndef BLIS_ENABLE_C99_COMPLEX
 
 // -- (axby) = (???c) ----------------------------------------------------------
 
-#define bli_ssscaxpbyjs( a, x, b, y )    bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dsscaxpbyjs( a, x, b, y )    bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_csscaxpbyjs( a, x, b, y )  bli_cssaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zsscaxpbyjs( a, x, b, y )  bli_cssaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_sdscaxpbyjs( a, x, b, y )    bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ddscaxpbyjs( a, x, b, y )    bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cdscaxpbyjs( a, x, b, y )  bli_cssaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zdscaxpbyjs( a, x, b, y )  bli_cssaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_scscaxpbyjs( a, x, b, y )  bli_scsaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dcscaxpbyjs( a, x, b, y )  bli_scsaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ccscaxpbyjs( a, x, b, y )  bli_ccsaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zcscaxpbyjs( a, x, b, y )  bli_ccsaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_szscaxpbyjs( a, x, b, y )  bli_scsaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dzscaxpbyjs( a, x, b, y )  bli_scsaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_czscaxpbyjs( a, x, b, y )  bli_ccsaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zzscaxpbyjs( a, x, b, y )  bli_ccsaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ssscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dsscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_csscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zsscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sdscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ddscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cdscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zdscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_scscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dcscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ccscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zcscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_szscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dzscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_czscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zzscaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_ssdcaxpbyjs( a, x, b, y )    bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dsdcaxpbyjs( a, x, b, y )    bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_csdcaxpbyjs( a, x, b, y )  bli_cssaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zsdcaxpbyjs( a, x, b, y )  bli_cssaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_sddcaxpbyjs( a, x, b, y )    bli_saxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dddcaxpbyjs( a, x, b, y )    bli_saxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cddcaxpbyjs( a, x, b, y )  bli_cssaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zddcaxpbyjs( a, x, b, y )  bli_cssaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_scdcaxpbyjs( a, x, b, y )  bli_scsaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dcdcaxpbyjs( a, x, b, y )  bli_scsaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ccdcaxpbyjs( a, x, b, y )  bli_ccsaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zcdcaxpbyjs( a, x, b, y )  bli_ccsaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_szdcaxpbyjs( a, x, b, y )  bli_scsaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dzdcaxpbyjs( a, x, b, y )  bli_scsaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_czdcaxpbyjs( a, x, b, y )  bli_ccsaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zzdcaxpbyjs( a, x, b, y )  bli_ccsaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ssdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dsdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_csdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zsdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sddcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dddcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cddcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zddcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_scdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dcdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ccdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zcdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_szdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dzdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_czdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zzdcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_ssccaxpbyjs( a, x, b, y )  bli_sscaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dsccaxpbyjs( a, x, b, y )  bli_sscaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_csccaxpbyjs( a, x, b, y )  bli_cscaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zsccaxpbyjs( a, x, b, y )  bli_cscaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_sdccaxpbyjs( a, x, b, y )  bli_sscaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ddccaxpbyjs( a, x, b, y )  bli_sscaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cdccaxpbyjs( a, x, b, y )  bli_cscaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zdccaxpbyjs( a, x, b, y )  bli_cscaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_scccaxpbyjs( a, x, b, y )  bli_sccaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dcccaxpbyjs( a, x, b, y )  bli_sccaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ccccaxpbyjs( a, x, b, y )    bli_caxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zcccaxpbyjs( a, x, b, y )    bli_caxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_szccaxpbyjs( a, x, b, y )  bli_sccaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dzccaxpbyjs( a, x, b, y )  bli_sccaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_czccaxpbyjs( a, x, b, y )    bli_caxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zzccaxpbyjs( a, x, b, y )    bli_caxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ssccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dsccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_csccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zsccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sdccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ddccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cdccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zdccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_scccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dcccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ccccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zcccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_szccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dzccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_czccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zzccaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_sszcaxpbyjs( a, x, b, y )  bli_sscaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dszcaxpbyjs( a, x, b, y )  bli_sscaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cszcaxpbyjs( a, x, b, y )  bli_cscaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zszcaxpbyjs( a, x, b, y )  bli_cscaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_sdzcaxpbyjs( a, x, b, y )  bli_sscaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ddzcaxpbyjs( a, x, b, y )  bli_sscaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cdzcaxpbyjs( a, x, b, y )  bli_cscaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zdzcaxpbyjs( a, x, b, y )  bli_cscaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_sczcaxpbyjs( a, x, b, y )  bli_sccaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dczcaxpbyjs( a, x, b, y )  bli_sccaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cczcaxpbyjs( a, x, b, y )    bli_caxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zczcaxpbyjs( a, x, b, y )    bli_caxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_szzcaxpbyjs( a, x, b, y )  bli_sccaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dzzcaxpbyjs( a, x, b, y )  bli_sccaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_czzcaxpbyjs( a, x, b, y )    bli_caxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zzzcaxpbyjs( a, x, b, y )    bli_caxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sszcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dszcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cszcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zszcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sdzcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ddzcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cdzcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zdzcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sczcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dczcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cczcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zczcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_szzcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dzzcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_czzcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zzzcaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
 
 // -- (axby) = (???z) ----------------------------------------------------------
 
-#define bli_ssszaxpbyjs( a, x, b, y )    bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dsszaxpbyjs( a, x, b, y )    bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_csszaxpbyjs( a, x, b, y )  bli_zddaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zsszaxpbyjs( a, x, b, y )  bli_zddaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_sdszaxpbyjs( a, x, b, y )    bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ddszaxpbyjs( a, x, b, y )    bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cdszaxpbyjs( a, x, b, y )  bli_zddaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zdszaxpbyjs( a, x, b, y )  bli_zddaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_scszaxpbyjs( a, x, b, y )  bli_dzdaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dcszaxpbyjs( a, x, b, y )  bli_dzdaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ccszaxpbyjs( a, x, b, y )  bli_zzdaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zcszaxpbyjs( a, x, b, y )  bli_zzdaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_szszaxpbyjs( a, x, b, y )  bli_dzdaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dzszaxpbyjs( a, x, b, y )  bli_dzdaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_czszaxpbyjs( a, x, b, y )  bli_zzdaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zzszaxpbyjs( a, x, b, y )  bli_zzdaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ssszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dsszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_csszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zsszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sdszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ddszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cdszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zdszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_scszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dcszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ccszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zcszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_szszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dzszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_czszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zzszaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_ssdzaxpbyjs( a, x, b, y )    bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dsdzaxpbyjs( a, x, b, y )    bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_csdzaxpbyjs( a, x, b, y )  bli_zddaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zsdzaxpbyjs( a, x, b, y )  bli_zddaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_sddzaxpbyjs( a, x, b, y )    bli_daxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dddzaxpbyjs( a, x, b, y )    bli_daxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cddzaxpbyjs( a, x, b, y )  bli_zddaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zddzaxpbyjs( a, x, b, y )  bli_zddaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_scdzaxpbyjs( a, x, b, y )  bli_dzdaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dcdzaxpbyjs( a, x, b, y )  bli_dzdaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ccdzaxpbyjs( a, x, b, y )  bli_zzdaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zcdzaxpbyjs( a, x, b, y )  bli_zzdaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_szdzaxpbyjs( a, x, b, y )  bli_dzdaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dzdzaxpbyjs( a, x, b, y )  bli_dzdaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_czdzaxpbyjs( a, x, b, y )  bli_zzdaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zzdzaxpbyjs( a, x, b, y )  bli_zzdaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ssdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dsdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_csdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zsdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sddzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dddzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cddzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zddzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_scdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dcdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ccdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zcdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_szdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dzdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_czdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zzdzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_ssczaxpbyjs( a, x, b, y )  bli_ddzaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dsczaxpbyjs( a, x, b, y )  bli_ddzaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_csczaxpbyjs( a, x, b, y )  bli_zdzaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zsczaxpbyjs( a, x, b, y )  bli_zdzaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_sdczaxpbyjs( a, x, b, y )  bli_ddzaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ddczaxpbyjs( a, x, b, y )  bli_ddzaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cdczaxpbyjs( a, x, b, y )  bli_zdzaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zdczaxpbyjs( a, x, b, y )  bli_zdzaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_scczaxpbyjs( a, x, b, y )  bli_dzzaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dcczaxpbyjs( a, x, b, y )  bli_dzzaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ccczaxpbyjs( a, x, b, y )    bli_zaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zcczaxpbyjs( a, x, b, y )    bli_zaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_szczaxpbyjs( a, x, b, y )  bli_dzzaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dzczaxpbyjs( a, x, b, y )  bli_dzzaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_czczaxpbyjs( a, x, b, y )    bli_zaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zzczaxpbyjs( a, x, b, y )    bli_zaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ssczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dsczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_csczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zsczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sdczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ddczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cdczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zdczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_scczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dcczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ccczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zcczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_szczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dzczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_czczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zzczaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_sszzaxpbyjs( a, x, b, y )  bli_ddzaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dszzaxpbyjs( a, x, b, y )  bli_ddzaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cszzaxpbyjs( a, x, b, y )  bli_zdzaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zszzaxpbyjs( a, x, b, y )  bli_zdzaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_sdzzaxpbyjs( a, x, b, y )  bli_ddzaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ddzzaxpbyjs( a, x, b, y )  bli_ddzaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cdzzaxpbyjs( a, x, b, y )  bli_zdzaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zdzzaxpbyjs( a, x, b, y )  bli_zdzaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_sczzaxpbyjs( a, x, b, y )  bli_dzzaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dczzaxpbyjs( a, x, b, y )  bli_dzzaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cczzaxpbyjs( a, x, b, y )    bli_zaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zczzaxpbyjs( a, x, b, y )    bli_zaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_szzzaxpbyjs( a, x, b, y )  bli_dzzaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dzzzaxpbyjs( a, x, b, y )  bli_dzzaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_czzzaxpbyjs( a, x, b, y )    bli_zaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zzzzaxpbyjs( a, x, b, y )    bli_zaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sszzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dszzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cszzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zszzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sdzzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ddzzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cdzzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zdzzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sczzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dczzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cczzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zczzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_szzzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dzzzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_czzzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zzzzaxpbyjs( a, x, b, y )  bli_cxaxpbyjris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
 
 #else // ifdef BLIS_ENABLE_C99_COMPLEX
 
@@ -11755,96 +12547,95 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 // - The second char encodes the type of x.
 // - The third char encodes the type of y.
 
-
 // -- (axy) = (??s) ------------------------------------------------------------
 
-#define bli_sssscal2s( a, x, y )  bli_sscal2ris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
-#define bli_dssscal2s( a, x, y )  bli_sscal2ris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
-#define bli_cssscal2s( a, x, y )  bli_sscal2ris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
-#define bli_zssscal2s( a, x, y )  bli_sscal2ris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
+#define bli_sssscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
+#define bli_dssscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
+#define bli_cssscal2s( a, x, y )  bli_rxscal2ris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
+#define bli_zssscal2s( a, x, y )  bli_rxscal2ris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
 
-#define bli_sdsscal2s( a, x, y )  bli_sscal2ris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_ddsscal2s( a, x, y )  bli_sscal2ris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_cdsscal2s( a, x, y )  bli_sscal2ris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_zdsscal2s( a, x, y )  bli_sscal2ris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_sdsscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_ddsscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_cdsscal2s( a, x, y )  bli_rxscal2ris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_zdsscal2s( a, x, y )  bli_rxscal2ris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
 
-#define bli_scsscal2s( a, x, y )  bli_sscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_dcsscal2s( a, x, y )  bli_sscal2ris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_ccsscal2s( a, x, y )  bli_sscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_zcsscal2s( a, x, y )  bli_sscal2ris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_scsscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_dcsscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_ccsscal2s( a, x, y )  bli_roscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_zcsscal2s( a, x, y )  bli_roscal2ris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
 
-#define bli_szsscal2s( a, x, y )  bli_sscal2ris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_dzsscal2s( a, x, y )  bli_sscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_czsscal2s( a, x, y )  bli_sscal2ris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_zzsscal2s( a, x, y )  bli_sscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_szsscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_dzsscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_czsscal2s( a, x, y )  bli_roscal2ris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_zzsscal2s( a, x, y )  bli_roscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
 
 // -- (axy) = (??d) ------------------------------------------------------------
 
-#define bli_ssdscal2s( a, x, y )  bli_dscal2ris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_dsdscal2s( a, x, y )  bli_dscal2ris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_csdscal2s( a, x, y )  bli_dscal2ris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_zsdscal2s( a, x, y )  bli_dscal2ris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_ssdscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_dsdscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_csdscal2s( a, x, y )  bli_rxscal2ris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_zsdscal2s( a, x, y )  bli_rxscal2ris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
 
-#define bli_sddscal2s( a, x, y )  bli_dscal2ris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_dddscal2s( a, x, y )  bli_dscal2ris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_cddscal2s( a, x, y )  bli_dscal2ris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_zddscal2s( a, x, y )  bli_dscal2ris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_sddscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_dddscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_cddscal2s( a, x, y )  bli_rxscal2ris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_zddscal2s( a, x, y )  bli_rxscal2ris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
 
-#define bli_scdscal2s( a, x, y )  bli_dscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_dcdscal2s( a, x, y )  bli_dscal2ris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_ccdscal2s( a, x, y )  bli_dscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_zcdscal2s( a, x, y )  bli_dscal2ris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_scdscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_dcdscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_ccdscal2s( a, x, y )  bli_roscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_zcdscal2s( a, x, y )  bli_roscal2ris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
 
-#define bli_szdscal2s( a, x, y )  bli_dscal2ris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_dzdscal2s( a, x, y )  bli_dscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_czdscal2s( a, x, y )  bli_dscal2ris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_zzdscal2s( a, x, y )  bli_dscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_szdscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_dzdscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_czdscal2s( a, x, y )  bli_roscal2ris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_zzdscal2s( a, x, y )  bli_roscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
 
 #ifndef BLIS_ENABLE_C99_COMPLEX
 
 // -- (axy) = (??c) ------------------------------------------------------------
 
-#define bli_sscscal2s( a, x, y )  bli_sscal2ris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
-#define bli_dscscal2s( a, x, y )  bli_sscal2ris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
-#define bli_cscscal2s( a, x, y )  bli_cscal2ris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
-#define bli_zscscal2s( a, x, y )  bli_cscal2ris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
+#define bli_sscscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
+#define bli_dscscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
+#define bli_cscscal2s( a, x, y )  bli_rcscal2ris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
+#define bli_zscscal2s( a, x, y )  bli_rcscal2ris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
 
-#define bli_sdcscal2s( a, x, y )  bli_sscal2ris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_ddcscal2s( a, x, y )  bli_sscal2ris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_cdcscal2s( a, x, y )  bli_cscal2ris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_zdcscal2s( a, x, y )  bli_cscal2ris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_sdcscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_ddcscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_cdcscal2s( a, x, y )  bli_rcscal2ris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_zdcscal2s( a, x, y )  bli_rcscal2ris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
 
-#define bli_sccscal2s( a, x, y )  bli_scscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_dccscal2s( a, x, y )  bli_scscal2ris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_cccscal2s( a, x, y )   bli_cscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_zccscal2s( a, x, y )   bli_cscal2ris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_sccscal2s( a, x, y )  bli_crscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_dccscal2s( a, x, y )  bli_crscal2ris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_cccscal2s( a, x, y )  bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_zccscal2s( a, x, y )  bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
 
-#define bli_szcscal2s( a, x, y )  bli_scscal2ris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_dzcscal2s( a, x, y )  bli_scscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_czcscal2s( a, x, y )   bli_cscal2ris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_zzcscal2s( a, x, y )   bli_cscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_szcscal2s( a, x, y )  bli_crscal2ris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_dzcscal2s( a, x, y )  bli_crscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_czcscal2s( a, x, y )  bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_zzcscal2s( a, x, y )  bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
 
 // -- (axy) = (??z) ------------------------------------------------------------
 
-#define bli_sszscal2s( a, x, y )  bli_dscal2ris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_dszscal2s( a, x, y )  bli_dscal2ris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_cszscal2s( a, x, y )  bli_zscal2ris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_zszscal2s( a, x, y )  bli_zscal2ris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_sszscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_dszscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_cszscal2s( a, x, y )  bli_rcscal2ris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_zszscal2s( a, x, y )  bli_rcscal2ris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
 
-#define bli_sdzscal2s( a, x, y )  bli_dscal2ris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_ddzscal2s( a, x, y )  bli_dscal2ris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_cdzscal2s( a, x, y )  bli_zscal2ris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_zdzscal2s( a, x, y )  bli_zscal2ris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_sdzscal2s( a, x, y )  bli_rxscal2ris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_ddzscal2s( a, x, y )  bli_rxscal2ris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_cdzscal2s( a, x, y )  bli_rcscal2ris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_zdzscal2s( a, x, y )  bli_rcscal2ris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
 
-#define bli_sczscal2s( a, x, y )  bli_dzscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_dczscal2s( a, x, y )  bli_dzscal2ris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_cczscal2s( a, x, y )   bli_zscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_zczscal2s( a, x, y )   bli_zscal2ris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_sczscal2s( a, x, y )  bli_crscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_dczscal2s( a, x, y )  bli_crscal2ris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_cczscal2s( a, x, y )  bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_zczscal2s( a, x, y )  bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
 
-#define bli_szzscal2s( a, x, y )  bli_dzscal2ris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_dzzscal2s( a, x, y )  bli_dzscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_czzscal2s( a, x, y )   bli_zscal2ris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_zzzscal2s( a, x, y )   bli_zscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_szzscal2s( a, x, y )  bli_crscal2ris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_dzzscal2s( a, x, y )  bli_crscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_czzscal2s( a, x, y )  bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_zzzscal2s( a, x, y )  bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
 
 #else // ifdef BLIS_ENABLE_C99_COMPLEX
 
@@ -11920,93 +12711,93 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 
 // -- (axy) = (??s) ------------------------------------------------------------
 
-#define bli_sssscal2js( a, x, y )  bli_sscal2jris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
-#define bli_dssscal2js( a, x, y )  bli_sscal2jris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
-#define bli_cssscal2js( a, x, y )  bli_sscal2jris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
-#define bli_zssscal2js( a, x, y )  bli_sscal2jris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
+#define bli_sssscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
+#define bli_dssscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
+#define bli_cssscal2js( a, x, y )  bli_rxscal2jris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
+#define bli_zssscal2js( a, x, y )  bli_rxscal2jris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_sreal(y), bli_simag(y) )
 
-#define bli_sdsscal2js( a, x, y )  bli_sscal2jris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_ddsscal2js( a, x, y )  bli_sscal2jris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_cdsscal2js( a, x, y )  bli_sscal2jris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_zdsscal2js( a, x, y )  bli_sscal2jris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_sdsscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_ddsscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_cdsscal2js( a, x, y )  bli_rxscal2jris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_zdsscal2js( a, x, y )  bli_rxscal2jris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_sreal(y), bli_simag(y) )
 
-#define bli_scsscal2js( a, x, y )  bli_sscal2jris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_dcsscal2js( a, x, y )  bli_sscal2jris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_ccsscal2js( a, x, y )  bli_sscal2jris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_zcsscal2js( a, x, y )  bli_sscal2jris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_scsscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_dcsscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_ccsscal2js( a, x, y )  bli_roscal2jris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_zcsscal2js( a, x, y )  bli_roscal2jris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_sreal(y), bli_simag(y) )
 
-#define bli_szsscal2js( a, x, y )  bli_sscal2jris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_dzsscal2js( a, x, y )  bli_sscal2jris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_czsscal2js( a, x, y )  bli_sscal2jris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
-#define bli_zzsscal2js( a, x, y )  bli_sscal2jris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_szsscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_dzsscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_czsscal2js( a, x, y )  bli_roscal2jris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
+#define bli_zzsscal2js( a, x, y )  bli_roscal2jris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_sreal(y), bli_simag(y) )
 
 // -- (axy) = (??d) ------------------------------------------------------------
 
-#define bli_ssdscal2js( a, x, y )  bli_dscal2jris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_dsdscal2js( a, x, y )  bli_dscal2jris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_csdscal2js( a, x, y )  bli_dscal2jris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_zsdscal2js( a, x, y )  bli_dscal2jris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_ssdscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_dsdscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_csdscal2js( a, x, y )  bli_rxscal2jris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_zsdscal2js( a, x, y )  bli_rxscal2jris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_dreal(y), bli_dimag(y) )
 
-#define bli_sddscal2js( a, x, y )  bli_dscal2jris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_dddscal2js( a, x, y )  bli_dscal2jris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_cddscal2js( a, x, y )  bli_dscal2jris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_zddscal2js( a, x, y )  bli_dscal2jris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_sddscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_dddscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_cddscal2js( a, x, y )  bli_rxscal2jris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_zddscal2js( a, x, y )  bli_rxscal2jris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_dreal(y), bli_dimag(y) )
 
-#define bli_scdscal2js( a, x, y )  bli_dscal2jris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_dcdscal2js( a, x, y )  bli_dscal2jris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_ccdscal2js( a, x, y )  bli_dscal2jris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_zcdscal2js( a, x, y )  bli_dscal2jris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_scdscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_dcdscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_ccdscal2js( a, x, y )  bli_roscal2jris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_zcdscal2js( a, x, y )  bli_roscal2jris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
 
-#define bli_szdscal2js( a, x, y )  bli_dscal2jris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_dzdscal2js( a, x, y )  bli_dscal2jris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_czdscal2js( a, x, y )  bli_dscal2jris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
-#define bli_zzdscal2js( a, x, y )  bli_dscal2jris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_szdscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_dzdscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_czdscal2js( a, x, y )  bli_roscal2jris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
+#define bli_zzdscal2js( a, x, y )  bli_roscal2jris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
 
 #ifndef BLIS_ENABLE_C99_COMPLEX
 
 // -- (axy) = (??c) ------------------------------------------------------------
 
-#define bli_sscscal2js( a, x, y )  bli_sscal2jris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
-#define bli_dscscal2js( a, x, y )  bli_sscal2jris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
-#define bli_cscscal2js( a, x, y )  bli_cscal2jris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
-#define bli_zscscal2js( a, x, y )  bli_cscal2jris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
+#define bli_sscscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
+#define bli_dscscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
+#define bli_cscscal2js( a, x, y )  bli_rcscal2jris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
+#define bli_zscscal2js( a, x, y )  bli_rcscal2jris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
 
-#define bli_sdcscal2js( a, x, y )  bli_sscal2jris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_ddcscal2js( a, x, y )  bli_sscal2jris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_cdcscal2js( a, x, y )  bli_cscal2jris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_zdcscal2js( a, x, y )  bli_cscal2jris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_sdcscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_ddcscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_cdcscal2js( a, x, y )  bli_rcscal2jris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_zdcscal2js( a, x, y )  bli_rcscal2jris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
 
-#define bli_sccscal2js( a, x, y )  bli_scscal2jris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_dccscal2js( a, x, y )  bli_scscal2jris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_cccscal2js( a, x, y )   bli_cscal2jris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_zccscal2js( a, x, y )   bli_cscal2jris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_sccscal2js( a, x, y )  bli_crscal2jris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_dccscal2js( a, x, y )  bli_crscal2jris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_cccscal2js( a, x, y )  bli_cxscal2jris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_zccscal2js( a, x, y )  bli_cxscal2jris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
 
-#define bli_szcscal2js( a, x, y )  bli_scscal2jris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_dzcscal2js( a, x, y )  bli_scscal2jris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_czcscal2js( a, x, y )   bli_cscal2jris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
-#define bli_zzcscal2js( a, x, y )   bli_cscal2jris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_szcscal2js( a, x, y )  bli_crscal2jris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_dzcscal2js( a, x, y )  bli_crscal2jris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_czcscal2js( a, x, y )  bli_cxscal2jris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
+#define bli_zzcscal2js( a, x, y )  bli_cxscal2jris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
 
 // -- (axy) = (??z) ------------------------------------------------------------
 
-#define bli_sszscal2js( a, x, y )  bli_dscal2jris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_dszscal2js( a, x, y )  bli_dscal2jris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_cszscal2js( a, x, y )  bli_zscal2jris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_zszscal2js( a, x, y )  bli_zscal2jris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_sszscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_dszscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_cszscal2js( a, x, y )  bli_rcscal2jris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_zszscal2js( a, x, y )  bli_rcscal2jris( bli_zreal(a), bli_zimag(a), bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
 
-#define bli_sdzscal2js( a, x, y )  bli_dscal2jris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_ddzscal2js( a, x, y )  bli_dscal2jris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_cdzscal2js( a, x, y )  bli_zscal2jris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_zdzscal2js( a, x, y )  bli_zscal2jris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_sdzscal2js( a, x, y )  bli_rxscal2jris( bli_sreal(a), bli_simag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_ddzscal2js( a, x, y )  bli_rxscal2jris( bli_dreal(a), bli_dimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_cdzscal2js( a, x, y )  bli_rcscal2jris( bli_creal(a), bli_cimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_zdzscal2js( a, x, y )  bli_rcscal2jris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
 
-#define bli_sczscal2js( a, x, y )  bli_dzscal2jris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_dczscal2js( a, x, y )  bli_dzscal2jris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_cczscal2js( a, x, y )   bli_zscal2jris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_zczscal2js( a, x, y )   bli_zscal2jris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_sczscal2js( a, x, y )  bli_crscal2jris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_dczscal2js( a, x, y )  bli_crscal2jris( bli_dreal(a), bli_dimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_cczscal2js( a, x, y )  bli_cxscal2jris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_zczscal2js( a, x, y )  bli_cxscal2jris( bli_zreal(a), bli_zimag(a), bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
 
-#define bli_szzscal2js( a, x, y )  bli_dzscal2jris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_dzzscal2js( a, x, y )  bli_dzscal2jris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_czzscal2js( a, x, y )   bli_zscal2jris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
-#define bli_zzzscal2js( a, x, y )   bli_zscal2jris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_szzscal2js( a, x, y )  bli_crscal2jris( bli_sreal(a), bli_simag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_dzzscal2js( a, x, y )  bli_crscal2jris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_czzscal2js( a, x, y )  bli_cxscal2jris( bli_creal(a), bli_cimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
+#define bli_zzzscal2js( a, x, y )  bli_cxscal2jris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
 
 #else // ifdef BLIS_ENABLE_C99_COMPLEX
 
@@ -12452,96 +13243,95 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 // - The second char encodes the type of b.
 // - The third char encodes the type of y.
 
-
 // -- (xby) = (??s) ------------------------------------------------------------
 
-#define bli_sssxpbys( x, b, y )  bli_sxpbyris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dssxpbys( x, b, y )  bli_sxpbyris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cssxpbys( x, b, y )  bli_sxpbyris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zssxpbys( x, b, y )  bli_sxpbyris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sssxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dssxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cssxpbys( x, b, y )  bli_rxxpbyris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zssxpbys( x, b, y )  bli_rxxpbyris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_sdsxpbys( x, b, y )  bli_sxpbyris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ddsxpbys( x, b, y )  bli_sxpbyris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cdsxpbys( x, b, y )  bli_sxpbyris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zdsxpbys( x, b, y )  bli_sxpbyris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sdsxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ddsxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cdsxpbys( x, b, y )  bli_rxxpbyris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zdsxpbys( x, b, y )  bli_rxxpbyris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_scsxpbys( x, b, y )  bli_sxpbyris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dcsxpbys( x, b, y )  bli_sxpbyris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ccsxpbys( x, b, y )  bli_sxpbyris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zcsxpbys( x, b, y )  bli_sxpbyris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_scsxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dcsxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ccsxpbys( x, b, y )  bli_rxxpbyris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zcsxpbys( x, b, y )  bli_rxxpbyris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_szsxpbys( x, b, y )  bli_sxpbyris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dzsxpbys( x, b, y )  bli_sxpbyris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_czsxpbys( x, b, y )  bli_sxpbyris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zzsxpbys( x, b, y )  bli_sxpbyris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_szsxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dzsxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_czsxpbys( x, b, y )  bli_rxxpbyris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zzsxpbys( x, b, y )  bli_rxxpbyris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
 
 // -- (xby) = (??d) ------------------------------------------------------------
 
-#define bli_ssdxpbys( x, b, y )  bli_dxpbyris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dsdxpbys( x, b, y )  bli_dxpbyris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_csdxpbys( x, b, y )  bli_dxpbyris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zsdxpbys( x, b, y )  bli_dxpbyris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ssdxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dsdxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_csdxpbys( x, b, y )  bli_rxxpbyris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zsdxpbys( x, b, y )  bli_rxxpbyris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_sddxpbys( x, b, y )  bli_dxpbyris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dddxpbys( x, b, y )  bli_dxpbyris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cddxpbys( x, b, y )  bli_dxpbyris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zddxpbys( x, b, y )  bli_dxpbyris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sddxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dddxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cddxpbys( x, b, y )  bli_rxxpbyris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zddxpbys( x, b, y )  bli_rxxpbyris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_scdxpbys( x, b, y )  bli_dxpbyris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dcdxpbys( x, b, y )  bli_dxpbyris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ccdxpbys( x, b, y )  bli_dxpbyris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zcdxpbys( x, b, y )  bli_dxpbyris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_scdxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dcdxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ccdxpbys( x, b, y )  bli_rxxpbyris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zcdxpbys( x, b, y )  bli_rxxpbyris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_szdxpbys( x, b, y )  bli_dxpbyris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dzdxpbys( x, b, y )  bli_dxpbyris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_czdxpbys( x, b, y )  bli_dxpbyris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zzdxpbys( x, b, y )  bli_dxpbyris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_szdxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dzdxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_czdxpbys( x, b, y )  bli_rxxpbyris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zzdxpbys( x, b, y )  bli_rxxpbyris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
 
 #ifndef BLIS_ENABLE_C99_COMPLEX
 
 // -- (xby) = (??c) ------------------------------------------------------------
 
-#define bli_sscxpbys( x, b, y )   bli_sxpbyris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dscxpbys( x, b, y )   bli_sxpbyris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cscxpbys( x, b, y )  bli_scxpbyris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zscxpbys( x, b, y )  bli_scxpbyris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sscxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dscxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cscxpbys( x, b, y )  bli_crxpbyris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zscxpbys( x, b, y )  bli_crxpbyris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_sdcxpbys( x, b, y )   bli_sxpbyris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ddcxpbys( x, b, y )   bli_sxpbyris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cdcxpbys( x, b, y )  bli_scxpbyris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zdcxpbys( x, b, y )  bli_scxpbyris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sdcxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ddcxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cdcxpbys( x, b, y )  bli_crxpbyris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zdcxpbys( x, b, y )  bli_crxpbyris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_sccxpbys( x, b, y )  bli_cxpbyris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dccxpbys( x, b, y )  bli_cxpbyris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cccxpbys( x, b, y )  bli_cxpbyris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zccxpbys( x, b, y )  bli_cxpbyris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sccxpbys( x, b, y )  bli_cxxpbyris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dccxpbys( x, b, y )  bli_cxxpbyris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cccxpbys( x, b, y )  bli_cxxpbyris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zccxpbys( x, b, y )  bli_cxxpbyris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_szcxpbys( x, b, y )  bli_cxpbyris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dzcxpbys( x, b, y )  bli_cxpbyris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_czcxpbys( x, b, y )  bli_cxpbyris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zzcxpbys( x, b, y )  bli_cxpbyris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_szcxpbys( x, b, y )  bli_cxxpbyris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dzcxpbys( x, b, y )  bli_cxxpbyris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_czcxpbys( x, b, y )  bli_cxxpbyris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zzcxpbys( x, b, y )  bli_cxxpbyris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
 
 // -- (xby) = (??z) ------------------------------------------------------------
 
-#define bli_sszxpbys( x, b, y )   bli_dxpbyris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dszxpbys( x, b, y )   bli_dxpbyris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cszxpbys( x, b, y )  bli_dzxpbyris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zszxpbys( x, b, y )  bli_dzxpbyris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sszxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dszxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cszxpbys( x, b, y )  bli_crxpbyris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zszxpbys( x, b, y )  bli_crxpbyris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_sdzxpbys( x, b, y )   bli_dxpbyris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ddzxpbys( x, b, y )   bli_dxpbyris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cdzxpbys( x, b, y )  bli_dzxpbyris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zdzxpbys( x, b, y )  bli_dzxpbyris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sdzxpbys( x, b, y )  bli_rxxpbyris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ddzxpbys( x, b, y )  bli_rxxpbyris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cdzxpbys( x, b, y )  bli_crxpbyris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zdzxpbys( x, b, y )  bli_crxpbyris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_sczxpbys( x, b, y )  bli_zxpbyris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dczxpbys( x, b, y )  bli_zxpbyris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cczxpbys( x, b, y )  bli_zxpbyris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zczxpbys( x, b, y )  bli_zxpbyris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sczxpbys( x, b, y )  bli_cxxpbyris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dczxpbys( x, b, y )  bli_cxxpbyris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cczxpbys( x, b, y )  bli_cxxpbyris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zczxpbys( x, b, y )  bli_cxxpbyris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_szzxpbys( x, b, y )  bli_zxpbyris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dzzxpbys( x, b, y )  bli_zxpbyris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_czzxpbys( x, b, y )  bli_zxpbyris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zzzxpbys( x, b, y )  bli_zxpbyris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_szzxpbys( x, b, y )  bli_cxxpbyris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dzzxpbys( x, b, y )  bli_cxxpbyris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_czzxpbys( x, b, y )  bli_cxxpbyris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zzzxpbys( x, b, y )  bli_cxxpbyris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
 
 #else // ifdef BLIS_ENABLE_C99_COMPLEX
 
@@ -12614,142 +13404,141 @@ static void bli_obj_reflect_about_diag( obj_t* obj )
 // - The second char encodes the type of b.
 // - The third char encodes the type of y.
 
-
 // -- (xby) = (??s) ------------------------------------------------------------
 
-#define bli_sssxpbyjs( x, b, y )  bli_sxpbyjris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dssxpbyjs( x, b, y )  bli_sxpbyjris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cssxpbyjs( x, b, y )  bli_sxpbyjris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zssxpbyjs( x, b, y )  bli_sxpbyjris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sssxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dssxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cssxpbyjs( x, b, y )  bli_rxxpbyjris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zssxpbyjs( x, b, y )  bli_rxxpbyjris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_sdsxpbyjs( x, b, y )  bli_sxpbyjris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ddsxpbyjs( x, b, y )  bli_sxpbyjris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_cdsxpbyjs( x, b, y )  bli_sxpbyjris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zdsxpbyjs( x, b, y )  bli_sxpbyjris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_sdsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ddsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_cdsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zdsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_scsxpbyjs( x, b, y )  bli_sxpbyjris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dcsxpbyjs( x, b, y )  bli_sxpbyjris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_ccsxpbyjs( x, b, y )  bli_sxpbyjris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zcsxpbyjs( x, b, y )  bli_sxpbyjris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_scsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dcsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_ccsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zcsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_sreal(y), bli_simag(y) )
 
-#define bli_szsxpbyjs( x, b, y )  bli_sxpbyjris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_dzsxpbyjs( x, b, y )  bli_sxpbyjris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_czsxpbyjs( x, b, y )  bli_sxpbyjris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
-#define bli_zzsxpbyjs( x, b, y )  bli_sxpbyjris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_szsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_dzsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_czsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
+#define bli_zzsxpbyjs( x, b, y )  bli_rxxpbyjris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_sreal(y), bli_simag(y) )
 
 // -- (xby) = (??d) ------------------------------------------------------------
 
-#define bli_ssdxpbyjs( x, b, y )  bli_dxpbyjris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dsdxpbyjs( x, b, y )  bli_dxpbyjris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_csdxpbyjs( x, b, y )  bli_dxpbyjris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zsdxpbyjs( x, b, y )  bli_dxpbyjris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ssdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dsdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_csdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zsdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_sddxpbyjs( x, b, y )  bli_dxpbyjris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dddxpbyjs( x, b, y )  bli_dxpbyjris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_cddxpbyjs( x, b, y )  bli_dxpbyjris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zddxpbyjs( x, b, y )  bli_dxpbyjris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_sddxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dddxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_cddxpbyjs( x, b, y )  bli_rxxpbyjris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zddxpbyjs( x, b, y )  bli_rxxpbyjris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_scdxpbyjs( x, b, y )  bli_dxpbyjris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dcdxpbyjs( x, b, y )  bli_dxpbyjris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_ccdxpbyjs( x, b, y )  bli_dxpbyjris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zcdxpbyjs( x, b, y )  bli_dxpbyjris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_scdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dcdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_ccdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zcdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_dreal(y), bli_dimag(y) )
 
-#define bli_szdxpbyjs( x, b, y )  bli_dxpbyjris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_dzdxpbyjs( x, b, y )  bli_dxpbyjris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_czdxpbyjs( x, b, y )  bli_dxpbyjris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
-#define bli_zzdxpbyjs( x, b, y )  bli_dxpbyjris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_szdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_dzdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_czdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
+#define bli_zzdxpbyjs( x, b, y )  bli_rxxpbyjris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_dreal(y), bli_dimag(y) )
 
 #ifndef BLIS_ENABLE_C99_COMPLEX
 
 // -- (xby) = (??c) ------------------------------------------------------------
 
-#define bli_sscxpbyjs( x, b, y )   bli_sxpbyjris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dscxpbyjs( x, b, y )   bli_sxpbyjris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cscxpbyjs( x, b, y )  bli_scxpbyjris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zscxpbyjs( x, b, y )  bli_scxpbyjris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sscxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dscxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cscxpbyjs( x, b, y )  bli_crxpbyjris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zscxpbyjs( x, b, y )  bli_crxpbyjris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_sdcxpbyjs( x, b, y )   bli_sxpbyjris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_ddcxpbyjs( x, b, y )   bli_sxpbyjris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cdcxpbyjs( x, b, y )  bli_scxpbyjris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zdcxpbyjs( x, b, y )  bli_scxpbyjris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sdcxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_ddcxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cdcxpbyjs( x, b, y )  bli_crxpbyjris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zdcxpbyjs( x, b, y )  bli_crxpbyjris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_sccxpbyjs( x, b, y )  bli_cxpbyjris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dccxpbyjs( x, b, y )  bli_cxpbyjris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_cccxpbyjs( x, b, y )  bli_cxpbyjris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zccxpbyjs( x, b, y )  bli_cxpbyjris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_sccxpbyjs( x, b, y )  bli_cxxpbyjris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dccxpbyjs( x, b, y )  bli_cxxpbyjris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_cccxpbyjs( x, b, y )  bli_cxxpbyjris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zccxpbyjs( x, b, y )  bli_cxxpbyjris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_creal(y), bli_cimag(y) )
 
-#define bli_szcxpbyjs( x, b, y )  bli_cxpbyjris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_dzcxpbyjs( x, b, y )  bli_cxpbyjris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_czcxpbyjs( x, b, y )  bli_cxpbyjris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
-#define bli_zzcxpbyjs( x, b, y )  bli_cxpbyjris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_szcxpbyjs( x, b, y )  bli_cxxpbyjris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_dzcxpbyjs( x, b, y )  bli_cxxpbyjris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_czcxpbyjs( x, b, y )  bli_cxxpbyjris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
+#define bli_zzcxpbyjs( x, b, y )  bli_cxxpbyjris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_creal(y), bli_cimag(y) )
 
 // -- (xby) = (??z) ------------------------------------------------------------
 
-#define bli_sszxpbyjs( x, b, y )   bli_dxpbyjris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dszxpbyjs( x, b, y )   bli_dxpbyjris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cszxpbyjs( x, b, y )  bli_dzxpbyjris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zszxpbyjs( x, b, y )  bli_dzxpbyjris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sszxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dszxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cszxpbyjs( x, b, y )  bli_crxpbyjris( bli_creal(x), bli_cimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zszxpbyjs( x, b, y )  bli_crxpbyjris( bli_zreal(x), bli_zimag(x), bli_sreal(b), bli_simag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_sdzxpbyjs( x, b, y )   bli_dxpbyjris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_ddzxpbyjs( x, b, y )   bli_dxpbyjris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cdzxpbyjs( x, b, y )  bli_dzxpbyjris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zdzxpbyjs( x, b, y )  bli_dzxpbyjris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sdzxpbyjs( x, b, y )  bli_rxxpbyjris( bli_sreal(x), bli_simag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_ddzxpbyjs( x, b, y )  bli_rxxpbyjris( bli_dreal(x), bli_dimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cdzxpbyjs( x, b, y )  bli_crxpbyjris( bli_creal(x), bli_cimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zdzxpbyjs( x, b, y )  bli_crxpbyjris( bli_zreal(x), bli_zimag(x), bli_dreal(b), bli_dimag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_sczxpbyjs( x, b, y )  bli_zxpbyjris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dczxpbyjs( x, b, y )  bli_zxpbyjris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_cczxpbyjs( x, b, y )  bli_zxpbyjris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zczxpbyjs( x, b, y )  bli_zxpbyjris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_sczxpbyjs( x, b, y )  bli_cxxpbyjris( bli_sreal(x), bli_simag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dczxpbyjs( x, b, y )  bli_cxxpbyjris( bli_dreal(x), bli_dimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_cczxpbyjs( x, b, y )  bli_cxxpbyjris( bli_creal(x), bli_cimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zczxpbyjs( x, b, y )  bli_cxxpbyjris( bli_zreal(x), bli_zimag(x), bli_creal(b), bli_cimag(b), bli_zreal(y), bli_zimag(y) )
 
-#define bli_szzxpbyjs( x, b, y )  bli_zxpbyjris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_dzzxpbyjs( x, b, y )  bli_zxpbyjris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_czzxpbyjs( x, b, y )  bli_zxpbyjris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
-#define bli_zzzxpbyjs( x, b, y )  bli_zxpbyjris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_szzxpbyjs( x, b, y )  bli_cxxpbyjris( bli_sreal(x), bli_simag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_dzzxpbyjs( x, b, y )  bli_cxxpbyjris( bli_dreal(x), bli_dimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_czzxpbyjs( x, b, y )  bli_cxxpbyjris( bli_creal(x), bli_cimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
+#define bli_zzzxpbyjs( x, b, y )  bli_cxxpbyjris( bli_zreal(x), bli_zimag(x), bli_zreal(b), bli_zimag(b), bli_zreal(y), bli_zimag(y) )
 
 #else // ifdef BLIS_ENABLE_C99_COMPLEX
 
 // -- (xby) = (??c) ------------------------------------------------------------
 
-#define bli_sscxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_dscxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_cscxpbyjs( x, b, y )  { (y) = conjf(x) + (b) * (y); }
-#define bli_zscxpbyjs( x, b, y )  { (y) =  conj(x) + (b) * (y); }
+#define bli_sscxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_dscxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_cscxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_zscxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
 
-#define bli_sdcxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_ddcxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_cdcxpbyjs( x, b, y )  { (y) = conjf(x) + (b) * (y); }
-#define bli_zdcxpbyjs( x, b, y )  { (y) =  conj(x) + (b) * (y); }
+#define bli_sdcxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_ddcxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_cdcxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_zdcxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
 
-#define bli_sccxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_dccxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_cccxpbyjs( x, b, y )  { (y) = conjf(x) + (b) * (y); }
-#define bli_zccxpbyjs( x, b, y )  { (y) =  conj(x) + (b) * (y); }
+#define bli_sccxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_dccxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_cccxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_zccxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
 
-#define bli_szcxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_dzcxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_czcxpbyjs( x, b, y )  { (y) = conjf(x) + (b) * (y); }
-#define bli_zzcxpbyjs( x, b, y )  { (y) =  conj(x) + (b) * (y); }
+#define bli_szcxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_dzcxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_czcxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_zzcxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
 
 // -- (xby) = (??z) ------------------------------------------------------------
 
-#define bli_sszxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_dszxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_cszxpbyjs( x, b, y )  { (y) = conjf(x) + (b) * (y); }
-#define bli_zszxpbyjs( x, b, y )  { (y) =  conj(x) + (b) * (y); }
+#define bli_sszxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_dszxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_cszxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_zszxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
 
-#define bli_sdzxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_ddzxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_cdzxpbyjs( x, b, y )  { (y) = conjf(x) + (b) * (y); }
-#define bli_zdzxpbyjs( x, b, y )  { (y) =  conj(x) + (b) * (y); }
+#define bli_sdzxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_ddzxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_cdzxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_zdzxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
 
-#define bli_sczxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_dczxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_cczxpbyjs( x, b, y )  { (y) = conjf(x) + (b) * (y); }
-#define bli_zczxpbyjs( x, b, y )  { (y) =  conj(x) + (b) * (y); }
+#define bli_sczxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_dczxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_cczxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_zczxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
 
-#define bli_szzxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_dzzxpbyjs( x, b, y )  { (y) =      (x) + (b) * (y); }
-#define bli_czzxpbyjs( x, b, y )  { (y) = conjf(x) + (b) * (y); }
-#define bli_zzzxpbyjs( x, b, y )  { (y) =  conj(x) + (b) * (y); }
+#define bli_szzxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_dzzxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_czzxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
+#define bli_zzzxpbyjs( x, b, y )  { (y) = (x) + (b) * (y); }
 
 #endif // BLIS_ENABLE_C99_COMPLEX
 
@@ -13442,43 +14231,37 @@ static void bli_zadds_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, c
 // - The first char encodes the type of x.
 // - The second char encodes the type of y.
 
-#define bli_sset0s_mxn( m, n, y, rs_y, cs_y ) \
-{ \
-	dim_t _i, _j; \
-\
-	for ( _j = 0; _j < n; ++_j ) \
-	for ( _i = 0; _i < m; ++_i ) \
-	bli_sset0s( *(y + _i*rs_y + _j*cs_y) ); \
+static void bli_sset0s_mxn( const dim_t m, const dim_t n,
+                            float*    restrict y, const inc_t rs_y, const inc_t cs_y )
+{
+	for ( dim_t j = 0; j < n; ++j )
+	for ( dim_t i = 0; i < m; ++i )
+	bli_sset0s( *(y + i*rs_y + j*cs_y) );
 }
 
-#define bli_dset0s_mxn( m, n, y, rs_y, cs_y ) \
-{ \
-	dim_t _i, _j; \
-\
-	for ( _j = 0; _j < n; ++_j ) \
-	for ( _i = 0; _i < m; ++_i ) \
-	bli_dset0s( *(y + _i*rs_y + _j*cs_y) ); \
+static void bli_dset0s_mxn( const dim_t m, const dim_t n,
+                            double*   restrict y, const inc_t rs_y, const inc_t cs_y )
+{
+	for ( dim_t j = 0; j < n; ++j )
+	for ( dim_t i = 0; i < m; ++i )
+	bli_dset0s( *(y + i*rs_y + j*cs_y) );
 }
 
-#define bli_cset0s_mxn( m, n, y, rs_y, cs_y ) \
-{ \
-	dim_t _i, _j; \
-\
-	for ( _j = 0; _j < n; ++_j ) \
-	for ( _i = 0; _i < m; ++_i ) \
-	bli_cset0s( *(y + _i*rs_y + _j*cs_y) ); \
+static void bli_cset0s_mxn( const dim_t m, const dim_t n,
+                            scomplex* restrict y, const inc_t rs_y, const inc_t cs_y )
+{
+	for ( dim_t j = 0; j < n; ++j )
+	for ( dim_t i = 0; i < m; ++i )
+	bli_cset0s( *(y + i*rs_y + j*cs_y) );
 }
 
-#define bli_zset0s_mxn( m, n, y, rs_y, cs_y ) \
-{ \
-	dim_t _i, _j; \
-\
-	for ( _j = 0; _j < n; ++_j ) \
-	for ( _i = 0; _i < m; ++_i ) \
-	bli_zset0s( *(y + _i*rs_y + _j*cs_y) ); \
+static void bli_zset0s_mxn( const dim_t m, const dim_t n,
+                            dcomplex* restrict y, const inc_t rs_y, const inc_t cs_y )
+{
+	for ( dim_t j = 0; j < n; ++j )
+	for ( dim_t i = 0; i < m; ++i )
+	bli_zset0s( *(y + i*rs_y + j*cs_y) );
 }
-
-
 
 #endif
 // end bli_set0s_mxn.h
@@ -13976,7 +14759,7 @@ static void bli_zcopys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 // - The third char encodes the type of y.
 
 
-// xby = ?ss
+// -- (xby) = (?ss) ------------------------------------------------------------
 
 static void bli_sssxpbys_mxn( const dim_t m, const dim_t n, float*    restrict x, const inc_t rs_x, const inc_t cs_x,
                                                             float*    restrict beta,
@@ -14119,7 +14902,7 @@ static void bli_zssxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x
 	}
 }
 
-// xby = ?dd
+// -- (xby) = (?dd) ------------------------------------------------------------
 
 static void bli_sddxpbys_mxn( const dim_t m, const dim_t n, float*    restrict x, const inc_t rs_x, const inc_t cs_x,
                                                             double*   restrict beta,
@@ -14262,7 +15045,7 @@ static void bli_zddxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x
 	}
 }
 
-// xby = ?cc
+// -- (xby) = (?cc) ------------------------------------------------------------
 
 static void bli_sccxpbys_mxn( const dim_t m, const dim_t n, float*    restrict x, const inc_t rs_x, const inc_t cs_x,
                                                             scomplex* restrict beta,
@@ -14405,7 +15188,7 @@ static void bli_zccxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x
 	}
 }
 
-// xby = ?zz
+// -- (xby) = (?zz) ------------------------------------------------------------
 
 static void bli_szzxpbys_mxn( const dim_t m, const dim_t n, float*    restrict x, const inc_t rs_x, const inc_t cs_x,
                                                             dcomplex* restrict beta,
@@ -15003,9 +15786,585 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 
 // end bli_scal2jri3s.h
 
+// begin bli_scal2ri3s_mxn.h
+
+
+#ifndef BLIS_SCAL2RI3S_MXN_H
+#define BLIS_SCAL2RI3S_MXN_H
+
+// scal2ri3s_mxn
+
+static void bli_cscal2ri3s_mxn
+     (
+       const conj_t       conjx,
+       const dim_t        m,
+       const dim_t        n,
+       scomplex* restrict alpha,
+       scomplex* restrict x, const inc_t rs_x, const inc_t cs_x,
+       scomplex* restrict y, const inc_t rs_y, const inc_t cs_y, const inc_t is_y
+     )
+{
+	float*  restrict alpha_r = ( float*  )alpha; \
+	float*  restrict alpha_i = ( float*  )alpha + 1; \
+	float*  restrict x_r     = ( float*  )x; \
+	float*  restrict x_i     = ( float*  )x + 1; \
+	float*  restrict y_r     = ( float*  )y; \
+	float*  restrict y_i     = ( float*  )y +   is_y; \
+	float*  restrict y_rpi   = ( float*  )y + 2*is_y; \
+	const dim_t      incx2   = 2*rs_x; \
+	const dim_t      ldx2    = 2*cs_x; \
+
+	 \
+
+	if ( bli_is_conj( conjx ) )
+	{
+		for ( dim_t j = 0; j < n; ++j )
+		for ( dim_t i = 0; i < m; ++i )
+		{
+			float*  restrict chi11_r   = x_r   + (i  )*incx2 + (j  )*ldx2;
+			float*  restrict chi11_i   = x_i   + (i  )*incx2 + (j  )*ldx2;
+			float*  restrict psi11_r   = y_r   + (i  )*1     + (j  )*cs_y;
+			float*  restrict psi11_i   = y_i   + (i  )*1     + (j  )*cs_y;
+			float*  restrict psi11_rpi = y_rpi + (i  )*1     + (j  )*cs_y;
+
+			bli_cscal2jri3s
+			(
+			  *alpha_r,
+			  *alpha_i,
+			  *chi11_r,
+			  *chi11_i,
+			  *psi11_r,
+			  *psi11_i,
+			  *psi11_rpi
+			);
+		}
+	}
+	else 
+	{
+		for ( dim_t j = 0; j < n; ++j )
+		for ( dim_t i = 0; i < m; ++i )
+		{
+			float*  restrict chi11_r   = x_r   + (i  )*incx2 + (j  )*ldx2;
+			float*  restrict chi11_i   = x_i   + (i  )*incx2 + (j  )*ldx2;
+			float*  restrict psi11_r   = y_r   + (i  )*1     + (j  )*cs_y;
+			float*  restrict psi11_i   = y_i   + (i  )*1     + (j  )*cs_y;
+			float*  restrict psi11_rpi = y_rpi + (i  )*1     + (j  )*cs_y;
+
+			bli_cscal2ri3s
+			(
+			  *alpha_r,
+			  *alpha_i,
+			  *chi11_r,
+			  *chi11_i,
+			  *psi11_r,
+			  *psi11_i,
+			  *psi11_rpi
+			);
+		}
+	}
+}
+
+static void bli_zscal2ri3s_mxn
+     (
+       const conj_t       conjx,
+       const dim_t        m,
+       const dim_t        n,
+       dcomplex* restrict alpha,
+       dcomplex* restrict x, const inc_t rs_x, const inc_t cs_x,
+       dcomplex* restrict y, const inc_t rs_y, const inc_t cs_y, const inc_t is_y
+     )
+{
+	double* restrict alpha_r = ( double* )alpha; \
+	double* restrict alpha_i = ( double* )alpha + 1; \
+	double* restrict x_r     = ( double* )x; \
+	double* restrict x_i     = ( double* )x + 1; \
+	double* restrict y_r     = ( double* )y; \
+	double* restrict y_i     = ( double* )y +   is_y; \
+	double* restrict y_rpi   = ( double* )y + 2*is_y; \
+	const dim_t      incx2   = 2*rs_x; \
+	const dim_t      ldx2    = 2*cs_x; \
+
+	 \
+
+	if ( bli_is_conj( conjx ) )
+	{
+		for ( dim_t j = 0; j < n; ++j )
+		for ( dim_t i = 0; i < m; ++i )
+		{
+			double* restrict chi11_r   = x_r   + (i  )*incx2 + (j  )*ldx2;
+			double* restrict chi11_i   = x_i   + (i  )*incx2 + (j  )*ldx2;
+			double* restrict psi11_r   = y_r   + (i  )*1     + (j  )*cs_y;
+			double* restrict psi11_i   = y_i   + (i  )*1     + (j  )*cs_y;
+			double* restrict psi11_rpi = y_rpi + (i  )*1     + (j  )*cs_y;
+
+			bli_zscal2jri3s
+			(
+			  *alpha_r,
+			  *alpha_i,
+			  *chi11_r,
+			  *chi11_i,
+			  *psi11_r,
+			  *psi11_i,
+			  *psi11_rpi
+			);
+		}
+	}
+	else 
+	{
+		for ( dim_t j = 0; j < n; ++j )
+		for ( dim_t i = 0; i < m; ++i )
+		{
+			double* restrict chi11_r   = x_r   + (i  )*incx2 + (j  )*ldx2;
+			double* restrict chi11_i   = x_i   + (i  )*incx2 + (j  )*ldx2;
+			double* restrict psi11_r   = y_r   + (i  )*1     + (j  )*cs_y;
+			double* restrict psi11_i   = y_i   + (i  )*1     + (j  )*cs_y;
+			double* restrict psi11_rpi = y_rpi + (i  )*1     + (j  )*cs_y;
+
+			bli_zscal2ri3s
+			(
+			  *alpha_r,
+			  *alpha_i,
+			  *chi11_r,
+			  *chi11_i,
+			  *psi11_r,
+			  *psi11_i,
+			  *psi11_rpi
+			);
+		}
+	}
+}
+
+
+#endif
+// end bli_scal2ri3s_mxn.h
+
 
 // -- 4mh/3mh-specific scalar macros --
 
+// ro
+// begin bli_scal2ros.h
+
+
+#ifndef BLIS_SCAL2ROS_H
+#define BLIS_SCAL2ROS_H
+
+// scal2ros
+
+#define bli_cscal2ros( a, x, yr ) \
+{ \
+	(yr) = bli_creal(a) * bli_creal(x) - bli_cimag(a) * bli_cimag(x); \
+}
+
+#define bli_zscal2ros( a, x, yr ) \
+{ \
+	(yr) = bli_zreal(a) * bli_zreal(x) - bli_zimag(a) * bli_zimag(x); \
+}
+
+#define bli_scscal2ros( a, x, yr ) \
+{ \
+	(yr) = bli_creal(a) * bli_creal(x); \
+}
+
+#define bli_dzscal2ros( a, x, yr ) \
+{ \
+	(yr) = bli_zreal(a) * bli_zreal(x); \
+}
+
+
+#endif
+
+// end bli_scal2ros.h
+// begin bli_scal2jros.h
+
+
+#ifndef BLIS_SCAL2JROS_H
+#define BLIS_SCAL2JROS_H
+
+// scal2jros
+
+#define bli_cscal2jros( a, x, yr ) \
+{ \
+	(yr) = bli_creal(a) * bli_creal(x) + bli_cimag(a) * bli_cimag(x); \
+}
+
+#define bli_zscal2jros( a, x, yr ) \
+{ \
+	(yr) = bli_zreal(a) * bli_zreal(x) + bli_zimag(a) * bli_zimag(x); \
+}
+
+#endif
+
+// end bli_scal2jros.h
+
+// io
+// begin bli_scal2ios.h
+
+
+#ifndef BLIS_SCAL2IOS_H
+#define BLIS_SCAL2IOS_H
+
+// scal2ios
+
+#define bli_cscal2ios( a, x, yi ) \
+{ \
+	(yi) = bli_cimag(a) * bli_creal(x) + bli_creal(a) * bli_cimag(x); \
+}
+
+#define bli_zscal2ios( a, x, yi ) \
+{ \
+	(yi) = bli_zimag(a) * bli_zreal(x) + bli_zreal(a) * bli_zimag(x); \
+}
+
+#define bli_scscal2ios( a, x, yi ) \
+{ \
+	(yi) = bli_creal(a) * bli_cimag(x); \
+}
+
+#define bli_dzscal2ios( a, x, yi ) \
+{ \
+	(yi) = bli_zreal(a) * bli_zimag(x); \
+}
+
+#endif
+
+// end bli_scal2ios.h
+// begin bli_scal2jios.h
+
+
+#ifndef BLIS_SCAL2JIOS_H
+#define BLIS_SCAL2JIOS_H
+
+// scal2jios
+
+#define bli_cscal2jios( a, x, yi ) \
+{ \
+	(yi) = bli_cimag(a) * bli_creal(x) - bli_creal(a) * bli_cimag(x); \
+}
+
+#define bli_zscal2jios( a, x, yi ) \
+{ \
+	(yi) = bli_zimag(a) * bli_zreal(x) - bli_zreal(a) * bli_zimag(x); \
+}
+
+
+#endif
+
+// end bli_scal2jios.h
+
+// rpi
+// begin bli_scal2rpis.h
+
+
+#ifndef BLIS_SCAL2RPIS_H
+#define BLIS_SCAL2RPIS_H
+
+// scal2rpis
+
+#define bli_cscal2rpis( a, x, yrpi ) \
+{ \
+	(yrpi) = (bli_creal(a)+bli_cimag(a)) * bli_creal(x) + \
+	         (bli_creal(a)-bli_cimag(a)) * bli_cimag(x); \
+}
+
+#define bli_zscal2rpis( a, x, yrpi ) \
+{ \
+	(yrpi) = (bli_zreal(a)+bli_zimag(a)) * bli_zreal(x) + \
+	         (bli_zreal(a)-bli_zimag(a)) * bli_zimag(x); \
+}
+
+#define bli_scscal2rpis( a, x, yrpi ) \
+{ \
+	(yrpi) = bli_creal(a) * bli_creal(x) + \
+	         bli_creal(a) * bli_cimag(x); \
+}
+
+#define bli_dzscal2rpis( a, x, yrpi ) \
+{ \
+	(yrpi) = bli_zreal(a) * bli_zreal(x) + \
+	         bli_zreal(a) * bli_zimag(x); \
+}
+
+
+#endif
+
+// end bli_scal2rpis.h
+// begin bli_scal2jrpis.h
+
+
+#ifndef BLIS_SCAL2JRPIS_H
+#define BLIS_SCAL2JRPIS_H
+
+// scal2jrpis
+
+#define bli_cscal2jrpis( a, x, yrpi ) \
+{ \
+	(yrpi) = (bli_creal(a)+bli_cimag(a)) * bli_creal(x) + \
+	         (bli_cimag(a)-bli_creal(a)) * bli_cimag(x); \
+}
+
+#define bli_zscal2jrpis( a, x, yrpi ) \
+{ \
+	(yrpi) = (bli_zreal(a)+bli_zimag(a)) * bli_zreal(x) + \
+	         (bli_zimag(a)-bli_zreal(a)) * bli_zimag(x); \
+}
+
+#endif
+
+// end bli_scal2jrpis.h
+
+// begin bli_scal2rihs_mxn.h
+
+
+#ifndef BLIS_SCAL2RIHS_MXN_H
+#define BLIS_SCAL2RIHS_MXN_H
+
+// scal2rihs_mxn
+
+static void bli_cscal2rihs_mxn
+     (
+       const pack_t       schema,
+       const conj_t       conjx,
+       const dim_t        m,
+       const dim_t        n,
+       scomplex* restrict alpha,
+       scomplex* restrict x, const inc_t rs_x, const inc_t cs_x,
+       scomplex* restrict y, const inc_t rs_y, const inc_t cs_y
+     )
+{
+	scomplex* restrict x_r =            x;
+	float*    restrict y_r = ( float*  )y;
+
+	if ( bli_is_ro_packed( schema ) )
+	{
+		if ( bli_is_conj( conjx ) )
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				scomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				float*    restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_cscal2jros
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+		else 
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				scomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				float*    restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_cscal2ros
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+	}
+	else if ( bli_is_io_packed( schema ) )
+	{
+		if ( bli_is_conj( conjx ) )
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				scomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				float*    restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_cscal2jios
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+		else 
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				scomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				float*    restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_cscal2ios
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+	}
+	else 
+	{
+		if ( bli_is_conj( conjx ) )
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				scomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				float*    restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_cscal2jrpis
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+		else 
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				scomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				float*    restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_cscal2rpis
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+	}
+}
+
+static void bli_zscal2rihs_mxn
+     (
+       const pack_t       schema,
+       const conj_t       conjx,
+       const dim_t        m,
+       const dim_t        n,
+       dcomplex* restrict alpha,
+       dcomplex* restrict x, const inc_t rs_x, const inc_t cs_x,
+       dcomplex* restrict y, const inc_t rs_y, const inc_t cs_y
+     )
+{
+	dcomplex* restrict x_r =            x;
+	double*   restrict y_r = ( double* )y;
+
+	if ( bli_is_ro_packed( schema ) )
+	{
+		if ( bli_is_conj( conjx ) )
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				dcomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				double*   restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_zscal2jros
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+		else 
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				dcomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				double*   restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_zscal2ros
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+	}
+	else if ( bli_is_io_packed( schema ) )
+	{
+		if ( bli_is_conj( conjx ) )
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				dcomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				double*   restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_zscal2jios
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+		else 
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				dcomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				double*   restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_zscal2ios
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+	}
+	else 
+	{
+		if ( bli_is_conj( conjx ) )
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				dcomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				double*   restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_zscal2jrpis
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+		else 
+		{
+			for ( dim_t j = 0; j < n; ++j )
+			for ( dim_t i = 0; i < m; ++i )
+			{
+				dcomplex* restrict chi11   = x_r + (i  )*rs_x + (j  )*cs_x;
+				double*   restrict psi11_r = y_r + (i  )*rs_y + (j  )*cs_y;
+
+				bli_zscal2rpis
+				(
+				  *alpha,
+				  *chi11,
+				  *psi11_r 
+				);
+			}
+		}
+	}
+}
+
+
+#endif
+// end bli_scal2rihs_mxn.h
 // begin bli_scal2rihs_mxn_diag.h
 
 
@@ -15485,180 +16844,742 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 #endif
 // end bli_setrihs_mxn_diag.h
 
-// ro
-// begin bli_scal2ros.h
-
-
-#ifndef BLIS_SCAL2ROS_H
-#define BLIS_SCAL2ROS_H
-
-// scal2ros
-
-#define bli_cscal2ros( a, x, yr ) \
-{ \
-	(yr) = bli_creal(a) * bli_creal(x) - bli_cimag(a) * bli_cimag(x); \
-}
-
-#define bli_zscal2ros( a, x, yr ) \
-{ \
-	(yr) = bli_zreal(a) * bli_zreal(x) - bli_zimag(a) * bli_zimag(x); \
-}
-
-#define bli_scscal2ros( a, x, yr ) \
-{ \
-	(yr) = bli_creal(a) * bli_creal(x); \
-}
-
-#define bli_dzscal2ros( a, x, yr ) \
-{ \
-	(yr) = bli_zreal(a) * bli_zreal(x); \
-}
-
-
-#endif
-
-// end bli_scal2ros.h
-// begin bli_scal2jros.h
-
-
-#ifndef BLIS_SCAL2JROS_H
-#define BLIS_SCAL2JROS_H
-
-// scal2jros
-
-#define bli_cscal2jros( a, x, yr ) \
-{ \
-	(yr) = bli_creal(a) * bli_creal(x) + bli_cimag(a) * bli_cimag(x); \
-}
-
-#define bli_zscal2jros( a, x, yr ) \
-{ \
-	(yr) = bli_zreal(a) * bli_zreal(x) + bli_zimag(a) * bli_zimag(x); \
-}
-
-#endif
-
-// end bli_scal2jros.h
-
-// io
-// begin bli_scal2ios.h
-
-
-#ifndef BLIS_SCAL2IOS_H
-#define BLIS_SCAL2IOS_H
-
-// scal2ios
-
-#define bli_cscal2ios( a, x, yi ) \
-{ \
-	(yi) = bli_cimag(a) * bli_creal(x) + bli_creal(a) * bli_cimag(x); \
-}
-
-#define bli_zscal2ios( a, x, yi ) \
-{ \
-	(yi) = bli_zimag(a) * bli_zreal(x) + bli_zreal(a) * bli_zimag(x); \
-}
-
-#define bli_scscal2ios( a, x, yi ) \
-{ \
-	(yi) = bli_creal(a) * bli_cimag(x); \
-}
-
-#define bli_dzscal2ios( a, x, yi ) \
-{ \
-	(yi) = bli_zreal(a) * bli_zimag(x); \
-}
-
-#endif
-
-// end bli_scal2ios.h
-// begin bli_scal2jios.h
-
-
-#ifndef BLIS_SCAL2JIOS_H
-#define BLIS_SCAL2JIOS_H
-
-// scal2jios
-
-#define bli_cscal2jios( a, x, yi ) \
-{ \
-	(yi) = bli_cimag(a) * bli_creal(x) - bli_creal(a) * bli_cimag(x); \
-}
-
-#define bli_zscal2jios( a, x, yi ) \
-{ \
-	(yi) = bli_zimag(a) * bli_zreal(x) - bli_zreal(a) * bli_zimag(x); \
-}
-
-
-#endif
-
-// end bli_scal2jios.h
-
-// rpi
-// begin bli_scal2rpis.h
-
-
-#ifndef BLIS_SCAL2RPIS_H
-#define BLIS_SCAL2RPIS_H
-
-// scal2rpis
-
-#define bli_cscal2rpis( a, x, yrpi ) \
-{ \
-	(yrpi) = (bli_creal(a)+bli_cimag(a)) * bli_creal(x) + \
-	         (bli_creal(a)-bli_cimag(a)) * bli_cimag(x); \
-}
-
-#define bli_zscal2rpis( a, x, yrpi ) \
-{ \
-	(yrpi) = (bli_zreal(a)+bli_zimag(a)) * bli_zreal(x) + \
-	         (bli_zreal(a)-bli_zimag(a)) * bli_zimag(x); \
-}
-
-#define bli_scscal2rpis( a, x, yrpi ) \
-{ \
-	(yrpi) = bli_creal(a) * bli_creal(x) + \
-	         bli_creal(a) * bli_cimag(x); \
-}
-
-#define bli_dzscal2rpis( a, x, yrpi ) \
-{ \
-	(yrpi) = bli_zreal(a) * bli_zreal(x) + \
-	         bli_zreal(a) * bli_zimag(x); \
-}
-
-
-#endif
-
-// end bli_scal2rpis.h
-// begin bli_scal2jrpis.h
-
-
-#ifndef BLIS_SCAL2JRPIS_H
-#define BLIS_SCAL2JRPIS_H
-
-// scal2jrpis
-
-#define bli_cscal2jrpis( a, x, yrpi ) \
-{ \
-	(yrpi) = (bli_creal(a)+bli_cimag(a)) * bli_creal(x) + \
-	         (bli_cimag(a)-bli_creal(a)) * bli_cimag(x); \
-}
-
-#define bli_zscal2jrpis( a, x, yrpi ) \
-{ \
-	(yrpi) = (bli_zreal(a)+bli_zimag(a)) * bli_zreal(x) + \
-	         (bli_zimag(a)-bli_zreal(a)) * bli_zimag(x); \
-}
-
-#endif
-
-// end bli_scal2jrpis.h
-
 
 // -- 1m-specific scalar macros --
 
+// 1e
+// begin bli_copy1es.h
+
+
+#ifndef BLIS_COPY1ES_H
+#define BLIS_COPY1ES_H
+
+// copy1es
+
+// Notes:
+// - The first char encodes the type of x.
+// - The second char encodes the type of y.
+
+#define bli_sscopy1es( a, bri, bir ) {}
+#define bli_dscopy1es( a, bri, bir ) {}
+#define bli_cscopy1es( a, bri, bir ) {}
+#define bli_zscopy1es( a, bri, bir ) {}
+
+#define bli_sdcopy1es( a, bri, bir ) {}
+#define bli_ddcopy1es( a, bri, bir ) {}
+#define bli_cdcopy1es( a, bri, bir ) {}
+#define bli_zdcopy1es( a, bri, bir ) {}
+
+#define bli_sccopy1es( a, bri, bir ) {}
+#define bli_dccopy1es( a, bri, bir ) {}
+#define bli_cccopy1es( a, bri, bir ) \
+{ \
+	bli_cccopyris(  bli_creal(a), bli_cimag(a), bli_creal(bri), bli_cimag(bri) ); \
+	bli_cccopyris( -bli_cimag(a), bli_creal(a), bli_creal(bir), bli_cimag(bir) ); \
+}
+#define bli_zccopy1es( a, bri, bir ) \
+{ \
+	bli_zccopyris(  bli_zreal(a), bli_zimag(a), bli_creal(bri), bli_cimag(bri) ); \
+	bli_zccopyris( -bli_zimag(a), bli_zreal(a), bli_creal(bir), bli_cimag(bir) ); \
+}
+
+#define bli_szcopy1es( a, bri, bir ) {}
+#define bli_dzcopy1es( a, bri, bir ) {}
+#define bli_czcopy1es( a, bri, bir ) \
+{ \
+	bli_czcopyris(  bli_creal(a), bli_cimag(a), bli_zreal(bri), bli_zimag(bri) ); \
+	bli_czcopyris( -bli_cimag(a), bli_creal(a), bli_zreal(bir), bli_zimag(bir) ); \
+}
+#define bli_zzcopy1es( a, bri, bir ) \
+{ \
+	bli_zzcopyris(  bli_zreal(a), bli_zimag(a), bli_zreal(bri), bli_zimag(bri) ); \
+	bli_zzcopyris( -bli_zimag(a), bli_zreal(a), bli_zreal(bir), bli_zimag(bir) ); \
+}
+
+
+#define bli_ccopy1es( a, bri, bir ) bli_cccopy1es( a, bri, bir )
+#define bli_zcopy1es( a, bri, bir ) bli_zzcopy1es( a, bri, bir )
+
+#endif
+
+// end bli_copy1es.h
+// begin bli_copyj1es.h
+
+
+#ifndef BLIS_COPYJ1ES_H
+#define BLIS_COPYJ1ES_H
+
+// copyj1es
+
+// Notes:
+// - The first char encodes the type of x.
+// - The second char encodes the type of y.
+
+#define bli_sscopyj1es( a, bri, bir ) {}
+#define bli_dscopyj1es( a, bri, bir ) {}
+#define bli_cscopyj1es( a, bri, bir ) {}
+#define bli_zscopyj1es( a, bri, bir ) {}
+
+#define bli_sdcopyj1es( a, bri, bir ) {}
+#define bli_ddcopyj1es( a, bri, bir ) {}
+#define bli_cdcopyj1es( a, bri, bir ) {}
+#define bli_zdcopyj1es( a, bri, bir ) {}
+
+#define bli_sccopyj1es( a, bri, bir ) {}
+#define bli_dccopyj1es( a, bri, bir ) {}
+#define bli_cccopyj1es( a, bri, bir ) \
+{ \
+	bli_cccopyris( bli_creal(a), -bli_cimag(a), bli_creal(bri), bli_cimag(bri) ); \
+	bli_cccopyris( bli_cimag(a),  bli_creal(a), bli_creal(bir), bli_cimag(bir) ); \
+}
+#define bli_zccopyj1es( a, bri, bir ) \
+{ \
+	bli_zccopyris( bli_zreal(a), -bli_zimag(a), bli_creal(bri), bli_cimag(bri) ); \
+	bli_zccopyris( bli_zimag(a),  bli_zreal(a), bli_creal(bir), bli_cimag(bir) ); \
+}
+
+#define bli_szcopyj1es( a, bri, bir ) {}
+#define bli_dzcopyj1es( a, bri, bir ) {}
+#define bli_czcopyj1es( a, bri, bir ) \
+{ \
+	bli_czcopyris( bli_creal(a), -bli_cimag(a), bli_zreal(bri), bli_zimag(bri) ); \
+	bli_czcopyris( bli_cimag(a),  bli_creal(a), bli_zreal(bir), bli_zimag(bir) ); \
+}
+#define bli_zzcopyj1es( a, bri, bir ) \
+{ \
+	bli_zzcopyris( bli_zreal(a), -bli_zimag(a), bli_zreal(bri), bli_zimag(bri) ); \
+	bli_zzcopyris( bli_zimag(a),  bli_zreal(a), bli_zreal(bir), bli_zimag(bir) ); \
+}
+
+
+#define bli_ccopyj1es( a, bri, bir ) bli_cccopyj1es( a, bri, bir )
+#define bli_zcopyj1es( a, bri, bir ) bli_zzcopyj1es( a, bri, bir )
+
+#endif
+
+// end bli_copyj1es.h
+
+// begin bli_invert1es.h
+
+
+#ifndef BLIS_INVERT1ES_H
+#define BLIS_INVERT1ES_H
+
+// invert1es
+
+#define bli_cinvert1es( bri, bir ) \
+{ \
+	bli_cinvertris( bli_creal(bri), bli_cimag(bri) ); \
+	bli_ccopyris( bli_creal(bri), -bli_cimag(bri), bli_cimag(bir), bli_creal(bir) ); \
+}
+
+#define bli_zinvert1es( bri, bir ) \
+{ \
+	bli_zinvertris( bli_zreal(bri), bli_zimag(bri) ); \
+	bli_zcopyris( bli_zreal(bri), -bli_zimag(bri), bli_zimag(bir), bli_zreal(bir) ); \
+}
+
+#endif
+
+// end bli_invert1es.h
+
+// begin bli_scal1es.h
+
+
+#ifndef BLIS_SCAL1ES_H
+#define BLIS_SCAL1ES_H
+
+// scal1es
+
+#define bli_cscal1es( a, yri, yir ) \
+{ \
+	bli_cscalris(  bli_creal(a),   bli_cimag(a),   bli_creal(yri), bli_cimag(yri) ); \
+	bli_ccopyris( -bli_cimag(yri), bli_creal(yri), bli_creal(yir), bli_cimag(yir) ); \
+}
+
+#define bli_zscal1es( a, yri, yir ) \
+{ \
+	bli_zscalris(  bli_zreal(a),   bli_zimag(a),   bli_zreal(yri), bli_zimag(yri) ); \
+	bli_zcopyris( -bli_zimag(yri), bli_zreal(yri), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#endif
+
+// end bli_scal1es.h
+
+// begin bli_scal21es.h
+
+
+#ifndef BLIS_SCAL21ES_H
+#define BLIS_SCAL21ES_H
+
+// scal21es
+
+// Notes:
+// - The first char encodes the type of a.
+// - The second char encodes the type of x.
+// - The third char encodes the type of y.
+
+// -- (axy) = (??s) ------------------------------------------------------------
+
+#define bli_sssscal21es( a, x, yri, yir ) {}
+#define bli_sdsscal21es( a, x, yri, yir ) {}
+#define bli_scsscal21es( a, x, yri, yir ) {}
+#define bli_szsscal21es( a, x, yri, yir ) {}
+
+#define bli_dssscal21es( a, x, yri, yir ) {}
+#define bli_ddsscal21es( a, x, yri, yir ) {}
+#define bli_dcsscal21es( a, x, yri, yir ) {}
+#define bli_dzsscal21es( a, x, yri, yir ) {}
+
+#define bli_cssscal21es( a, x, yri, yir ) {}
+#define bli_cdsscal21es( a, x, yri, yir ) {}
+#define bli_ccsscal21es( a, x, yri, yir ) {}
+#define bli_czsscal21es( a, x, yri, yir ) {}
+
+#define bli_zssscal21es( a, x, yri, yir ) {}
+#define bli_zdsscal21es( a, x, yri, yir ) {}
+#define bli_zcsscal21es( a, x, yri, yir ) {}
+#define bli_zzsscal21es( a, x, yri, yir ) {}
+
+// -- (axy) = (??d) ------------------------------------------------------------
+
+#define bli_ssdscal21es( a, x, yri, yir ) {}
+#define bli_sddscal21es( a, x, yri, yir ) {}
+#define bli_scdscal21es( a, x, yri, yir ) {}
+#define bli_szdscal21es( a, x, yri, yir ) {}
+
+#define bli_dsdscal21es( a, x, yri, yir ) {}
+#define bli_dddscal21es( a, x, yri, yir ) {}
+#define bli_dcdscal21es( a, x, yri, yir ) {}
+#define bli_dzdscal21es( a, x, yri, yir ) {}
+
+#define bli_csdscal21es( a, x, yri, yir ) {}
+#define bli_cddscal21es( a, x, yri, yir ) {}
+#define bli_ccdscal21es( a, x, yri, yir ) {}
+#define bli_czdscal21es( a, x, yri, yir ) {}
+
+#define bli_zsdscal21es( a, x, yri, yir ) {}
+#define bli_zddscal21es( a, x, yri, yir ) {}
+#define bli_zcdscal21es( a, x, yri, yir ) {}
+#define bli_zzdscal21es( a, x, yri, yir ) {}
+
+// -- (axy) = (??c) ------------------------------------------------------------
+
+#define bli_sscscal21es( a, x, yri, yir ) {}
+#define bli_sdcscal21es( a, x, yri, yir ) {}
+#define bli_sccscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a),  bli_creal(x), bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), -bli_cimag(x), bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_szcscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a),  bli_zreal(x), bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), -bli_zimag(x), bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_dscscal21es( a, x, yri, yir ) {}
+#define bli_ddcscal21es( a, x, yri, yir ) {}
+#define bli_dccscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a),  bli_creal(x), bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), -bli_cimag(x), bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_dzcscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a),  bli_zreal(x), bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), -bli_zimag(x), bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_cscscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a),  bli_sreal(x), bli_simag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), -bli_simag(x), bli_sreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_cdcscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a),  bli_dreal(x), bli_dimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), -bli_dimag(x), bli_dreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_cccscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a),  bli_creal(x), bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), -bli_cimag(x), bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_czcscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a),  bli_zreal(x), bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), -bli_zimag(x), bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_zscscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a),  bli_sreal(x), bli_simag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), -bli_simag(x), bli_sreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zdcscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a),  bli_dreal(x), bli_dimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), -bli_dimag(x), bli_dreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zccscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a),  bli_creal(x), bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), -bli_cimag(x), bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zzcscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a),  bli_zreal(x), bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), -bli_zimag(x), bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+// -- (axy) = (??z) ------------------------------------------------------------
+
+#define bli_sszscal21es( a, x, yri, yir ) {}
+#define bli_sdzscal21es( a, x, yri, yir ) {}
+#define bli_sczscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a),  bli_creal(x), bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), -bli_cimag(x), bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_szzscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a),  bli_zreal(x), bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), -bli_zimag(x), bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_dszscal21es( a, x, yri, yir ) {}
+#define bli_ddzscal21es( a, x, yri, yir ) {}
+#define bli_dczscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a),  bli_creal(x), bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), -bli_cimag(x), bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_dzzscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a),  bli_zreal(x), bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), -bli_zimag(x), bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_cszscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a),  bli_sreal(x), bli_simag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), -bli_simag(x), bli_sreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_cdzscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a),  bli_dreal(x), bli_dimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), -bli_dimag(x), bli_dreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_cczscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a),  bli_creal(x), bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), -bli_cimag(x), bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_czzscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a),  bli_zreal(x), bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), -bli_zimag(x), bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_zszscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a),  bli_sreal(x), bli_simag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), -bli_simag(x), bli_sreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zdzscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a),  bli_dreal(x), bli_dimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), -bli_dimag(x), bli_dreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zczscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a),  bli_creal(x), bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), -bli_cimag(x), bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zzzscal21es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a),  bli_zreal(x), bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), -bli_zimag(x), bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+
+
+#define bli_cscal21es( a, x, yri, yir ) bli_cccscal21es( a, x, yri, yir )
+#define bli_zscal21es( a, x, yri, yir ) bli_zzzscal21es( a, x, yri, yir )
+
+#endif
+
+// end bli_scal21es.h
+// begin bli_scal2j1es.h
+
+
+#ifndef BLIS_SCAL2J1ES_H
+#define BLIS_SCAL2J1ES_H
+
+// scal2j1es
+
+// Notes:
+// - The first char encodes the type of a.
+// - The second char encodes the type of x.
+// - The third char encodes the type of y.
+
+// -- (axy) = (??s) ------------------------------------------------------------
+
+#define bli_sssscal2j1es( a, x, yri, yir ) {}
+#define bli_sdsscal2j1es( a, x, yri, yir ) {}
+#define bli_scsscal2j1es( a, x, yri, yir ) {}
+#define bli_szsscal2j1es( a, x, yri, yir ) {}
+
+#define bli_dssscal2j1es( a, x, yri, yir ) {}
+#define bli_ddsscal2j1es( a, x, yri, yir ) {}
+#define bli_dcsscal2j1es( a, x, yri, yir ) {}
+#define bli_dzsscal2j1es( a, x, yri, yir ) {}
+
+#define bli_cssscal2j1es( a, x, yri, yir ) {}
+#define bli_cdsscal2j1es( a, x, yri, yir ) {}
+#define bli_ccsscal2j1es( a, x, yri, yir ) {}
+#define bli_czsscal2j1es( a, x, yri, yir ) {}
+
+#define bli_zssscal2j1es( a, x, yri, yir ) {}
+#define bli_zdsscal2j1es( a, x, yri, yir ) {}
+#define bli_zcsscal2j1es( a, x, yri, yir ) {}
+#define bli_zzsscal2j1es( a, x, yri, yir ) {}
+
+// -- (axy) = (??d) ------------------------------------------------------------
+
+#define bli_ssdscal2j1es( a, x, yri, yir ) {}
+#define bli_sddscal2j1es( a, x, yri, yir ) {}
+#define bli_scdscal2j1es( a, x, yri, yir ) {}
+#define bli_szdscal2j1es( a, x, yri, yir ) {}
+
+#define bli_dsdscal2j1es( a, x, yri, yir ) {}
+#define bli_dddscal2j1es( a, x, yri, yir ) {}
+#define bli_dcdscal2j1es( a, x, yri, yir ) {}
+#define bli_dzdscal2j1es( a, x, yri, yir ) {}
+
+#define bli_csdscal2j1es( a, x, yri, yir ) {}
+#define bli_cddscal2j1es( a, x, yri, yir ) {}
+#define bli_ccdscal2j1es( a, x, yri, yir ) {}
+#define bli_czdscal2j1es( a, x, yri, yir ) {}
+
+#define bli_zsdscal2j1es( a, x, yri, yir ) {}
+#define bli_zddscal2j1es( a, x, yri, yir ) {}
+#define bli_zcdscal2j1es( a, x, yri, yir ) {}
+#define bli_zzdscal2j1es( a, x, yri, yir ) {}
+
+// -- (axy) = (??c) ------------------------------------------------------------
+
+#define bli_sscscal2j1es( a, x, yri, yir ) {}
+#define bli_sdcscal2j1es( a, x, yri, yir ) {}
+#define bli_sccscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), -bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), bli_cimag(x),  bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_szcscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), bli_zreal(x), -bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), bli_zimag(x),  bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_dscscal2j1es( a, x, yri, yir ) {}
+#define bli_ddcscal2j1es( a, x, yri, yir ) {}
+#define bli_dccscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), bli_creal(x), -bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), bli_cimag(x),  bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_dzcscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), -bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), bli_zimag(x),  bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_cscscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_sreal(x), -bli_simag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_simag(x),  bli_sreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_cdcscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_dreal(x), -bli_dimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_dimag(x),  bli_dreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_cccscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), -bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_cimag(x),  bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_czcscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_zreal(x), -bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_zimag(x),  bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_zscscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_sreal(x), -bli_simag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_simag(x),  bli_sreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zdcscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_dreal(x), -bli_dimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_dimag(x),  bli_dreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zccscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_creal(x), -bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_cimag(x),  bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zzcscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), -bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_zimag(x),  bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+// -- (axy) = (??z) ------------------------------------------------------------
+
+#define bli_sszscal2j1es( a, x, yri, yir ) {}
+#define bli_sdzscal2j1es( a, x, yri, yir ) {}
+#define bli_sczscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), -bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), bli_cimag(x),  bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_szzscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), bli_zreal(x), -bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_sreal(a), bli_simag(a), bli_zimag(x),  bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_dszscal2j1es( a, x, yri, yir ) {}
+#define bli_ddzscal2j1es( a, x, yri, yir ) {}
+#define bli_dczscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), bli_creal(x), -bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), bli_cimag(x),  bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_dzzscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), -bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_dreal(a), bli_dimag(a), bli_zimag(x),  bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_cszscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_sreal(x), -bli_simag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_simag(x),  bli_sreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_cdzscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_dreal(x), -bli_dimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_dimag(x),  bli_dreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_cczscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), -bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_cimag(x),  bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_czzscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_zreal(x), -bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_zimag(x),  bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+#define bli_zszscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_sreal(x), -bli_simag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_simag(x),  bli_sreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zdzscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_dreal(x), -bli_dimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_dimag(x),  bli_dreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zczscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_creal(x), -bli_cimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_cimag(x),  bli_creal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+#define bli_zzzscal2j1es( a, x, yri, yir ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), -bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_zimag(x),  bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
+}
+
+
+
+#define bli_cscal2j1es( a, x, yri, yir ) bli_cccscal2j1es( a, x, yri, yir )
+#define bli_zscal2j1es( a, x, yri, yir ) bli_zzzscal2j1es( a, x, yri, yir )
+
+#endif
+
+// end bli_scal2j1es.h
+
+// 1r
+// begin bli_copy1rs.h
+
+
+#ifndef BLIS_COPY1RS_H
+#define BLIS_COPY1RS_H
+
+// copy1rs
+
+#define bli_ccopy1rs( a, br, bi ) \
+{ \
+	bli_ccopyris( bli_creal(a), bli_cimag(a), br, bi ); \
+}
+
+#define bli_zcopy1rs( a, br, bi ) \
+{ \
+	bli_zcopyris( bli_zreal(a), bli_zimag(a), br, bi ); \
+}
+
+#endif
+
+// end bli_copy1rs.h
+// begin bli_copyj1rs.h
+
+
+#ifndef BLIS_COPYJ1RS_H
+#define BLIS_COPYJ1RS_H
+
+// copyj1rs
+
+#define bli_ccopyj1rs( a, br, bi ) \
+{ \
+	bli_ccopyjris( bli_creal(a), bli_cimag(a), br, bi ); \
+}
+
+#define bli_zcopyj1rs( a, br, bi ) \
+{ \
+	bli_zcopyjris( bli_zreal(a), bli_zimag(a), br, bi ); \
+}
+
+#endif
+
+// end bli_copyj1rs.h
+
+// begin bli_invert1rs.h
+
+
+#ifndef BLIS_INVERT1RS_H
+#define BLIS_INVERT1RS_H
+
+// invert1rs
+
+#define bli_cinvert1rs( xr, xi )  bli_cinvertris( xr, xi )
+#define bli_zinvert1rs( xr, xi )  bli_zinvertris( xr, xi )
+
+#endif
+// end bli_invert1rs.h
+
+// begin bli_scal1rs.h
+
+
+#ifndef BLIS_SCAL1RS_H
+#define BLIS_SCAL1RS_H
+
+// scal1rs
+
+#define bli_cscal1rs( a, yr, yi ) \
+{ \
+	bli_cscalris( bli_creal(a), bli_cimag(a), yr, yi ); \
+}
+
+#define bli_zscal1rs( a, yr, yi ) \
+{ \
+	bli_zscalris( bli_zreal(a), bli_zimag(a), yr, yi ); \
+}
+
+#define bli_scscal1rs( a, yr, yi ) \
+{ \
+	bli_scscalris( bli_sreal(a), bli_simag(a), yr, yi ); \
+}
+
+#define bli_dzscal1rs( a, yr, yi ) \
+{ \
+	bli_dzscalris( bli_dreal(a), bli_dimag(a), yr, yi ); \
+}
+
+#endif
+
+// end bli_scal1rs.h
+
+// begin bli_scal21rs.h
+
+
+#ifndef BLIS_SCAL21RS_H
+#define BLIS_SCAL21RS_H
+
+// scal21rs
+
+#define bli_cscscal21rs( a, x, yr, yi ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), yr, yi ); \
+}
+
+#define bli_cccscal21rs( a, x, yr, yi ) \
+{ \
+	bli_cxscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), yr, yi ); \
+}
+
+#define bli_zdzscal21rs( a, x, yr, yi ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), yr, yi ); \
+}
+
+#define bli_zzzscal21rs( a, x, yr, yi ) \
+{ \
+	bli_cxscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), yr, yi ); \
+}
+
+
+#define bli_cscal21rs( a, x, yr, yi ) bli_cccscal21rs( a, x, yr, yi )
+#define bli_zscal21rs( a, x, yr, yi ) bli_zzzscal21rs( a, x, yr, yi )
+
+#endif
+
+// end bli_scal21rs.h
+// begin bli_scal2j1rs.h
+
+
+#ifndef BLIS_SCAL2J1RS_H
+#define BLIS_SCAL2J1RS_H
+
+// scal2j1rs
+
+#define bli_cscscal2j1rs( a, x, yr, yi ) \
+{ \
+	bli_cscal2jris( bli_creal(a), bli_cimag(a), bli_sreal(x), bli_simag(x), yr, yi ); \
+}
+
+#define bli_cccscal2j1rs( a, x, yr, yi ) \
+{ \
+	bli_cscal2jris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), yr, yi ); \
+}
+
+#define bli_zdzscal2j1rs( a, x, yr, yi ) \
+{ \
+	bli_zscal2jris( bli_zreal(a), bli_zimag(a), bli_dreal(x), bli_dimag(x), yr, yi ); \
+}
+
+#define bli_zzzscal2j1rs( a, x, yr, yi ) \
+{ \
+	bli_zscal2jris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), yr, yi ); \
+}
+
+
+#define bli_cscal2j1rs( a, x, yr, yi ) bli_cccscal2j1rs( a, x, yr, yi )
+#define bli_zscal2j1rs( a, x, yr, yi ) bli_zzzscal2j1rs( a, x, yr, yi )
+
+#endif
+
+// end bli_scal2j1rs.h
+
+// 1m (1e or 1r) 
 // begin bli_invert1ms_mxn_diag.h
 
 
@@ -15847,6 +17768,176 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 #endif
 // end bli_scal1ms_mxn.h
 
+// begin bli_scal21ms_mxn.h
+
+
+#ifndef BLIS_SCAL21MS_MXN_H
+#define BLIS_SCAL21MS_MXN_H
+
+// scal21ms_mxn
+
+static void bli_cscal21ms_mxn
+     (
+       const pack_t       schema,
+       const conj_t       conjx,
+       const dim_t        m,
+       const dim_t        n,
+       scomplex* restrict alpha,
+       scomplex* restrict x, const inc_t rs_x, const inc_t cs_x,
+       scomplex* restrict y, const inc_t rs_y, const inc_t cs_y, const inc_t ld_y
+     )
+{
+	dim_t i, j;
+
+	
+	if ( bli_is_1e_packed( schema ) )
+	{
+		scomplex* restrict y_ri = y;
+		scomplex* restrict y_ir = y + ld_y/2;
+
+		if ( bli_is_conj( conjx ) )
+		{
+			for ( j = 0; j < n; ++j )
+			for ( i = 0; i < m; ++i )
+			{
+				bli_cscal2j1es( *(alpha),
+				                *(x    + i*rs_x + j*cs_x),
+				                *(y_ri + i*rs_y + j*cs_y),
+				                *(y_ir + i*rs_y + j*cs_y) );
+			}
+		}
+		else 
+		{
+			for ( j = 0; j < n; ++j )
+			for ( i = 0; i < m; ++i )
+			{
+				bli_cscal21es( *(alpha),
+				               *(x    + i*rs_x + j*cs_x),
+				               *(y_ri + i*rs_y + j*cs_y),
+				               *(y_ir + i*rs_y + j*cs_y) );
+			}
+		}
+	}
+	else 
+	{
+		inc_t rs_y2 = rs_y;
+		inc_t cs_y2 = cs_y;
+
+		
+		if         ( rs_y2 == 1 )    { cs_y2 *= 2; }
+		else  { rs_y2 *= 2; }
+
+		float*  restrict y_cast = ( float* )y;
+		float*  restrict y_r    = y_cast;
+		float*  restrict y_i    = y_cast + ld_y;
+
+		if ( bli_is_conj( conjx ) )
+		{
+			for ( j = 0; j < n; ++j )
+			for ( i = 0; i < m; ++i )
+			{
+				bli_cscal2j1rs( *(alpha),
+				                *(x   + i*rs_x  + j*cs_x ),
+				                *(y_r + i*rs_y2 + j*cs_y2),
+				                *(y_i + i*rs_y2 + j*cs_y2) );
+			}
+		}
+		else 
+		{
+			for ( j = 0; j < n; ++j )
+			for ( i = 0; i < m; ++i )
+			{
+				bli_cscal21rs( *(alpha),
+				               *(x   + i*rs_x  + j*cs_x ),
+				               *(y_r + i*rs_y2 + j*cs_y2),
+				               *(y_i + i*rs_y2 + j*cs_y2) );
+			}
+		}
+	}
+}
+
+static void bli_zscal21ms_mxn
+     (
+       const pack_t       schema,
+       const conj_t       conjx,
+       const dim_t        m,
+       const dim_t        n,
+       dcomplex* restrict alpha,
+       dcomplex* restrict x, const inc_t rs_x, const inc_t cs_x,
+       dcomplex* restrict y, const inc_t rs_y, const inc_t cs_y, const inc_t ld_y
+     )
+{
+	dim_t i, j;
+
+	
+	if ( bli_is_1e_packed( schema ) )
+	{
+		dcomplex* restrict y_ri = y;
+		dcomplex* restrict y_ir = y + ld_y/2;
+
+		if ( bli_is_conj( conjx ) )
+		{
+			for ( j = 0; j < n; ++j )
+			for ( i = 0; i < m; ++i )
+			{
+				bli_zscal2j1es( *(alpha),
+				                *(x    + i*rs_x + j*cs_x),
+				                *(y_ri + i*rs_y + j*cs_y),
+				                *(y_ir + i*rs_y + j*cs_y) );
+			}
+		}
+		else 
+		{
+			for ( j = 0; j < n; ++j )
+			for ( i = 0; i < m; ++i )
+			{
+				bli_zscal21es( *(alpha),
+				               *(x    + i*rs_x + j*cs_x),
+				               *(y_ri + i*rs_y + j*cs_y),
+				               *(y_ir + i*rs_y + j*cs_y) );
+			}
+		}
+	}
+	else 
+	{
+		inc_t rs_y2 = rs_y;
+		inc_t cs_y2 = cs_y;
+
+		
+		if         ( rs_y2 == 1 )    { cs_y2 *= 2; }
+		else  { rs_y2 *= 2; }
+
+		double* restrict y_cast = ( double* )y;
+		double* restrict y_r    = y_cast;
+		double* restrict y_i    = y_cast + ld_y;
+
+		if ( bli_is_conj( conjx ) )
+		{
+			for ( j = 0; j < n; ++j )
+			for ( i = 0; i < m; ++i )
+			{
+				bli_zscal2j1rs( *(alpha),
+				                *(x   + i*rs_x  + j*cs_x ),
+				                *(y_r + i*rs_y2 + j*cs_y2),
+				                *(y_i + i*rs_y2 + j*cs_y2) );
+			}
+		}
+		else 
+		{
+			for ( j = 0; j < n; ++j )
+			for ( i = 0; i < m; ++i )
+			{
+				bli_zscal21rs( *(alpha),
+				               *(x   + i*rs_x  + j*cs_x ),
+				               *(y_r + i*rs_y2 + j*cs_y2),
+				               *(y_i + i*rs_y2 + j*cs_y2) );
+			}
+		}
+	}
+}
+
+#endif
+// end bli_scal21ms_mxn.h
 // begin bli_scal21ms_mxn_diag.h
 
 
@@ -15868,10 +17959,10 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 \
 		for ( i = 0; i < min_m_n; ++i ) \
 		{ \
-			bli_scscal21es( *(x        + i*rs_x + i*cs_x), \
-			                *(a), \
-			                *(y_off_ri + i*rs_y + i*cs_y), \
-			                *(y_off_ir + i*rs_y + i*cs_y) ); \
+			bli_cscscal21es( *(a), \
+			                 *(x        + i*rs_x + i*cs_x), \
+			                 *(y_off_ri + i*rs_y + i*cs_y), \
+			                 *(y_off_ir + i*rs_y + i*cs_y) ); \
 		} \
 	} \
 	else  \
@@ -15889,10 +17980,10 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 \
 		for ( i = 0; i < min_m_n; ++i ) \
 		{ \
-			bli_scscal21rs( *(x        + i*rs_x + i*cs_x), \
-			                *(a), \
-			                *(y_off_r + i*rs_y2 + i*cs_y2), \
-			                *(y_off_i + i*rs_y2 + i*cs_y2) ); \
+			bli_cscscal21rs( *(a), \
+			                 *(x       + i*rs_x  + i*cs_x ), \
+			                 *(y_off_r + i*rs_y2 + i*cs_y2), \
+			                 *(y_off_i + i*rs_y2 + i*cs_y2) ); \
 		} \
 	} \
 }
@@ -15910,10 +18001,10 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 \
 		for ( i = 0; i < min_m_n; ++i ) \
 		{ \
-			bli_dzscal21es( *(x        + i*rs_x + i*cs_x), \
-			                *(a), \
-			                *(y_off_ri + i*rs_y + i*cs_y), \
-			                *(y_off_ir + i*rs_y + i*cs_y) ); \
+			bli_zdzscal21es( *(a), \
+			                 *(x        + i*rs_x + i*cs_x), \
+			                 *(y_off_ri + i*rs_y + i*cs_y), \
+			                 *(y_off_ir + i*rs_y + i*cs_y) ); \
 		} \
 	} \
 	else  \
@@ -15931,10 +18022,10 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 \
 		for ( i = 0; i < min_m_n; ++i ) \
 		{ \
-			bli_dzscal21rs( *(x        + i*rs_x + i*cs_x), \
-			                *(a), \
-			                *(y_off_r + i*rs_y2 + i*cs_y2), \
-			                *(y_off_i + i*rs_y2 + i*cs_y2) ); \
+			bli_zdzscal21rs( *(a), \
+			                 *(x       + i*rs_x  + i*cs_x ), \
+			                 *(y_off_r + i*rs_y2 + i*cs_y2), \
+			                 *(y_off_i + i*rs_y2 + i*cs_y2) ); \
 		} \
 	} \
 }
@@ -16224,122 +18315,140 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 	 \
 }
 
-#define bli_cset1ms_mxn( schema, offm, offn, m, n, a, y, rs_y, cs_y, ld_y ) \
-{ \
-	inc_t offm_local = offm; \
-	inc_t offn_local = offn; \
-	dim_t m_local    = m; \
-	dim_t n_local    = n; \
-	inc_t rs_y1      = rs_y; \
-	inc_t cs_y1      = cs_y; \
-	inc_t rs_y2      = rs_y; \
-	inc_t cs_y2      = cs_y; \
-	dim_t i, j; \
-\
-	 \
-	if ( cs_y == 1 ) \
-	{ \
-		bli_swap_incs( &offm_local, &offn_local ); \
-		bli_swap_dims( &m_local, &n_local ); \
-		bli_swap_incs( &rs_y1, &cs_y1 ); \
-		bli_swap_incs( &rs_y2, &cs_y2 ); \
-	} \
-\
-	 \
-	if ( bli_is_1e_packed( schema ) ) \
-	{ \
-		scomplex* restrict y_off_ri = y + (offm_local  )*rs_y1 \
-		                                + (offn_local  )*cs_y1; \
-		scomplex* restrict y_off_ir = y + (offm_local  )*rs_y1 \
-		                                + (offn_local  )*cs_y1 + ld_y/2; \
-\
-		for ( j = 0; j < n_local; ++j ) \
-		for ( i = 0; i < m_local; ++i ) \
-		{ \
-			bli_ccopy1es( *(a), \
-			              *(y_off_ri + i*rs_y1 + j*cs_y1), \
-			              *(y_off_ir + i*rs_y1 + j*cs_y1) ); \
-		} \
-	} \
-	else  \
-	{ \
-		 \
-		if         ( rs_y2 == 1 )    { cs_y2 *= 2; } \
-		else  { rs_y2 *= 2; } \
-\
-		float*    restrict y_cast  = ( float* )y; \
-		float*    restrict y_off_r = y_cast + (offm_local  )*rs_y2 \
-		                                    + (offn_local  )*cs_y2; \
-		float*    restrict y_off_i = y_cast + (offm_local  )*rs_y2 \
-		                                    + (offn_local  )*cs_y2 + ld_y; \
-\
-		for ( j = 0; j < n_local; ++j ) \
-		for ( i = 0; i < m_local; ++i ) \
-		{ \
-			bli_ccopy1rs( *(a), \
-			              *(y_off_r + i*rs_y2 + j*cs_y2), \
-			              *(y_off_i + i*rs_y2 + j*cs_y2) ); \
-		} \
-	} \
+static void bli_cset1ms_mxn
+     (
+       const pack_t       schema,
+       const dim_t        offm,
+       const dim_t        offn,
+       const dim_t        m,
+       const dim_t        n,
+       scomplex* restrict alpha,
+       scomplex* restrict y, const inc_t rs_y, const inc_t cs_y, const inc_t ld_y
+     )
+{
+	inc_t offm_local = offm;
+	inc_t offn_local = offn;
+	dim_t m_local    = m;
+	dim_t n_local    = n;
+	inc_t rs_y1      = rs_y;
+	inc_t cs_y1      = cs_y;
+	inc_t rs_y2      = rs_y;
+	inc_t cs_y2      = cs_y;
+	dim_t i, j;
+
+	
+	if ( cs_y == 1 )
+	{
+		bli_swap_incs( &offm_local, &offn_local );
+		bli_swap_dims( &m_local, &n_local );
+		bli_swap_incs( &rs_y1, &cs_y1 );
+		bli_swap_incs( &rs_y2, &cs_y2 );
+	}
+
+	
+	if ( bli_is_1e_packed( schema ) )
+	{
+		scomplex* restrict y_off_ri = y + (offm_local  )*rs_y1
+		                                + (offn_local  )*cs_y1;
+		scomplex* restrict y_off_ir = y + (offm_local  )*rs_y1
+		                                + (offn_local  )*cs_y1 + ld_y/2;
+
+		for ( j = 0; j < n_local; ++j )
+		for ( i = 0; i < m_local; ++i )
+		{
+			bli_ccopy1es( *(alpha),
+			              *(y_off_ri + i*rs_y1 + j*cs_y1),
+			              *(y_off_ir + i*rs_y1 + j*cs_y1) );
+		}
+	}
+	else 
+	{
+		
+		if         ( rs_y2 == 1 )    { cs_y2 *= 2; }
+		else  { rs_y2 *= 2; }
+
+		float*    restrict y_cast  = ( float* )y;
+		float*    restrict y_off_r = y_cast + (offm_local  )*rs_y2
+		                                    + (offn_local  )*cs_y2;
+		float*    restrict y_off_i = y_cast + (offm_local  )*rs_y2
+		                                    + (offn_local  )*cs_y2 + ld_y;
+
+		for ( j = 0; j < n_local; ++j )
+		for ( i = 0; i < m_local; ++i )
+		{
+			bli_ccopy1rs( *(alpha),
+			              *(y_off_r + i*rs_y2 + j*cs_y2),
+			              *(y_off_i + i*rs_y2 + j*cs_y2) );
+		}
+	}
 }
 
-#define bli_zset1ms_mxn( schema, offm, offn, m, n, a, y, rs_y, cs_y, ld_y ) \
-{ \
-	inc_t offm_local = offm; \
-	inc_t offn_local = offn; \
-	dim_t m_local    = m; \
-	dim_t n_local    = n; \
-	inc_t rs_y1      = rs_y; \
-	inc_t cs_y1      = cs_y; \
-	inc_t rs_y2      = rs_y; \
-	inc_t cs_y2      = cs_y; \
-	dim_t i, j; \
-\
-	 \
-	if ( cs_y == 1 ) \
-	{ \
-		bli_swap_incs( &offm_local, &offn_local ); \
-		bli_swap_dims( &m_local, &n_local ); \
-		bli_swap_incs( &rs_y1, &cs_y1 ); \
-		bli_swap_incs( &rs_y2, &cs_y2 ); \
-	} \
-\
-	 \
-	if ( bli_is_1e_packed( schema ) ) \
-	{ \
-		dcomplex* restrict y_off_ri = y + (offm_local  )*rs_y1 \
-		                                + (offn_local  )*cs_y1; \
-		dcomplex* restrict y_off_ir = y + (offm_local  )*rs_y1 \
-		                                + (offn_local  )*cs_y1 + ld_y/2; \
-\
-		for ( j = 0; j < n_local; ++j ) \
-		for ( i = 0; i < m_local; ++i ) \
-		{ \
-			bli_zcopy1es( *(a), \
-			              *(y_off_ri + i*rs_y1 + j*cs_y1), \
-			              *(y_off_ir + i*rs_y1 + j*cs_y1) ); \
-		} \
-	} \
-	else  \
-	{ \
-		 \
-		if         ( rs_y2 == 1 )    { cs_y2 *= 2; } \
-		else  { rs_y2 *= 2; } \
-\
-		double*   restrict y_cast  = ( double* )y; \
-		double*   restrict y_off_r = y_cast + (offm_local  )*rs_y2 \
-		                                    + (offn_local  )*cs_y2; \
-		double*   restrict y_off_i = y_cast + (offm_local  )*rs_y2 \
-		                                    + (offn_local  )*cs_y2 + ld_y; \
-\
-		for ( j = 0; j < n_local; ++j ) \
-		for ( i = 0; i < m_local; ++i ) \
-		{ \
-			bli_zcopy1rs( *(a), \
-			              *(y_off_r + i*rs_y2 + j*cs_y2), \
-			              *(y_off_i + i*rs_y2 + j*cs_y2) ); \
-		} \
-	} \
+static void bli_zset1ms_mxn
+     (
+       const pack_t       schema,
+       const dim_t        offm,
+       const dim_t        offn,
+       const dim_t        m,
+       const dim_t        n,
+       dcomplex* restrict alpha,
+       dcomplex* restrict y, const inc_t rs_y, const inc_t cs_y, const inc_t ld_y
+     )
+{
+	inc_t offm_local = offm;
+	inc_t offn_local = offn;
+	dim_t m_local    = m;
+	dim_t n_local    = n;
+	inc_t rs_y1      = rs_y;
+	inc_t cs_y1      = cs_y;
+	inc_t rs_y2      = rs_y;
+	inc_t cs_y2      = cs_y;
+	dim_t i, j;
+
+	
+	if ( cs_y == 1 )
+	{
+		bli_swap_incs( &offm_local, &offn_local );
+		bli_swap_dims( &m_local, &n_local );
+		bli_swap_incs( &rs_y1, &cs_y1 );
+		bli_swap_incs( &rs_y2, &cs_y2 );
+	}
+
+	
+	if ( bli_is_1e_packed( schema ) )
+	{
+		dcomplex* restrict y_off_ri = y + (offm_local  )*rs_y1
+		                                + (offn_local  )*cs_y1;
+		dcomplex* restrict y_off_ir = y + (offm_local  )*rs_y1
+		                                + (offn_local  )*cs_y1 + ld_y/2;
+
+		for ( j = 0; j < n_local; ++j )
+		for ( i = 0; i < m_local; ++i )
+		{
+			bli_zcopy1es( *(alpha),
+			              *(y_off_ri + i*rs_y1 + j*cs_y1),
+			              *(y_off_ir + i*rs_y1 + j*cs_y1) );
+		}
+	}
+	else 
+	{
+		
+		if         ( rs_y2 == 1 )    { cs_y2 *= 2; }
+		else  { rs_y2 *= 2; }
+
+		double*   restrict y_cast  = ( double* )y;
+		double*   restrict y_off_r = y_cast + (offm_local  )*rs_y2
+		                                    + (offn_local  )*cs_y2;
+		double*   restrict y_off_i = y_cast + (offm_local  )*rs_y2
+		                                    + (offn_local  )*cs_y2 + ld_y;
+
+		for ( j = 0; j < n_local; ++j )
+		for ( i = 0; i < m_local; ++i )
+		{
+			bli_zcopy1rs( *(alpha),
+			              *(y_off_r + i*rs_y2 + j*cs_y2),
+			              *(y_off_i + i*rs_y2 + j*cs_y2) );
+		}
+	}
 }
 
 #endif
@@ -16691,326 +18800,6 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 #endif
 // end bli_seti01ms_mxn_diag.h
 
-// 1e
-// begin bli_copy1es.h
-
-
-#ifndef BLIS_COPY1ES_H
-#define BLIS_COPY1ES_H
-
-// copy1es
-
-#define bli_ccopy1es( a, bri, bir ) \
-{ \
-	bli_ccopyris(  bli_creal(a), bli_cimag(a), bli_creal(bri), bli_cimag(bri) ); \
-	bli_ccopyris( -bli_cimag(a), bli_creal(a), bli_creal(bir), bli_cimag(bir) ); \
-}
-
-#define bli_zcopy1es( a, bri, bir ) \
-{ \
-	bli_zcopyris(  bli_zreal(a), bli_zimag(a), bli_zreal(bri), bli_zimag(bri) ); \
-	bli_zcopyris( -bli_zimag(a), bli_zreal(a), bli_zreal(bir), bli_zimag(bir) ); \
-}
-
-#endif
-
-// end bli_copy1es.h
-// begin bli_copyj1es.h
-
-
-#ifndef BLIS_COPYJ1ES_H
-#define BLIS_COPYJ1ES_H
-
-// copyj1es
-
-#define bli_ccopyj1es( a, bri, bir ) \
-{ \
-	bli_ccopyris( bli_creal(a), -bli_cimag(a), bli_creal(bri), bli_cimag(bri) ); \
-	bli_ccopyris( bli_cimag(a),  bli_creal(a), bli_creal(bir), bli_cimag(bir) ); \
-}
-
-#define bli_zcopyj1es( a, bri, bir ) \
-{ \
-	bli_zcopyris( bli_zreal(a), -bli_zimag(a), bli_zreal(bri), bli_zimag(bri) ); \
-	bli_zcopyris( bli_zimag(a),  bli_zreal(a), bli_zreal(bir), bli_zimag(bir) ); \
-}
-
-#endif
-
-// end bli_copyj1es.h
-
-// begin bli_invert1es.h
-
-
-#ifndef BLIS_INVERT1ES_H
-#define BLIS_INVERT1ES_H
-
-// invert1es
-
-#define bli_cinvert1es( bri, bir ) \
-{ \
-	bli_cinvertris( bli_creal(bri), bli_cimag(bri) ); \
-	bli_ccopyris( bli_creal(bri), -bli_cimag(bri), bli_cimag(bir), bli_creal(bir) ); \
-}
-
-#define bli_zinvert1es( bri, bir ) \
-{ \
-	bli_zinvertris( bli_zreal(bri), bli_zimag(bri) ); \
-	bli_zcopyris( bli_zreal(bri), -bli_zimag(bri), bli_zimag(bir), bli_zreal(bir) ); \
-}
-
-#endif
-
-// end bli_invert1es.h
-
-// begin bli_scal1es.h
-
-
-#ifndef BLIS_SCAL1ES_H
-#define BLIS_SCAL1ES_H
-
-// scal1es
-
-#define bli_cscal1es( a, yri, yir ) \
-{ \
-	bli_cscalris(  bli_creal(a),   bli_cimag(a),   bli_creal(yri), bli_cimag(yri) ); \
-	bli_ccopyris( -bli_cimag(yri), bli_creal(yri), bli_creal(yir), bli_cimag(yir) ); \
-}
-
-#define bli_zscal1es( a, yri, yir ) \
-{ \
-	bli_zscalris(  bli_zreal(a),   bli_zimag(a),   bli_zreal(yri), bli_zimag(yri) ); \
-	bli_zcopyris( -bli_zimag(yri), bli_zreal(yri), bli_zreal(yir), bli_zimag(yir) ); \
-}
-
-#endif
-
-// end bli_scal1es.h
-
-// begin bli_scal21es.h
-
-
-#ifndef BLIS_SCAL21ES_H
-#define BLIS_SCAL21ES_H
-
-// scal21es
-
-#define bli_cscal21es( a, x, yri, yir ) \
-{ \
-	bli_cscal2ris( bli_creal(a), bli_cimag(a),  bli_creal(x), bli_cimag(x), bli_creal(yri), bli_cimag(yri) ); \
-	bli_cscal2ris( bli_creal(a), bli_cimag(a), -bli_cimag(x), bli_creal(x), bli_creal(yir), bli_cimag(yir) ); \
-}
-
-#define bli_zscal21es( a, x, yri, yir ) \
-{ \
-	bli_zscal2ris( bli_zreal(a), bli_zimag(a),  bli_zreal(x), bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
-	bli_zscal2ris( bli_zreal(a), bli_zimag(a), -bli_zimag(x), bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
-}
-
-#define bli_scscal21es( a, x, yri, yir ) \
-{ \
-	bli_scscal2ris( bli_sreal(a), bli_simag(a),  bli_creal(x), bli_cimag(x), bli_creal(yri), bli_cimag(yri) ); \
-	bli_scscal2ris( bli_sreal(a), bli_simag(a), -bli_cimag(x), bli_creal(x), bli_creal(yir), bli_cimag(yir) ); \
-}
-
-#define bli_dzscal21es( a, x, yri, yir ) \
-{ \
-	bli_dzscal2ris( bli_dreal(a), bli_dimag(a),  bli_zreal(x), bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
-	bli_dzscal2ris( bli_dreal(a), bli_dimag(a), -bli_zimag(x), bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
-}
-
-#endif
-
-// end bli_scal21es.h
-// begin bli_scal2j1es.h
-
-
-#ifndef BLIS_SCAL2J1ES_H
-#define BLIS_SCAL2J1ES_H
-
-// scal2j1es
-
-#define bli_cscal2j1es( a, x, yri, yir ) \
-{ \
-	bli_cscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), -bli_cimag(x), bli_creal(yri), bli_cimag(yri) ); \
-	bli_cscal2ris( bli_creal(a), bli_cimag(a), bli_cimag(x),  bli_creal(x), bli_creal(yir), bli_cimag(yir) ); \
-}
-
-#define bli_zscal2j1es( a, x, yri, yir ) \
-{ \
-	bli_zscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), -bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
-	bli_zscal2ris( bli_zreal(a), bli_zimag(a), bli_zimag(x),  bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
-}
-
-#define bli_scscal2j1es( a, x, yri, yir ) \
-{ \
-	bli_scscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), -bli_cimag(x), bli_creal(yri), bli_cimag(yri) ); \
-	bli_scscal2ris( bli_sreal(a), bli_simag(a), bli_cimag(x),  bli_creal(x), bli_creal(yir), bli_cimag(yir) ); \
-}
-
-#define bli_dzscal2j1es( a, x, yri, yir ) \
-{ \
-	bli_dzscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), -bli_zimag(x), bli_zreal(yri), bli_zimag(yri) ); \
-	bli_dzscal2ris( bli_dreal(a), bli_dimag(a), bli_zimag(x),  bli_zreal(x), bli_zreal(yir), bli_zimag(yir) ); \
-}
-
-#endif
-
-// end bli_scal2j1es.h
-
-// 1r
-// begin bli_copy1rs.h
-
-
-#ifndef BLIS_COPY1RS_H
-#define BLIS_COPY1RS_H
-
-// copy1rs
-
-#define bli_ccopy1rs( a, br, bi ) \
-{ \
-	bli_ccopyris( bli_creal(a), bli_cimag(a), br, bi ); \
-}
-
-#define bli_zcopy1rs( a, br, bi ) \
-{ \
-	bli_zcopyris( bli_zreal(a), bli_zimag(a), br, bi ); \
-}
-
-#endif
-
-// end bli_copy1rs.h
-// begin bli_copyj1rs.h
-
-
-#ifndef BLIS_COPYJ1RS_H
-#define BLIS_COPYJ1RS_H
-
-// copyj1rs
-
-#define bli_ccopyj1rs( a, br, bi ) \
-{ \
-	bli_ccopyjris( bli_creal(a), bli_cimag(a), br, bi ); \
-}
-
-#define bli_zcopyj1rs( a, br, bi ) \
-{ \
-	bli_zcopyjris( bli_zreal(a), bli_zimag(a), br, bi ); \
-}
-
-#endif
-
-// end bli_copyj1rs.h
-
-// begin bli_invert1rs.h
-
-
-#ifndef BLIS_INVERT1RS_H
-#define BLIS_INVERT1RS_H
-
-// invert1rs
-
-#define bli_cinvert1rs( xr, xi )  bli_cinvertris( xr, xi )
-#define bli_zinvert1rs( xr, xi )  bli_zinvertris( xr, xi )
-
-#endif
-// end bli_invert1rs.h
-
-// begin bli_scal1rs.h
-
-
-#ifndef BLIS_SCAL1RS_H
-#define BLIS_SCAL1RS_H
-
-// scal1rs
-
-#define bli_cscal1rs( a, yr, yi ) \
-{ \
-	bli_cscalris( bli_creal(a), bli_cimag(a), yr, yi ); \
-}
-
-#define bli_zscal1rs( a, yr, yi ) \
-{ \
-	bli_zscalris( bli_zreal(a), bli_zimag(a), yr, yi ); \
-}
-
-#define bli_scscal1rs( a, yr, yi ) \
-{ \
-	bli_scscalris( bli_sreal(a), bli_simag(a), yr, yi ); \
-}
-
-#define bli_dzscal1rs( a, yr, yi ) \
-{ \
-	bli_dzscalris( bli_dreal(a), bli_dimag(a), yr, yi ); \
-}
-
-#endif
-
-// end bli_scal1rs.h
-
-// begin bli_scal21rs.h
-
-
-#ifndef BLIS_SCAL21RS_H
-#define BLIS_SCAL21RS_H
-
-// scal21rs
-
-#define bli_cscal21rs( a, x, yr, yi ) \
-{ \
-	bli_cscal2ris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), yr, yi ); \
-}
-
-#define bli_zscal21rs( a, x, yr, yi ) \
-{ \
-	bli_zscal2ris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), yr, yi ); \
-}
-
-#define bli_scscal21rs( a, x, yr, yi ) \
-{ \
-	bli_scscal2ris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), yr, yi ); \
-}
-
-#define bli_dzscal21rs( a, x, yr, yi ) \
-{ \
-	bli_dzscal2ris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), yr, yi ); \
-}
-
-#endif
-
-// end bli_scal21rs.h
-// begin bli_scal2j1rs.h
-
-
-#ifndef BLIS_SCAL2J1RS_H
-#define BLIS_SCAL2J1RS_H
-
-// scal2j1rs
-
-#define bli_cscal2j1rs( a, x, yr, yi ) \
-{ \
-	bli_cscal2jris( bli_creal(a), bli_cimag(a), bli_creal(x), bli_cimag(x), yr, yi ); \
-}
-
-#define bli_zscal2j1rs( a, x, yr, yi ) \
-{ \
-	bli_zscal2jris( bli_zreal(a), bli_zimag(a), bli_zreal(x), bli_zimag(x), yr, yi ); \
-}
-
-#define bli_scscal2j1rs( a, x, yr, yi ) \
-{ \
-	bli_scscal2jris( bli_sreal(a), bli_simag(a), bli_creal(x), bli_cimag(x), yr, yi ); \
-}
-
-#define bli_dzscal2j1rs( a, x, yr, yi ) \
-{ \
-	bli_dzscal2jris( bli_dreal(a), bli_dimag(a), bli_zreal(x), bli_zimag(x), yr, yi ); \
-}
-
-#endif
-
-// end bli_scal2j1rs.h
-
 
 #endif
 // end bli_scalar_macro_defs.h
@@ -17073,6 +18862,35 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 #endif
 
 // end bli_blas_macro_defs.h
+// begin bli_builtin_macro_defs.h
+
+
+#ifndef BLIS_BUILTIN_MACRO_DEFS_H
+#define BLIS_BUILTIN_MACRO_DEFS_H
+
+#if   defined(__ICC) || defined(__INTEL_COMPILER)
+
+  // icc
+
+  #define bli_prefetch( addr, rw, loc )
+
+#elif defined(__clang__)
+
+  // clang
+
+  #define bli_prefetch( addr, rw, loc )
+
+#elif defined(__GNUC__)
+
+  // gcc
+
+  #define bli_prefetch( addr, rw, loc ) __builtin_prefetch( addr, rw, loc );
+
+#endif
+
+
+#endif
+// end bli_builtin_macro_defs.h
 
 // begin bli_oapi_macro_defs.h
 
@@ -17094,6 +18912,58 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 
 #endif
 // end bli_macro_defs.h
+
+
+// -- pragma definitions --
+
+// begin bli_pragma_macro_defs.h
+
+
+
+
+#ifndef BLIS_PRAGMA_MACRO_DEFS_H
+#define BLIS_PRAGMA_MACRO_DEFS_H
+
+// Generally speaking, if BLIS_ENABLE_PRAGMA_OMP_SIMD is set, then we define
+// all instances of PRAGMA_SIMD as _Pragma("omp simd").
+
+#ifdef BLIS_ENABLE_PRAGMA_OMP_SIMD
+  #define PRAGMA_OMP_SIMD _Pragma("omp simd")
+#else
+  #define PRAGMA_OMP_SIMD
+#endif
+
+// Require ISO C99 or later for SIMD-related pragmas.
+#if (( __STDC_VERSION__ >= 199901L ))
+
+  #define GEN_PRAGMA(x) _Pragma(#x)
+
+  #if   defined(__ICC) || defined(__INTEL_COMPILER)
+
+    // Intel icc.
+    //#define PRAGMA_SIMD  GEN_PRAGMA(simd)
+    #define PRAGMA_SIMD  PRAGMA_OMP_SIMD
+
+  #elif defined(__clang__)
+
+    // clang/llvm.
+    #define PRAGMA_SIMD  PRAGMA_OMP_SIMD
+
+  #elif defined(__GNUC__)
+
+    // GNU gcc.
+    #define PRAGMA_SIMD  PRAGMA_OMP_SIMD
+
+  #else
+
+    // Unknown compiler.
+    #define PRAGMA_SIMD
+
+  #endif
+#endif
+
+#endif
+// end bli_pragma_macro_defs.h
 
 
 // -- Threading definitions --
@@ -17201,9 +19071,17 @@ typedef struct thrcomm_s thrcomm_t;
 // Prototypes specific to tree barriers.
 #ifdef BLIS_TREE_BARRIER
 barrier_t* bli_thrcomm_tree_barrier_create( int num_threads, int arity, barrier_t** leaves, int leaf_index );
-void       bli_thrcomm_tree_barrier_free( barrier_t* barrier );
-void       bli_thrcomm_tree_barrier( barrier_t* barack );
+void        bli_thrcomm_tree_barrier_free( barrier_t* barrier );
+void        bli_thrcomm_tree_barrier( barrier_t* barack );
 #endif
+
+void bli_l3_thread_decorator_thread_check
+     (
+       dim_t      n_threads,
+       dim_t      tid,
+	   thrcomm_t* gl_comm,
+       rntm_t*    rntm
+     );
 
 #endif
 
@@ -17265,14 +19143,14 @@ static dim_t bli_thrcomm_num_threads( thrcomm_t* comm )
 
 
 // Thread communicator prototypes.
-thrcomm_t* bli_thrcomm_create( dim_t n_threads );
-void       bli_thrcomm_free( thrcomm_t* comm );
-void       bli_thrcomm_init( thrcomm_t* comm, dim_t n_threads );
+thrcomm_t* bli_thrcomm_create( rntm_t* rntm, dim_t n_threads );
+void       bli_thrcomm_free( rntm_t* rntm, thrcomm_t* comm );
+void       bli_thrcomm_init( dim_t n_threads, thrcomm_t* comm );
 void       bli_thrcomm_cleanup( thrcomm_t* comm );
-void       bli_thrcomm_barrier( thrcomm_t* comm, dim_t thread_id );
-void*      bli_thrcomm_bcast( thrcomm_t* comm, dim_t inside_id, void* to_send );
+void       bli_thrcomm_barrier( dim_t thread_id, thrcomm_t* comm );
+void*      bli_thrcomm_bcast( dim_t inside_id, void* to_send, thrcomm_t* comm );
 
-void       bli_thrcomm_barrier_atomic( thrcomm_t* comm, dim_t t_id );
+void       bli_thrcomm_barrier_atomic( dim_t thread_id, thrcomm_t* comm );
 
 #endif
 
@@ -17307,6 +19185,11 @@ struct thrinfo_s
 	// to false.
 	bool_t             free_comm;
 
+	// The bszid_t to help identify the node. This is mostly only useful when
+	// debugging or tracing the allocation and release of thrinfo_t nodes.
+	bszid_t            bszid;
+
+	struct thrinfo_s*  sub_prenode;
 	struct thrinfo_s*  sub_node;
 };
 typedef struct thrinfo_s thrinfo_t;
@@ -17349,9 +19232,19 @@ static bool_t bli_thrinfo_needs_free_comm( thrinfo_t* t )
 	return t->free_comm;
 }
 
+static dim_t bli_thread_bszid( thrinfo_t* t )
+{
+	return t->bszid;
+}
+
 static thrinfo_t* bli_thrinfo_sub_node( thrinfo_t* t )
 {
 	return t->sub_node;
+}
+
+static thrinfo_t* bli_thrinfo_sub_prenode( thrinfo_t* t )
+{
+	return t->sub_prenode;
 }
 
 // thrinfo_t query (complex)
@@ -17368,16 +19261,21 @@ static void bli_thrinfo_set_sub_node( thrinfo_t* sub_node, thrinfo_t* t )
 	t->sub_node = sub_node;
 }
 
+static void bli_thrinfo_set_sub_prenode( thrinfo_t* sub_prenode, thrinfo_t* t )
+{
+	t->sub_prenode = sub_prenode;
+}
+
 // other thrinfo_t-related functions
 
 static void* bli_thread_obroadcast( thrinfo_t* t, void* p )
 {
-	return bli_thrcomm_bcast( t->ocomm, t->ocomm_id, p );
+	return bli_thrcomm_bcast( t->ocomm_id, p, t->ocomm );
 }
 
 static void bli_thread_obarrier( thrinfo_t* t )
 {
-	bli_thrcomm_barrier( t->ocomm, t->ocomm_id );
+	bli_thrcomm_barrier( t->ocomm_id, t->ocomm );
 }
 
 
@@ -17387,11 +19285,13 @@ static void bli_thread_obarrier( thrinfo_t* t )
 
 thrinfo_t* bli_thrinfo_create
      (
+       rntm_t*    rntm,
        thrcomm_t* ocomm,
        dim_t      ocomm_id,
        dim_t      n_way,
        dim_t      work_id, 
        bool_t     free_comm,
+       bszid_t    bszid,
        thrinfo_t* sub_node
      );
 
@@ -17403,6 +19303,7 @@ void bli_thrinfo_init
        dim_t      n_way,
        dim_t      work_id, 
        bool_t     free_comm,
+       bszid_t    bszid,
        thrinfo_t* sub_node
      );
 
@@ -17411,15 +19312,13 @@ void bli_thrinfo_init_single
        thrinfo_t* thread
      );
 
-// -----------------------------------------------------------------------------
-
-thrinfo_t* bli_thrinfo_create_for_cntl
+void bli_thrinfo_free
      (
        rntm_t*    rntm,
-       cntl_t*    cntl_par,
-       cntl_t*    cntl_chl,
-       thrinfo_t* thread_par
+       thrinfo_t* thread
      );
+
+// -----------------------------------------------------------------------------
 
 void bli_thrinfo_grow
      (
@@ -17435,6 +19334,48 @@ thrinfo_t* bli_thrinfo_rgrow
        cntl_t*    cntl_cur,
        thrinfo_t* thread_par
      );
+
+thrinfo_t* bli_thrinfo_create_for_cntl
+     (
+       rntm_t*    rntm,
+       cntl_t*    cntl_par,
+       cntl_t*    cntl_chl,
+       thrinfo_t* thread_par
+     );
+
+thrinfo_t* bli_thrinfo_rgrow_prenode
+     (
+       rntm_t*    rntm,
+       cntl_t*    cntl_par,
+       cntl_t*    cntl_cur,
+       thrinfo_t* thread_par
+     );
+
+thrinfo_t* bli_thrinfo_create_for_cntl_prenode
+     (
+       rntm_t*    rntm,
+       cntl_t*    cntl_par,
+       cntl_t*    cntl_chl,
+       thrinfo_t* thread_par
+     );
+
+// -----------------------------------------------------------------------------
+
+#if 0
+void bli_thrinfo_grow_tree
+     (
+       rntm_t*    rntm,
+       cntl_t*    cntl,
+       thrinfo_t* thread
+     );
+
+void bli_thrinfo_grow_tree_ic
+     (
+       rntm_t*    rntm,
+       cntl_t*    cntl,
+       thrinfo_t* thread
+     );
+#endif
 
 #endif
 // end bli_thrinfo.h
@@ -17494,6 +19435,7 @@ void bli_packm_thrinfo_init
        dim_t      ocomm_id,
        dim_t      n_way,
        dim_t      work_id,
+       bszid_t    bszid,
        thrinfo_t* sub_node
      );
 
@@ -17569,6 +19511,7 @@ void bli_l3_thrinfo_init_single
 
 void bli_l3_thrinfo_free
      (
+       rntm_t*    rntm,
        thrinfo_t* thread
      );
 
@@ -17583,7 +19526,12 @@ void bli_l3_thrinfo_create_root
        thrinfo_t** thread
      );
 
-void bli_l3_thrinfo_print_paths
+void bli_l3_thrinfo_print_gemm_paths
+     (
+       thrinfo_t** threads
+     );
+
+void bli_l3_thrinfo_print_trsm_paths
      (
        thrinfo_t** threads
      );
@@ -17592,6 +19540,7 @@ void bli_l3_thrinfo_print_paths
 
 void bli_l3_thrinfo_free_paths
      (
+       rntm_t*     rntm,
        thrinfo_t** threads
      );
 
@@ -17745,20 +19694,20 @@ dim_t bli_ipow( dim_t base, dim_t power );
 
 // -----------------------------------------------------------------------------
 
-dim_t bli_thread_get_env( const char* env, dim_t fallback );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_env( const char* env, dim_t fallback );
 //void  bli_thread_set_env( const char* env, dim_t value );
 
-dim_t bli_thread_get_jc_nt( void );
-dim_t bli_thread_get_pc_nt( void );
-dim_t bli_thread_get_ic_nt( void );
-dim_t bli_thread_get_jr_nt( void );
-dim_t bli_thread_get_ir_nt( void );
-dim_t bli_thread_get_num_threads( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_jc_nt( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_pc_nt( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_ic_nt( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_jr_nt( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_ir_nt( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_num_threads( void );
 
-void  bli_thread_set_ways( dim_t jc, dim_t pc, dim_t ic, dim_t jr, dim_t ir );
-void  bli_thread_set_num_threads( dim_t value );
+BLIS_EXPORT_BLIS void  bli_thread_set_ways( dim_t jc, dim_t pc, dim_t ic, dim_t jr, dim_t ir );
+BLIS_EXPORT_BLIS void  bli_thread_set_num_threads( dim_t value );
 
-void  bli_thread_init_rntm( rntm_t* rntm );
+BLIS_EXPORT_BLIS void  bli_thread_init_rntm( rntm_t* rntm );
 
 void  bli_thread_init_rntm_from_env( rntm_t* rntm );
 
@@ -17869,39 +19818,82 @@ static void bli_thread_range_weighted_jrir
 // This branch defines a pthread-like API, bli_pthread_*(), and implements it
 // in terms of Windows API calls.
 
+// -- pthread_mutex_*() --
+
 typedef SRWLOCK bli_pthread_mutex_t;
 typedef void bli_pthread_mutexattr_t;
 
 #define BLIS_PTHREAD_MUTEX_INITIALIZER SRWLOCK_INIT
 
-int bli_pthread_mutex_init( bli_pthread_mutex_t* mutex, const bli_pthread_mutexattr_t *attr );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_init
+     (
+       bli_pthread_mutex_t*           mutex,
+       const bli_pthread_mutexattr_t* attr
+     );
 
-int bli_pthread_mutex_destroy( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_destroy
+     (
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_mutex_lock( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_lock
+     (
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_mutex_trylock( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_trylock
+     (
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_mutex_unlock( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_unlock
+     (
+       bli_pthread_mutex_t* mutex
+     );
+
+// -- pthread_once_*() --
 
 typedef INIT_ONCE bli_pthread_once_t;
 
 #define BLIS_PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
 
-void bli_pthread_once( bli_pthread_once_t* once, void (*init)( void ) );
+BLIS_EXPORT_BLIS void bli_pthread_once
+     (
+       bli_pthread_once_t* once,
+       void              (*init)(void)
+     );
+
+// -- pthread_cond_*() --
 
 typedef CONDITION_VARIABLE bli_pthread_cond_t;
 typedef void bli_pthread_condattr_t;
 
 #define BLIS_PTHREAD_COND_INITIALIZER CONDITION_VARIABLE_INIT
 
-int bli_pthread_cond_init( bli_pthread_cond_t* cond, const bli_pthread_condattr_t* attr );
+BLIS_EXPORT_BLIS int bli_pthread_cond_init
+     (
+       bli_pthread_cond_t*           cond,
+       const bli_pthread_condattr_t* attr
+     );
 
-int bli_pthread_cond_destroy( bli_pthread_cond_t* cond );
+BLIS_EXPORT_BLIS int bli_pthread_cond_destroy
+     (
+       bli_pthread_cond_t* cond
+     );
 
-int bli_pthread_cond_wait( bli_pthread_cond_t* cond, bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_cond_wait
+     (
+       bli_pthread_cond_t*  cond,
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_cond_broadcast( bli_pthread_cond_t* cond );
+BLIS_EXPORT_BLIS int bli_pthread_cond_broadcast
+     (
+       bli_pthread_cond_t* cond
+     );
+
+// -- pthread_create(), pthread_join() --
+
 typedef struct
 {
     HANDLE handle;
@@ -17910,11 +19902,21 @@ typedef struct
 
 typedef void bli_pthread_attr_t;
 
-int bli_pthread_create( bli_pthread_t *thread, const bli_pthread_attr_t *attr, void* (*start_routine)( void* ), void *arg );
+BLIS_EXPORT_BLIS int bli_pthread_create
+     (
+       bli_pthread_t*            thread,
+       const bli_pthread_attr_t* attr,
+       void*                   (*start_routine)(void*),
+       void*                     arg
+     );
 
-int bli_pthread_join( bli_pthread_t thread, void **retval );
+BLIS_EXPORT_BLIS int bli_pthread_join
+     (
+       bli_pthread_t thread,
+       void**        retval
+     );
 
-// barrier-related definitions
+// -- pthread_barrier_*() --
 
 typedef void bli_pthread_barrierattr_t;
 
@@ -17926,11 +19928,22 @@ typedef struct
     int                 tripCount;
 } bli_pthread_barrier_t;
 
-int bli_pthread_barrier_init( bli_pthread_barrier_t *barrier, const bli_pthread_barrierattr_t *attr, unsigned int count );
+BLIS_EXPORT_BLIS int bli_pthread_barrier_init
+     (
+       bli_pthread_barrier_t*           barrier,
+       const bli_pthread_barrierattr_t* attr,
+       unsigned int                     count
+     );
 
-int bli_pthread_barrier_destroy( bli_pthread_barrier_t *barrier );
+BLIS_EXPORT_BLIS int bli_pthread_barrier_destroy
+     (
+       bli_pthread_barrier_t* barrier
+     );
 
-int bli_pthread_barrier_wait( bli_pthread_barrier_t *barrier );
+BLIS_EXPORT_BLIS int bli_pthread_barrier_wait
+     (
+       bli_pthread_barrier_t* barrier
+     );
 
 #else // !defined(_MSC_VER)
 
@@ -17983,7 +19996,7 @@ typedef pthread_barrierattr_t  bli_pthread_barrierattr_t;
 
 // -- pthread_create(), pthread_join() --
 
-int bli_pthread_create
+BLIS_EXPORT_BLIS int bli_pthread_create
      (
        bli_pthread_t*            thread,
        const bli_pthread_attr_t* attr,
@@ -17991,7 +20004,7 @@ int bli_pthread_create
        void*                     arg
      );
 
-int bli_pthread_join
+BLIS_EXPORT_BLIS int bli_pthread_join
      (
        bli_pthread_t thread,
        void**        retval
@@ -17999,59 +20012,59 @@ int bli_pthread_join
 
 // -- pthread_mutex_*() --
 
-int bli_pthread_mutex_init
+BLIS_EXPORT_BLIS int bli_pthread_mutex_init
      (
        bli_pthread_mutex_t*           mutex,
        const bli_pthread_mutexattr_t* attr
      );
 
-int bli_pthread_mutex_destroy
+BLIS_EXPORT_BLIS int bli_pthread_mutex_destroy
      (
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_mutex_lock
+BLIS_EXPORT_BLIS int bli_pthread_mutex_lock
      (
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_mutex_trylock
+BLIS_EXPORT_BLIS int bli_pthread_mutex_trylock
      (
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_mutex_unlock
+BLIS_EXPORT_BLIS int bli_pthread_mutex_unlock
      (
        bli_pthread_mutex_t* mutex
      );
 
 // -- pthread_cond_*() --
 
-int bli_pthread_cond_init
+BLIS_EXPORT_BLIS int bli_pthread_cond_init
      (
        bli_pthread_cond_t*           cond,
        const bli_pthread_condattr_t* attr
      );
 
-int bli_pthread_cond_destroy
+BLIS_EXPORT_BLIS int bli_pthread_cond_destroy
      (
        bli_pthread_cond_t* cond
      );
 
-int bli_pthread_cond_wait
+BLIS_EXPORT_BLIS int bli_pthread_cond_wait
      (
        bli_pthread_cond_t*  cond,
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_cond_broadcast
+BLIS_EXPORT_BLIS int bli_pthread_cond_broadcast
      (
        bli_pthread_cond_t* cond
      );
 
 // -- pthread_once_*() --
 
-void bli_pthread_once
+BLIS_EXPORT_BLIS void bli_pthread_once
      (
        bli_pthread_once_t* once,
        void              (*init)(void)
@@ -18059,19 +20072,19 @@ void bli_pthread_once
 
 // -- pthread_barrier_*() --
 
-int bli_pthread_barrier_init
+BLIS_EXPORT_BLIS int bli_pthread_barrier_init
      (
        bli_pthread_barrier_t*           barrier,
        const bli_pthread_barrierattr_t* attr,
        unsigned int                     count
      );
 
-int bli_pthread_barrier_destroy
+BLIS_EXPORT_BLIS int bli_pthread_barrier_destroy
      (
        bli_pthread_barrier_t* barrier
      );
 
-int bli_pthread_barrier_wait
+BLIS_EXPORT_BLIS int bli_pthread_barrier_wait
      (
        bli_pthread_barrier_t* barrier
      );
@@ -18090,29 +20103,17 @@ int bli_pthread_barrier_wait
 #ifndef BLIS_EXTERN_DEFS_H
 #define BLIS_EXTERN_DEFS_H
 
-#if !defined(BLIS_ENABLE_SHARED) || !defined(_MSC_VER)
-#define BLIS_EXPORT
-#else
-// Windows builds require us to explicitly identify global variable symbols
-// to be imported from the .dll.
-#ifdef BLIS_IS_BUILDING_LIBRARY
-#define BLIS_EXPORT __declspec(dllexport)
-#else
-#define BLIS_EXPORT __declspec(dllimport)
-#endif
-#endif
+BLIS_EXPORT_BLIS extern obj_t BLIS_TWO;
+BLIS_EXPORT_BLIS extern obj_t BLIS_ONE;
+//BLIS_EXPORT_BLIS extern obj_t BLIS_ONE_HALF;
+BLIS_EXPORT_BLIS extern obj_t BLIS_ZERO;
+//BLIS_EXPORT_BLIS extern obj_t BLIS_MINUS_ONE_HALF;
+BLIS_EXPORT_BLIS extern obj_t BLIS_MINUS_ONE;
+BLIS_EXPORT_BLIS extern obj_t BLIS_MINUS_TWO;
 
-BLIS_EXPORT extern obj_t BLIS_TWO;
-BLIS_EXPORT extern obj_t BLIS_ONE;
-//BLIS_EXPORT extern obj_t BLIS_ONE_HALF;
-BLIS_EXPORT extern obj_t BLIS_ZERO;
-//BLIS_EXPORT extern obj_t BLIS_MINUS_ONE_HALF;
-BLIS_EXPORT extern obj_t BLIS_MINUS_ONE;
-BLIS_EXPORT extern obj_t BLIS_MINUS_TWO;
-
-BLIS_EXPORT extern thrcomm_t BLIS_SINGLE_COMM;
-BLIS_EXPORT extern thrinfo_t BLIS_PACKM_SINGLE_THREADED;
-BLIS_EXPORT extern thrinfo_t BLIS_GEMM_SINGLE_THREADED;
+BLIS_EXPORT_BLIS extern thrcomm_t BLIS_SINGLE_COMM;
+BLIS_EXPORT_BLIS extern thrinfo_t BLIS_PACKM_SINGLE_THREADED;
+BLIS_EXPORT_BLIS extern thrinfo_t BLIS_GEMM_SINGLE_THREADED;
 
 #endif
 // end bli_extern_defs.h
@@ -18413,7 +20414,9 @@ void PASTEMAC(ch,opname) \
 void PASTEMAC(ch,varname) \
      ( \
        conj_t           conja, \
+       dim_t            cdim, \
        dim_t            n, \
+       dim_t            n_max, \
        void*   restrict kappa, \
        void*   restrict a, inc_t inca, inc_t lda, \
        void*   restrict p,             inc_t ldp, \
@@ -18443,7 +20446,9 @@ void PASTEMAC(ch,varname) \
 void PASTEMAC(ch,varname) \
      ( \
        conj_t           conja, \
+       dim_t            cdim, \
        dim_t            n, \
+       dim_t            n_max, \
        void*   restrict kappa, \
        void*   restrict a, inc_t inca, inc_t lda, \
        void*   restrict p, inc_t is_p, inc_t ldp, \
@@ -18458,7 +20463,9 @@ void PASTEMAC(ch,varname) \
 void PASTEMAC(ch,varname) \
      ( \
        conj_t           conja, \
+       dim_t            cdim, \
        dim_t            n, \
+       dim_t            n_max, \
        void*   restrict kappa, \
        void*   restrict a, inc_t inca, inc_t lda, \
        void*   restrict p, inc_t is_p, inc_t ldp, \
@@ -18474,7 +20481,9 @@ void PASTEMAC(ch,varname) \
      ( \
        conj_t           conja, \
        pack_t           schema, \
+       dim_t            cdim, \
        dim_t            n, \
+       dim_t            n_max, \
        void*   restrict kappa, \
        void*   restrict a, inc_t inca, inc_t lda, \
        void*   restrict p,             inc_t ldp, \
@@ -18490,7 +20499,9 @@ void PASTEMAC(ch,varname) \
      ( \
        conj_t           conja, \
        pack_t           schema, \
+       dim_t            cdim, \
        dim_t            n, \
+       dim_t            n_max, \
        void*   restrict kappa, \
        void*   restrict a, inc_t inca, inc_t lda, \
        void*   restrict p,             inc_t ldp, \
@@ -18569,6 +20580,10 @@ void PASTEMAC(ch,opname) \
 #define BLIS_CNAME_INFIX  PASTECH(_,BLIS_CNAME)
 #endif
 
+// Combine the CNAME and _ref for convenience to the code that defines
+// reference kernels.
+//#define BLIS_CNAME_REF_SUFFIX  PASTECH2(_,BLIS_CNAME,BLIS_REF_SUFFIX)
+
 // -- Prototype-generating macro definitions -----------------------------------
 
 // Prototype-generating macro for bli_cntx_init_<arch>*() functions.
@@ -18643,6 +20658,9 @@ CNTX_INIT_PROTS( bulldozer )
 
 // -- ARM architectures --
 
+#ifdef BLIS_CONFIG_THUNDERX2
+CNTX_INIT_PROTS( thunderx2 )
+#endif
 #ifdef BLIS_CONFIG_CORTEXA57
 CNTX_INIT_PROTS( cortexa57 )
 #endif
@@ -18658,6 +20676,9 @@ CNTX_INIT_PROTS( cortexa9 )
 
 // -- IBM BG/Q --
 
+#ifdef BLIS_CONFIG_POWER9
+CNTX_INIT_PROTS( power9 )
+#endif
 #ifdef BLIS_CONFIG_POWER7
 CNTX_INIT_PROTS( power7 )
 #endif
@@ -18700,10 +20721,203 @@ CNTX_INIT_PROTS( generic )
 
 // -- Intel64 architectures --
 #ifdef BLIS_FAMILY_SKX
-#include "bli_family_skx.h" // skipped
+// begin bli_family_skx.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+// -- THREADING PARAMETERS -----------------------------------------------------
+
+#define BLIS_THREAD_RATIO_M     3
+#define BLIS_THREAD_RATIO_N     2
+
+#define BLIS_THREAD_MAX_IR      1
+#define BLIS_THREAD_MAX_JR      4
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE             64
+
+#define BLIS_SIMD_SIZE                   64
+#define BLIS_SIMD_NUM_REGISTERS          32
+
+//#include <stdlib.h>
+
+//#define BLIS_MALLOC_POOL malloc
+//#define BLIS_FREE_POOL free
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
+
+// -- Cache and register blocksizes --
+
+//
+// Constraints:
+//
+// (1) MC must be a multiple of:
+//     (a) MR (for zero-padding purposes)
+//     (b) NR (for zero-padding purposes when MR and NR are "swapped")
+// (2) NC must be a multiple of
+//     (a) NR (for zero-padding purposes)
+//     (b) MR (for zero-padding purposes when MR and NR are "swapped")
+//
+
+#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_16x12_l2
+#define BLIS_DEFAULT_MC_D              144
+#define BLIS_DEFAULT_KC_D              336
+#define BLIS_DEFAULT_NC_D              5760
+#define BLIS_DEFAULT_MR_D              16
+#define BLIS_DEFAULT_NR_D              12
+#define BLIS_PACKDIM_MR_D              16
+#define BLIS_PACKDIM_NR_D              12
+
+// NOTE: If the micro-kernel, which is typically unrolled to a factor
+// of f, handles leftover edge cases (ie: when k % f > 0) then these
+// register blocksizes in the k dimension can be defined to 1.
+
+//#define BLIS_DEFAULT_KR_S              1
+//#define BLIS_DEFAULT_KR_D              1
+//#define BLIS_DEFAULT_KR_C              1
+//#define BLIS_DEFAULT_KR_Z              1
+
+// -- Maximum cache blocksizes (for optimizing edge cases) --
+
+// NOTE: These cache blocksize "extensions" have the same constraints as
+// the corresponding default blocksizes above. When these values are
+// larger than the default blocksizes, blocksizes used at edge cases are
+// enlarged if such an extension would encompass the remaining portion of
+// the matrix dimension.
+
+#define BLIS_MAXIMUM_MC_S              (BLIS_DEFAULT_MC_S + BLIS_DEFAULT_MC_S/4)
+#define BLIS_MAXIMUM_KC_S              (BLIS_DEFAULT_KC_S + BLIS_DEFAULT_KC_S/4)
+#define BLIS_MAXIMUM_NC_S              (BLIS_DEFAULT_NC_S +                   0)
+
+#define BLIS_MAXIMUM_MC_D              (BLIS_DEFAULT_MC_D + BLIS_DEFAULT_MC_D/4)
+#define BLIS_MAXIMUM_KC_D              (BLIS_DEFAULT_KC_D + BLIS_DEFAULT_KC_D/4)
+#define BLIS_MAXIMUM_NC_D              (BLIS_DEFAULT_NC_D +                   0)
+
+//#define BLIS_MAXIMUM_MC_C              (BLIS_DEFAULT_MC_C + BLIS_DEFAULT_MC_C/4)
+//#define BLIS_MAXIMUM_KC_C              (BLIS_DEFAULT_KC_C + BLIS_DEFAULT_KC_C/4)
+//#define BLIS_MAXIMUM_NC_C              (BLIS_DEFAULT_NC_C + BLIS_DEFAULT_NC_C/4)
+
+//#define BLIS_MAXIMUM_MC_Z              (BLIS_DEFAULT_MC_Z + BLIS_DEFAULT_MC_Z/4)
+//#define BLIS_MAXIMUM_KC_Z              (BLIS_DEFAULT_KC_Z + BLIS_DEFAULT_KC_Z/4)
+//#define BLIS_MAXIMUM_NC_Z              (BLIS_DEFAULT_NC_Z + BLIS_DEFAULT_NC_Z/4)
+
+
+#endif
+
+
+//#endif
+
+// end bli_family_skx.h
 #endif
 #ifdef BLIS_FAMILY_KNL
-#include "bli_family_knl.h" // skipped
+// begin bli_family_knl.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+// -- THREADING PARAMETERS -----------------------------------------------------
+
+#define BLIS_THREAD_RATIO_M     4
+#define BLIS_THREAD_RATIO_N     1
+
+#define BLIS_THREAD_MAX_IR      1
+#define BLIS_THREAD_MAX_JR      1
+
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+//#define BLIS_TREE_BARRIER
+//#define BLIS_TREE_BARRIER_ARITY 4
+
+#define BLIS_SIMD_ALIGN_SIZE             64
+
+#define BLIS_SIMD_SIZE                   64
+#define BLIS_SIMD_NUM_REGISTERS          32
+
+
+
+//#define BLIS_MALLOC_INTL hbw_malloc
+//#define BLIS_FREE_INTL hbw_free
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
+
+#define BLIS_SGEMM_UKERNEL_PREFERS_CONTIG_ROWS
+#define BLIS_SGEMM_UKERNEL             bli_sgemm_opt_30x16_knc
+#define BLIS_DEFAULT_MC_S              240
+#define BLIS_DEFAULT_KC_S              240
+#define BLIS_DEFAULT_NC_S              14400
+#define BLIS_DEFAULT_MR_S              30
+#define BLIS_DEFAULT_NR_S              16
+#define BLIS_PACKDIM_MR_S              32
+#define BLIS_PACKDIM_NR_S              16
+
+#if 0
+
+#define BLIS_DGEMM_UKERNEL_PREFERS_CONTIG_ROWS
+#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_30x8_knc
+#define BLIS_DEFAULT_MC_D              120
+#define BLIS_DEFAULT_KC_D              240
+#define BLIS_DEFAULT_NC_D              14400
+#define BLIS_DEFAULT_MR_D              30
+#define BLIS_DEFAULT_NR_D              8
+#define BLIS_PACKDIM_MR_D              32
+#define BLIS_PACKDIM_NR_D              8
+
+#elif 0
+
+#define BLIS_DGEMM_UKERNEL_PREFERS_CONTIG_ROWS
+#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_30x8
+#define BLIS_DEFAULT_MC_D              120
+#define BLIS_DEFAULT_KC_D              240
+#define BLIS_DEFAULT_NC_D              14400
+#define BLIS_DEFAULT_MR_D              30
+#define BLIS_DEFAULT_NR_D              8
+#define BLIS_PACKDIM_MR_D              32
+#define BLIS_PACKDIM_NR_D              8
+
+#define BLIS_DPACKM_8XK_KERNEL         bli_dpackm_8xk_opt
+#define BLIS_DPACKM_30XK_KERNEL        bli_dpackm_30xk_opt
+
+#else
+
+#define BLIS_DGEMM_UKERNEL_PREFERS_CONTIG_ROWS
+#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_24x8
+#define BLIS_DEFAULT_MR_D              24
+#define BLIS_DEFAULT_NR_D              8
+#define BLIS_PACKDIM_MR_D              24
+#define BLIS_PACKDIM_NR_D              8
+#define BLIS_DEFAULT_MC_D              120
+#define BLIS_DEFAULT_KC_D              336
+#define BLIS_DEFAULT_NC_D              14400
+
+#define BLIS_DPACKM_8XK_KERNEL         bli_dpackm_8xk_opt
+#define BLIS_DPACKM_24XK_KERNEL        bli_dpackm_24xk_opt
+
+#endif
+
+#define BLIS_MAXIMUM_MC_S              (BLIS_DEFAULT_MC_S + BLIS_DEFAULT_MC_S/4)
+#define BLIS_MAXIMUM_KC_S              (BLIS_DEFAULT_KC_S + BLIS_DEFAULT_KC_S/4)
+#define BLIS_MAXIMUM_NC_S              (BLIS_DEFAULT_NC_S +                   0) 
+
+#define BLIS_MAXIMUM_MC_D              (BLIS_DEFAULT_MC_D + BLIS_DEFAULT_MC_D/4)
+#define BLIS_MAXIMUM_KC_D              (BLIS_DEFAULT_KC_D + BLIS_DEFAULT_KC_D/4)
+#define BLIS_MAXIMUM_NC_D              (BLIS_DEFAULT_NC_D +                   0)
+
+#endif
+
+
+//#endif
+
+// end bli_family_knl.h
 #endif
 #ifdef BLIS_FAMILY_KNC
 #include "bli_family_knc.h" // skipped
@@ -18942,10 +21156,81 @@ CNTX_INIT_PROTS( generic )
 // -- AMD64 architectures --
 
 #ifdef BLIS_FAMILY_ZEN
-#include "bli_family_zen.h" // skipped
+// begin bli_family_zen.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+// By default, it is effective to parallelize the outer loops.
+// Setting these macros to 1 will force JR and IR inner loops
+// to be not paralleized.
+#define BLIS_THREAD_MAX_IR      1
+#define BLIS_THREAD_MAX_JR      1
+
+#define BLIS_ENABLE_ZEN_BLOCK_SIZES
+//#define BLIS_ENABLE_SMALL_MATRIX
+
+// This will select the threshold below which small matrix code will be called.
+#define BLIS_SMALL_MATRIX_THRES        700
+#define BLIS_SMALL_M_RECT_MATRIX_THRES 160
+#define BLIS_SMALL_K_RECT_MATRIX_THRES 128
+
+
+
+//#endif
+
+// end bli_family_zen.h
 #endif
 #ifdef BLIS_FAMILY_EXCAVATOR
-#include "bli_family_excavator.h" // skipped
+// begin bli_family_excavator.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE           16
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
+
+#define BLIS_SGEMM_UKERNEL             bli_sgemm_asm_16x3
+#define BLIS_DEFAULT_MR_S              16
+#define BLIS_DEFAULT_NR_S              3
+#define BLIS_DEFAULT_MC_S              528
+#define BLIS_DEFAULT_KC_S              256
+#define BLIS_DEFAULT_NC_S              8400
+
+#define BLIS_DGEMM_UKERNEL             bli_dgemm_asm_8x3
+#define BLIS_DEFAULT_MR_D              8
+#define BLIS_DEFAULT_NR_D              3
+#define BLIS_DEFAULT_MC_D              264
+#define BLIS_DEFAULT_KC_D              256
+#define BLIS_DEFAULT_NC_D              8400
+
+#define BLIS_CGEMM_UKERNEL             bli_cgemm_asm_4x2
+#define BLIS_DEFAULT_MR_C              4
+#define BLIS_DEFAULT_NR_C              2
+#define BLIS_DEFAULT_MC_C              264
+#define BLIS_DEFAULT_KC_C              256
+#define BLIS_DEFAULT_NC_C              8400
+
+#define BLIS_ZGEMM_UKERNEL             bli_zgemm_asm_2x2
+#define BLIS_DEFAULT_MR_Z              2
+#define BLIS_DEFAULT_NR_Z              2
+#define BLIS_DEFAULT_MC_Z              100
+#define BLIS_DEFAULT_KC_Z              320
+#define BLIS_DEFAULT_NC_Z              8400
+#endif
+
+
+//#endif
+
+// end bli_family_excavator.h
 #endif
 #ifdef BLIS_FAMILY_STEAMROLLER
 // begin bli_family_steamroller.h
@@ -19015,7 +21300,51 @@ CNTX_INIT_PROTS( generic )
 // end bli_family_piledriver.h
 #endif
 #ifdef BLIS_FAMILY_BULLDOZER
-#include "bli_family_bulldozer.h" // skipped
+// begin bli_family_bulldozer.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
+
+#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_8x8_fma4
+#define BLIS_DEFAULT_MC_S          128
+#define BLIS_DEFAULT_KC_S          384
+#define BLIS_DEFAULT_NC_S          4096
+#define BLIS_DEFAULT_MR_S          8
+#define BLIS_DEFAULT_NR_S          8
+
+#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_4x6_fma4
+#define BLIS_DEFAULT_MC_D          1080
+#define BLIS_DEFAULT_KC_D          120
+#define BLIS_DEFAULT_NC_D          8400
+#define BLIS_DEFAULT_MR_D          4
+#define BLIS_DEFAULT_NR_D          6
+
+#define BLIS_CGEMM_UKERNEL         bli_cgemm_asm_8x4_fma4
+#define BLIS_DEFAULT_MC_C          96
+#define BLIS_DEFAULT_KC_C          256
+#define BLIS_DEFAULT_NC_C          4096
+#define BLIS_DEFAULT_MR_C          8
+#define BLIS_DEFAULT_NR_C          4
+
+#define BLIS_ZGEMM_UKERNEL         bli_zgemm_asm_4x4_fma4
+#define BLIS_DEFAULT_MC_Z          64 
+#define BLIS_DEFAULT_KC_Z          192
+#define BLIS_DEFAULT_NC_Z          4096
+#define BLIS_DEFAULT_MR_Z          4
+#define BLIS_DEFAULT_NR_Z          4
+#endif
+
+
+
+//#endif
+
+// end bli_family_bulldozer.h
 #endif
 
 // -- ARM architectures --
@@ -19035,6 +21364,9 @@ CNTX_INIT_PROTS( generic )
 
 // -- IBM BG/Q --
 
+#ifdef BLIS_FAMILY_POWER9
+#include "bli_family_power9.h" // skipped
+#endif
 #ifdef BLIS_FAMILY_POWER7
 #include "bli_family_power7.h" // skipped
 #endif
@@ -19066,10 +21398,39 @@ CNTX_INIT_PROTS( generic )
 
 // -- Intel64 architectures --
 #ifdef BLIS_KERNELS_SKX
-#include "bli_kernels_skx.h" // skipped
+// begin bli_kernels_skx.h
+
+
+GEMM_UKR_PROT( float ,   s, gemm_skx_asm_32x12_l2 )
+GEMM_UKR_PROT( float ,   s, gemm_skx_asm_12x32_l2 )
+
+GEMM_UKR_PROT( double,   d, gemm_skx_asm_16x12_l2 )
+GEMM_UKR_PROT( double,   d, gemm_skx_asm_16x14 )
+
+
+// end bli_kernels_skx.h
 #endif
 #ifdef BLIS_KERNELS_KNL
-#include "bli_kernels_knl.h" // skipped
+// begin bli_kernels_knl.h
+
+
+GEMM_UKR_PROT( double,   s, gemm_knl_asm_24x16 )
+GEMM_UKR_PROT( double,   d, gemm_knl_asm_24x8 )
+
+PACKM_KER_PROT( double,   s, packm_knl_asm_24xk )
+PACKM_KER_PROT( double,   s, packm_knl_asm_16xk )
+
+PACKM_KER_PROT( double,   d, packm_knl_asm_24xk )
+PACKM_KER_PROT( double,   d, packm_knl_asm_8xk )
+
+// unused:
+GEMM_UKR_PROT( double,   d, gemm_knl_asm_12x16 )
+GEMM_UKR_PROT( double,   d, gemm_knl_asm_30x8 )
+GEMM_UKR_PROT( double,   d, gemm_knl_asm_8x24 )
+
+PACKM_KER_PROT( double,   d, packm_knl_asm_30xk )
+
+// end bli_kernels_knl.h
 #endif
 #ifdef BLIS_KERNELS_KNC
 #include "bli_kernels_knc.h" // skipped
@@ -19214,7 +21575,15 @@ GEMM_UKR_PROT( dcomplex, z, gemm_piledriver_asm_2x2 )
 // end bli_kernels_piledriver.h
 #endif
 #ifdef BLIS_KERNELS_BULLDOZER
-#include "bli_kernels_bulldozer.h" // skipped
+// begin bli_kernels_bulldozer.h
+
+
+GEMM_UKR_PROT( float,    s, gemm_bulldozer_asm_8x8_fma4 )
+GEMM_UKR_PROT( double,   d, gemm_bulldozer_asm_4x6_fma4 )
+GEMM_UKR_PROT( scomplex, c, gemm_bulldozer_asm_8x4_fma4 )
+GEMM_UKR_PROT( dcomplex, z, gemm_bulldozer_asm_4x4_fma4 )
+
+// end bli_kernels_bulldozer.h
 #endif
 
 // -- ARM architectures --
@@ -19403,17 +21772,17 @@ GEMM_UKR_PROT( dcomplex, z, gemm_piledriver_asm_2x2 )
 // begin bli_init.h
 
 
-void   bli_init( void );
-void   bli_finalize( void );
+BLIS_EXPORT_BLIS void bli_init( void );
+BLIS_EXPORT_BLIS void bli_finalize( void );
 
-void   bli_init_auto( void );
-void   bli_finalize_auto( void );
+void bli_init_auto( void );
+void bli_finalize_auto( void );
 
-void   bli_init_apis( void );
-void   bli_finalize_apis( void );
+void bli_init_apis( void );
+void bli_finalize_apis( void );
 
-void   bli_init_once( void );
-void   bli_finalize_once( void );
+void bli_init_once( void );
+void bli_finalize_once( void );
 
 // end bli_init.h
 // begin bli_const.h
@@ -19471,7 +21840,7 @@ void bli_obj_print_check( char* label, obj_t* obj );
 
 // end bli_obj_check.h
 
-void bli_obj_create
+BLIS_EXPORT_BLIS void bli_obj_create
      (
        num_t  dt,
        dim_t  m,
@@ -19481,7 +21850,7 @@ void bli_obj_create
        obj_t* obj
      );
 
-void bli_obj_create_with_attached_buffer
+BLIS_EXPORT_BLIS void bli_obj_create_with_attached_buffer
      (
        num_t  dt,
        dim_t  m,
@@ -19492,7 +21861,7 @@ void bli_obj_create_with_attached_buffer
        obj_t* obj
      );
 
-void bli_obj_create_without_buffer
+BLIS_EXPORT_BLIS void bli_obj_create_without_buffer
      (
        num_t  dt,
        dim_t  m,
@@ -19500,7 +21869,7 @@ void bli_obj_create_without_buffer
        obj_t* obj
      );
 
-void bli_obj_alloc_buffer
+BLIS_EXPORT_BLIS void bli_obj_alloc_buffer
      (
        inc_t  rs,
        inc_t  cs,
@@ -19508,7 +21877,7 @@ void bli_obj_alloc_buffer
        obj_t* obj
      );
 
-void bli_obj_attach_buffer
+BLIS_EXPORT_BLIS void bli_obj_attach_buffer
      (
        void*  p,
        inc_t  rs,
@@ -19517,26 +21886,26 @@ void bli_obj_attach_buffer
        obj_t* obj
      );
 
-void bli_obj_create_1x1
+BLIS_EXPORT_BLIS void bli_obj_create_1x1
      (
        num_t  dt,
        obj_t* obj
      );
 
-void bli_obj_create_1x1_with_attached_buffer
+BLIS_EXPORT_BLIS void bli_obj_create_1x1_with_attached_buffer
      (
        num_t  dt,
        void*  p,
        obj_t* obj
      );
 
-void bli_obj_create_conf_to
+BLIS_EXPORT_BLIS void bli_obj_create_conf_to
      (
        obj_t* s,
        obj_t* d
      );
 
-void bli_obj_free
+BLIS_EXPORT_BLIS void bli_obj_free
      (
        obj_t* obj
      );
@@ -19551,36 +21920,36 @@ void bli_adjust_strides
        inc_t* is
      );
 
-siz_t bli_dt_size
+BLIS_EXPORT_BLIS siz_t bli_dt_size
      (
        num_t dt
      );
 
-char* bli_dt_string
+BLIS_EXPORT_BLIS char* bli_dt_string
      (
        num_t dt
      );
 
-dim_t bli_align_dim_to_mult
+BLIS_EXPORT_BLIS dim_t bli_align_dim_to_mult
      (
        dim_t dim,
        dim_t dim_mult
      );
 
-dim_t bli_align_dim_to_size
+BLIS_EXPORT_BLIS dim_t bli_align_dim_to_size
      (
        dim_t dim,
        siz_t elem_size,
        siz_t align_size
      );
 
-dim_t bli_align_ptr_to_size
+BLIS_EXPORT_BLIS dim_t bli_align_ptr_to_size
      (
        void*  p,
        size_t align_size
      );
 
-void bli_obj_print
+BLIS_EXPORT_BLIS void bli_obj_print
      (
        char*  label,
        obj_t* obj
@@ -19590,13 +21959,13 @@ void bli_obj_print
 // begin bli_obj_scalar.h
 
 
-void bli_obj_scalar_init_detached
+BLIS_EXPORT_BLIS void bli_obj_scalar_init_detached
      (
        num_t  dt,
        obj_t* beta
      );
 
-void bli_obj_scalar_init_detached_copy_of
+BLIS_EXPORT_BLIS void bli_obj_scalar_init_detached_copy_of
      (
        num_t  dt,
        conj_t conj,
@@ -19604,42 +21973,42 @@ void bli_obj_scalar_init_detached_copy_of
        obj_t* beta
      );
 
-void bli_obj_scalar_detach
+BLIS_EXPORT_BLIS void bli_obj_scalar_detach
      (
        obj_t* a,
        obj_t* alpha
      );
 
-void bli_obj_scalar_attach
+BLIS_EXPORT_BLIS void bli_obj_scalar_attach
      (
        conj_t conj,
        obj_t* alpha,
        obj_t* a
      );
 
-void bli_obj_scalar_cast_to
+BLIS_EXPORT_BLIS void bli_obj_scalar_cast_to
      (
        num_t  dt,
        obj_t* a
      );
 
-void bli_obj_scalar_apply_scalar
+BLIS_EXPORT_BLIS void bli_obj_scalar_apply_scalar
      (
        obj_t* alpha,
        obj_t* a
      );
 
-void bli_obj_scalar_reset
+BLIS_EXPORT_BLIS void bli_obj_scalar_reset
      (
        obj_t* a
      );
 
-bool_t bli_obj_scalar_has_nonzero_imag
+BLIS_EXPORT_BLIS bool_t bli_obj_scalar_has_nonzero_imag
      (
        obj_t* a
      );
 
-bool_t bli_obj_scalar_equals
+BLIS_EXPORT_BLIS bool_t bli_obj_scalar_equals
      (
        obj_t* a,
        obj_t* beta
@@ -19803,7 +22172,7 @@ static void bli_blksz_scale_def_max
 
 // -----------------------------------------------------------------------------
 
-blksz_t* bli_blksz_create_ed
+BLIS_EXPORT_BLIS blksz_t* bli_blksz_create_ed
      (
        dim_t b_s, dim_t be_s,
        dim_t b_d, dim_t be_d,
@@ -19811,13 +22180,13 @@ blksz_t* bli_blksz_create_ed
        dim_t b_z, dim_t be_z
      );
 
-blksz_t* bli_blksz_create
+BLIS_EXPORT_BLIS blksz_t* bli_blksz_create
      (
        dim_t b_s,  dim_t b_d,  dim_t b_c,  dim_t b_z,
        dim_t be_s, dim_t be_d, dim_t be_c, dim_t be_z
      );
 
-void bli_blksz_init_ed
+BLIS_EXPORT_BLIS void bli_blksz_init_ed
      (
        blksz_t* b,
        dim_t    b_s, dim_t be_s,
@@ -19826,20 +22195,20 @@ void bli_blksz_init_ed
        dim_t    b_z, dim_t be_z
      );
 
-void bli_blksz_init
+BLIS_EXPORT_BLIS void bli_blksz_init
      (
        blksz_t* b,
        dim_t b_s,  dim_t b_d,  dim_t b_c,  dim_t b_z,
        dim_t be_s, dim_t be_d, dim_t be_c, dim_t be_z
      );
 
-void bli_blksz_init_easy
+BLIS_EXPORT_BLIS void bli_blksz_init_easy
      (
        blksz_t* b,
        dim_t b_s,  dim_t b_d,  dim_t b_c,  dim_t b_z
      );
 
-void bli_blksz_free
+BLIS_EXPORT_BLIS void bli_blksz_free
      (
        blksz_t* b
      );
@@ -19847,7 +22216,7 @@ void bli_blksz_free
 // -----------------------------------------------------------------------------
 
 #if 0
-void bli_blksz_reduce_dt_to
+BLIS_EXPORT_BLIS void bli_blksz_reduce_dt_to
      (
        num_t dt_bm, blksz_t* bmult,
        num_t dt_bs, blksz_t* blksz
@@ -20094,10 +22463,6 @@ static pack_t bli_cntx_schema_c_panel( cntx_t* cntx )
 {
 	return cntx->schema_c_panel;
 }
-static membrk_t* bli_cntx_get_membrk( cntx_t* cntx )
-{
-	return cntx->membrk;
-}
 
 // -----------------------------------------------------------------------------
 
@@ -20125,10 +22490,6 @@ static void bli_cntx_set_schema_ab_blockpanel( pack_t sa, pack_t sb, cntx_t* cnt
 {
 	bli_cntx_set_schema_a_block( sa, cntx );
 	bli_cntx_set_schema_b_panel( sb, cntx );
-}
-static void bli_cntx_set_membrk( membrk_t* membrk, cntx_t* cntx )
-{
-	cntx->membrk = membrk;
 }
 
 // -----------------------------------------------------------------------------
@@ -20519,18 +22880,18 @@ static void bli_cntx_set_unpackm_ker_dt( void* fp, num_t dt, l1mkr_t ker_id, cnt
 
 // Function prototypes
 
-void  bli_cntx_clear( cntx_t* cntx );
+BLIS_EXPORT_BLIS void  bli_cntx_clear( cntx_t* cntx );
 
-void  bli_cntx_set_blkszs( ind_t method, dim_t n_bs, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_blkszs( ind_t method, dim_t n_bs, ... );
 
-void  bli_cntx_set_ind_blkszs( ind_t method, dim_t n_bs, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_ind_blkszs( ind_t method, dim_t n_bs, ... );
 
-void  bli_cntx_set_l3_nat_ukrs( dim_t n_ukrs, ... );
-void  bli_cntx_set_l1f_kers( dim_t n_kers, ... );
-void  bli_cntx_set_l1v_kers( dim_t n_kers, ... );
-void  bli_cntx_set_packm_kers( dim_t n_kers, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_l3_nat_ukrs( dim_t n_ukrs, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_l1f_kers( dim_t n_kers, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_l1v_kers( dim_t n_kers, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_packm_kers( dim_t n_kers, ... );
 
-void  bli_cntx_print( cntx_t* cntx );
+BLIS_EXPORT_BLIS void  bli_cntx_print( cntx_t* cntx );
 
 
 #endif
@@ -20548,7 +22909,7 @@ void  bli_cntx_print( cntx_t* cntx );
 
 
 //
-// -- rntm_t query -------------------------------------------------------------
+// -- rntm_t query (public API) ------------------------------------------------
 //
 
 static dim_t bli_rntm_num_threads( rntm_t* rntm )
@@ -20584,6 +22945,34 @@ static dim_t bli_rntm_ir_ways( rntm_t* rntm )
 static dim_t bli_rntm_pr_ways( rntm_t* rntm )
 {
 	return bli_rntm_ways_for( BLIS_KR, rntm );
+}
+
+//
+// -- rntm_t query (internal use only) -----------------------------------------
+//
+
+static pool_t* bli_rntm_sba_pool( rntm_t* rntm )
+{
+	return rntm->sba_pool;
+}
+
+static membrk_t* bli_rntm_membrk( rntm_t* rntm )
+{
+	return rntm->membrk;
+}
+
+static dim_t bli_rntm_equals( rntm_t* rntm1, rntm_t* rntm2 )
+{
+	const bool_t nt = bli_rntm_num_threads( rntm1 ) == bli_rntm_num_threads( rntm2 );
+	const bool_t jc = bli_rntm_jc_ways( rntm1 ) == bli_rntm_jc_ways( rntm2 );
+	const bool_t pc = bli_rntm_pc_ways( rntm1 ) == bli_rntm_pc_ways( rntm2 );
+	const bool_t ic = bli_rntm_ic_ways( rntm1 ) == bli_rntm_ic_ways( rntm2 );
+	const bool_t jr = bli_rntm_jr_ways( rntm1 ) == bli_rntm_jr_ways( rntm2 );
+	const bool_t ir = bli_rntm_ir_ways( rntm1 ) == bli_rntm_ir_ways( rntm2 );
+	const bool_t pr = bli_rntm_pr_ways( rntm1 ) == bli_rntm_pr_ways( rntm2 );
+
+	if ( nt && jc && pc && ic && jr && ir && pr ) return TRUE;
+	else                                          return FALSE;
 }
 
 //
@@ -20636,6 +23025,16 @@ static void bli_rntm_set_ways_only( dim_t jc, dim_t pc, dim_t ic, dim_t jr, dim_
 	bli_rntm_set_pr_ways_only(  1, rntm );
 }
 
+static void bli_rntm_set_sba_pool( pool_t* sba_pool, rntm_t* rntm )
+{
+	rntm->sba_pool = sba_pool;
+}
+
+static void bli_rntm_set_membrk( membrk_t* membrk, rntm_t* rntm )
+{
+	rntm->membrk = membrk;
+}
+
 static void bli_rntm_clear_num_threads_only( rntm_t* rntm )
 {
 	bli_rntm_set_num_threads_only( -1, rntm );
@@ -20643,6 +23042,10 @@ static void bli_rntm_clear_num_threads_only( rntm_t* rntm )
 static void bli_rntm_clear_ways_only( rntm_t* rntm )
 {
 	bli_rntm_set_ways_only( -1, -1, -1, -1, -1, rntm );
+}
+static void bli_rntm_clear_sba_pool( rntm_t* rntm )
+{
+	bli_rntm_set_sba_pool( NULL, rntm );
 }
 
 //
@@ -20681,12 +23084,15 @@ static void bli_rntm_set_ways( dim_t jc, dim_t pc, dim_t ic, dim_t jr, dim_t ir,
 // will be in a good state upon return.
 
 #define BLIS_RNTM_INITIALIZER { .num_threads = -1, \
-                                .thrloop = { -1, -1, -1, -1, -1, -1 } } \
+                                .thrloop = { -1, -1, -1, -1, -1, -1 }, \
+                                .sba_pool = NULL } \
 
 static void bli_rntm_init( rntm_t* rntm )
 {
 	bli_rntm_clear_num_threads_only( rntm );
 	bli_rntm_clear_ways_only( rntm );
+
+	bli_rntm_clear_sba_pool( rntm );
 }
 
 // -----------------------------------------------------------------------------
@@ -20725,10 +23131,6 @@ void bli_rntm_print
 #ifndef BLIS_GKS_H
 #define BLIS_GKS_H
 
-arch_t  bli_arch_query_id( void );
-
-// -----------------------------------------------------------------------------
-
 void    bli_gks_init( void );
 void    bli_gks_finalize( void );
 
@@ -20738,20 +23140,21 @@ cntx_t* bli_gks_lookup_nat_cntx( arch_t id );
 cntx_t* bli_gks_lookup_ind_cntx( arch_t id, ind_t ind );
 void    bli_gks_register_cntx( arch_t id, void* nat_fp, void* ref_fp, void* ind_fp );
 
-cntx_t* bli_gks_query_cntx( void );
-cntx_t* bli_gks_query_nat_cntx( void );
+BLIS_EXPORT_BLIS cntx_t* bli_gks_query_cntx( void );
+BLIS_EXPORT_BLIS cntx_t* bli_gks_query_nat_cntx( void );
+
 cntx_t* bli_gks_query_cntx_noinit( void );
+
 cntx_t* bli_gks_query_ind_cntx( ind_t ind, num_t dt );
 
-void    bli_gks_init_ref_cntx( cntx_t* cntx );
+BLIS_EXPORT_BLIS void    bli_gks_init_ref_cntx( cntx_t* cntx );
 
-bool_t  bli_gks_cntx_l3_nat_ukr_is_ref( num_t dt, l3ukr_t ukr_id, cntx_t* cntx );
+bool_t   bli_gks_cntx_l3_nat_ukr_is_ref( num_t dt, l3ukr_t ukr_id, cntx_t* cntx );
 
-char*   bli_gks_l3_ukr_impl_string( l3ukr_t ukr, ind_t method, num_t dt );
-kimpl_t bli_gks_l3_ukr_impl_type( l3ukr_t ukr, ind_t method, num_t dt );
+BLIS_EXPORT_BLIS char*    bli_gks_l3_ukr_impl_string( l3ukr_t ukr, ind_t method, num_t dt );
+BLIS_EXPORT_BLIS kimpl_t bli_gks_l3_ukr_impl_type( l3ukr_t ukr, ind_t method, num_t dt );
 
 //char*   bli_gks_l3_ukr_avail_impl_string( l3ukr_t ukr, num_t dt );
-
 
 #endif
 
@@ -20774,7 +23177,7 @@ kimpl_t bli_gks_l3_ukr_impl_type( l3ukr_t ukr, ind_t method, num_t dt );
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void*  PASTEMAC(opname,ind_get_avail)( num_t dt );
+void* PASTEMAC(opname,ind_get_avail)( num_t dt );
 
 
 GENPROT( gemm )
@@ -20821,16 +23224,16 @@ void*  bli_l3_ind_oper_get_func( opid_t oper, ind_t method );
 #undef  GENPROT
 #define GENPROT( imeth ) \
 \
-void PASTEMAC(gemm,imeth) (              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(hemm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(herk,imeth) (              obj_t* alpha, obj_t* a,           obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(her2k,imeth)(              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(symm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(syrk,imeth) (              obj_t* alpha, obj_t* a,           obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(syr2k,imeth)(              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(trmm3,imeth)( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(trmm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b,                        cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(trsm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b,                        cntx_t* cntx, rntm_t* rntm );
+BLIS_EXPORT_BLIS void PASTEMAC(gemm,imeth) (              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(hemm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(herk,imeth) (              obj_t* alpha, obj_t* a,           obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(her2k,imeth)(              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(symm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(syrk,imeth) (              obj_t* alpha, obj_t* a,           obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(syr2k,imeth)(              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(trmm3,imeth)( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(trmm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b,                        cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(trsm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b,                        cntx_t* cntx, rntm_t* rntm );
 
 GENPROT( nat )
 GENPROT( ind )
@@ -20846,14 +23249,14 @@ GENPROT( 1m )
 #undef  GENPROT_NO2OP
 #define GENPROT_NO2OP( imeth ) \
 \
-void PASTEMAC(gemm,imeth) (              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(hemm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(herk,imeth) (              obj_t* alpha, obj_t* a,           obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(her2k,imeth)(              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(symm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(syrk,imeth) (              obj_t* alpha, obj_t* a,           obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(syr2k,imeth)(              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
-void PASTEMAC(trmm3,imeth)( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm );
+BLIS_EXPORT_BLIS void PASTEMAC(gemm,imeth) (              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(hemm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(herk,imeth) (              obj_t* alpha, obj_t* a,           obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(her2k,imeth)(              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(symm,imeth) ( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(syrk,imeth) (              obj_t* alpha, obj_t* a,           obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(syr2k,imeth)(              obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm ); \
+BLIS_EXPORT_BLIS void PASTEMAC(trmm3,imeth)( side_t side, obj_t* alpha, obj_t* a, obj_t* b, obj_t* beta, obj_t* c, cntx_t* cntx, rntm_t* rntm );
 
 GENPROT_NO2OP( 3mh )
 GENPROT_NO2OP( 4mh )
@@ -21133,68 +23536,19 @@ INSERT_GENTPROT_BASIC0( trsm1m )
 
 // end bli_l3_ind_tapi.h
 
-// level-3 misc. optimizations
-// begin bli_l3_ind_opt.h
-
-
-#ifndef BLIS_L3_IND_OPT_H
-#define BLIS_L3_IND_OPT_H
-
-#define bli_l3_ind_recast_1m_params( dt_exec, schema_a, c, \
-                                     m, n, k, \
-                                     pd_a, ps_a, \
-                                     pd_b, ps_b, \
-                                     rs_c, cs_c ) \
-{ \
-	obj_t beta; \
-\
-	 \
-	bli_obj_scalar_detach( c, &beta ); \
-\
-	 \
-	if (  \
-	     bli_obj_imag_is_zero( &beta ) && \
-	     !bli_is_gen_stored( rs_c, cs_c ) ) \
-	{ \
-		dt_exec = bli_dt_proj_to_real( dt_exec ); \
-\
-		if ( bli_is_1e_packed( schema_a ) ) \
-		{ \
-			m    *= 2; \
-			n    *= 1; \
-			k    *= 2; \
-			pd_a *= 2; ps_a *= 2; \
-			pd_b *= 1; ps_b *= 2; \
-			rs_c *= 1; cs_c *= 2; \
-		} \
-		else  \
-		{ \
-			m    *= 1; \
-			n    *= 2; \
-			k    *= 2; \
-			pd_a *= 1; ps_a *= 2; \
-			pd_b *= 2; ps_b *= 2; \
-			rs_c *= 2; cs_c *= 1; \
-		} \
-	} \
-}
-
-#endif
-// end bli_l3_ind_opt.h
-
 // level-3 cntx initialization
 // begin bli_cntx_ind_stage.h
 
 
-void  bli_cntx_ind_stage( ind_t method, dim_t stage, cntx_t* cntx );
+void bli_cntx_ind_stage( ind_t method, dim_t stage, cntx_t* cntx );
 
-void  bli_cntx_3mh_stage( dim_t stage, cntx_t* cntx );
-void  bli_cntx_3m1_stage( dim_t stage, cntx_t* cntx );
-void  bli_cntx_4mh_stage( dim_t stage, cntx_t* cntx );
-void  bli_cntx_4mb_stage( dim_t stage, cntx_t* cntx );
-void  bli_cntx_4m1_stage( dim_t stage, cntx_t* cntx );
-void  bli_cntx_1m_stage( dim_t stage, cntx_t* cntx );
-void  bli_cntx_nat_stage( dim_t stage, cntx_t* cntx );
+void bli_cntx_3mh_stage( dim_t stage, cntx_t* cntx );
+void bli_cntx_3m1_stage( dim_t stage, cntx_t* cntx );
+void bli_cntx_4mh_stage( dim_t stage, cntx_t* cntx );
+void bli_cntx_4mb_stage( dim_t stage, cntx_t* cntx );
+void bli_cntx_4m1_stage( dim_t stage, cntx_t* cntx );
+void bli_cntx_1m_stage( dim_t stage, cntx_t* cntx );
+void bli_cntx_nat_stage( dim_t stage, cntx_t* cntx );
 
 // end bli_cntx_ind_stage.h
 
@@ -21202,21 +23556,21 @@ void  bli_cntx_nat_stage( dim_t stage, cntx_t* cntx );
 void   bli_ind_init( void );
 void   bli_ind_finalize( void );
 
-void   bli_ind_enable( ind_t method );
-void   bli_ind_disable( ind_t method );
-void   bli_ind_disable_all( void );
+BLIS_EXPORT_BLIS void   bli_ind_enable( ind_t method );
+BLIS_EXPORT_BLIS void   bli_ind_disable( ind_t method );
+BLIS_EXPORT_BLIS void   bli_ind_disable_all( void );
 
-void   bli_ind_enable_dt( ind_t method, num_t dt );
-void   bli_ind_disable_dt( ind_t method, num_t dt );
-void   bli_ind_disable_all_dt( num_t dt );
+BLIS_EXPORT_BLIS void   bli_ind_enable_dt( ind_t method, num_t dt );
+BLIS_EXPORT_BLIS void   bli_ind_disable_dt( ind_t method, num_t dt );
+BLIS_EXPORT_BLIS void   bli_ind_disable_all_dt( num_t dt );
 
-void   bli_ind_oper_enable_only( opid_t oper, ind_t method, num_t dt );
+BLIS_EXPORT_BLIS void   bli_ind_oper_enable_only( opid_t oper, ind_t method, num_t dt );
 
-bool_t bli_ind_oper_is_impl( opid_t oper, ind_t method );
+BLIS_EXPORT_BLIS bool_t bli_ind_oper_is_impl( opid_t oper, ind_t method );
 //bool_t bli_ind_oper_has_avail( opid_t oper, num_t dt );
-void*  bli_ind_oper_get_avail( opid_t oper, num_t dt );
-ind_t  bli_ind_oper_find_avail( opid_t oper, num_t dt );
-char*  bli_ind_oper_get_avail_impl_string( opid_t oper, num_t dt );
+BLIS_EXPORT_BLIS void*  bli_ind_oper_get_avail( opid_t oper, num_t dt );
+BLIS_EXPORT_BLIS ind_t  bli_ind_oper_find_avail( opid_t oper, num_t dt );
+BLIS_EXPORT_BLIS char*  bli_ind_oper_get_avail_impl_string( opid_t oper, num_t dt );
 
 char*  bli_ind_get_impl_string( ind_t method );
 num_t  bli_ind_map_cdt_to_index( num_t dt );
@@ -21250,6 +23604,11 @@ static pool_t* bli_membrk_pool( dim_t pool_index, membrk_t* membrk )
 	return &(membrk->pools[ pool_index ]);
 }
 
+static siz_t bli_membrk_align_size( membrk_t* membrk )
+{
+	return membrk->align_size;
+}
+
 static malloc_ft bli_membrk_malloc_fp( membrk_t* membrk )
 {
 	return membrk->malloc_fp;
@@ -21261,6 +23620,11 @@ static free_ft bli_membrk_free_fp( membrk_t* membrk )
 }
 
 // membrk modification
+
+static void bli_membrk_set_align_size( siz_t align_size, membrk_t* membrk )
+{
+	membrk->align_size = align_size;
+}
 
 static void bli_membrk_set_malloc_fp( malloc_ft malloc_fp, membrk_t* membrk )
 {
@@ -21284,50 +23648,36 @@ static void bli_membrk_unlock( membrk_t* membrk )
 	bli_pthread_mutex_unlock( &(membrk->mutex) );
 }
 
-static void* bli_membrk_malloc( size_t size, membrk_t* membrk )
-{
-	// Call the malloc()-style function in membrk.
-	return ( void* )
-	       ( (membrk)->malloc_fp )( size );
-}
-
-static void bli_membrk_free( void* p, membrk_t* membrk )
-{
-	// Call the free()-style function in membrk.
-	((membrk)->free_fp)( p );
-}
-
-
 // -----------------------------------------------------------------------------
+
+membrk_t* bli_membrk_query( void );
 
 void bli_membrk_init
      (
-       cntx_t*   cntx,
-       membrk_t* membrk
+       cntx_t*   cntx
      );
 void bli_membrk_finalize
      (
-       membrk_t* membrk
+       void
      );
 
 void bli_membrk_acquire_m
      (
-       membrk_t* membrk,
+       rntm_t*   rntm,
        siz_t     req_size,
        packbuf_t buf_type,
        mem_t*    mem
      );
 
-void bli_membrk_acquire_v
-     (
-       membrk_t* membrk,
-       siz_t     req_size,
-       mem_t*    mem
-     );
-
 void bli_membrk_release
      (
-       mem_t* mem
+       rntm_t* rntm,
+       mem_t*  mem
+     );
+
+void bli_membrk_rntm_set_membrk
+     (
+       rntm_t* rntm
      );
 
 siz_t bli_membrk_pool_size
@@ -21384,48 +23734,48 @@ void bli_membrk_compute_pool_block_sizes_dt
 
 // Pool block query
 
-static void* bli_pblk_buf_sys( pblk_t* pblk )
+static void* bli_pblk_buf( pblk_t* pblk )
 {
-    return pblk->buf_sys;
+	return pblk->buf;
 }
 
-static void* bli_pblk_buf_align( pblk_t* pblk )
+static siz_t bli_pblk_block_size( pblk_t* pblk )
 {
-    return pblk->buf_align;
+	return pblk->block_size;
 }
 
 // Pool block modification
 
-static void bli_pblk_set_buf_sys( void* buf_sys, pblk_t* pblk )
+static void bli_pblk_set_buf( void* buf, pblk_t* pblk )
 {
-    pblk->buf_sys = buf_sys;
+	pblk->buf = buf;
 }
 
-static void bli_pblk_set_buf_align( void* buf_align, pblk_t* pblk )
+static void bli_pblk_set_block_size( siz_t block_size, pblk_t* pblk )
 {
-    pblk->buf_align = buf_align;
+	pblk->block_size = block_size;
 }
 
 static void bli_pblk_clear( pblk_t* pblk )
 {
-	bli_pblk_set_buf_sys( NULL, pblk );
-	bli_pblk_set_buf_align( NULL, pblk );
+	bli_pblk_set_buf( NULL, pblk );
+	bli_pblk_set_block_size( 0, pblk );
 }
 
 
 // Pool entry query
 
-static pblk_t* bli_pool_block_ptrs( pool_t* pool )
+static void* bli_pool_block_ptrs( pool_t* pool )
 {
 	return pool->block_ptrs;
 }
 
-static dim_t bli_pool_block_ptrs_len( pool_t* pool )
+static siz_t bli_pool_block_ptrs_len( pool_t* pool )
 {
 	return pool->block_ptrs_len;
 }
 
-static dim_t bli_pool_num_blocks( pool_t* pool )
+static siz_t bli_pool_num_blocks( pool_t* pool )
 {
 	return pool->num_blocks;
 }
@@ -21440,7 +23790,17 @@ static siz_t bli_pool_align_size( pool_t* pool )
 	return pool->align_size;
 }
 
-static dim_t bli_pool_top_index( pool_t* pool )
+static malloc_ft bli_pool_malloc_fp( pool_t* pool )
+{
+	return pool->malloc_fp;
+}
+
+static free_ft bli_pool_free_fp( pool_t* pool )
+{
+	return pool->free_fp;
+}
+
+static siz_t bli_pool_top_index( pool_t* pool )
 {
 	return pool->top_index;
 }
@@ -21453,74 +23813,349 @@ static bool_t bli_pool_is_exhausted( pool_t* pool )
 
 // Pool entry modification
 
-static void bli_pool_set_block_ptrs( pblk_t* block_ptrs, pool_t* pool ) \
+static void bli_pool_set_block_ptrs( void* block_ptrs, pool_t* pool ) \
 {
-    pool->block_ptrs = block_ptrs;
+	pool->block_ptrs = block_ptrs;
 }
 
-static void bli_pool_set_block_ptrs_len( dim_t block_ptrs_len, pool_t* pool ) \
+static void bli_pool_set_block_ptrs_len( siz_t block_ptrs_len, pool_t* pool ) \
 {
-    pool->block_ptrs_len = block_ptrs_len;
+	pool->block_ptrs_len = block_ptrs_len;
 }
 
-static void bli_pool_set_num_blocks( dim_t num_blocks, pool_t* pool ) \
+static void bli_pool_set_num_blocks( siz_t num_blocks, pool_t* pool ) \
 {
-    pool->num_blocks = num_blocks;
+	pool->num_blocks = num_blocks;
 }
 
 static void bli_pool_set_block_size( siz_t block_size, pool_t* pool ) \
 {
-    pool->block_size = block_size;
+	pool->block_size = block_size;
 }
 
 static void bli_pool_set_align_size( siz_t align_size, pool_t* pool ) \
 {
-    pool->align_size = align_size;
+	pool->align_size = align_size;
 }
 
-static void bli_pool_set_top_index( dim_t top_index, pool_t* pool ) \
+static void bli_pool_set_malloc_fp( malloc_ft malloc_fp, pool_t* pool ) \
 {
-    pool->top_index = top_index;
+	pool->malloc_fp = malloc_fp;
+}
+
+static void bli_pool_set_free_fp( free_ft free_fp, pool_t* pool ) \
+{
+	pool->free_fp = free_fp;
+}
+
+static void bli_pool_set_top_index( siz_t top_index, pool_t* pool ) \
+{
+	pool->top_index = top_index;
 }
 
 // -----------------------------------------------------------------------------
 
-void bli_pool_init( dim_t   num_blocks,
-                    siz_t   block_size,
-                    siz_t   align_size,
-                    pool_t* pool );
-void bli_pool_finalize( pool_t* pool );
-void bli_pool_reinit( dim_t   num_blocks_new,
-                      siz_t   block_size_new,
-                      siz_t   align_size_new,
-                      pool_t* pool );
+void bli_pool_init
+     (
+       siz_t            num_blocks,
+       siz_t            block_ptrs_len,
+       siz_t            block_size,
+       siz_t            align_size,
+       malloc_ft        malloc_fp,
+       free_ft          free_fp,
+       pool_t* restrict pool
+     );
+void bli_pool_finalize
+     (
+       pool_t* restrict pool
+     );
+void bli_pool_reinit
+     (
+       siz_t            num_blocks_new,
+       siz_t            block_ptrs_len_new,
+       siz_t            block_size_new,
+       siz_t            align_size_new,
+       pool_t* restrict pool
+     );
 
-void bli_pool_checkout_block( siz_t req_size, pblk_t* block, pool_t* pool );
-void bli_pool_checkin_block( pblk_t* block, pool_t* pool );
+void bli_pool_checkout_block
+     (
+       siz_t            req_size,
+       pblk_t* restrict block,
+       pool_t* restrict pool
+     );
+void bli_pool_checkin_block
+     (
+       pblk_t* restrict block,
+       pool_t* restrict pool
+     );
 
-void bli_pool_grow( dim_t num_blocks_add, pool_t* pool );
-void bli_pool_shrink( dim_t num_blocks_sub, pool_t* pool );
+void bli_pool_grow
+     (
+       siz_t            num_blocks_add,
+       pool_t* restrict pool
+     );
+void bli_pool_shrink
+     (
+       siz_t            num_blocks_sub,
+       pool_t* restrict pool
+     );
 
-void bli_pool_alloc_block( siz_t   block_size,
-                           siz_t   align_size,
-                           pblk_t* block );
-void bli_pool_free_block( pblk_t* block );
+void bli_pool_alloc_block
+     (
+       siz_t            block_size,
+       siz_t            align_size,
+       malloc_ft        malloc_fp,
+       pblk_t* restrict block
+     );
+void bli_pool_free_block
+     (
+       free_ft          free_fp,
+       pblk_t* restrict block
+     );
 
-void bli_pool_print( pool_t* pool );
-void bli_pblk_print( pblk_t* pblk );
+void bli_pool_print
+     (
+       pool_t* restrict pool
+     );
+void bli_pblk_print
+     (
+       pblk_t* restrict pblk
+     );
 
 #endif
 
 // end bli_pool.h
+// begin bli_array.h
+
+
+#ifndef BLIS_ARRAY_H
+#define BLIS_ARRAY_H
+
+// -- Array type --
+
+
+
+
+// Array entry query
+
+static void* bli_array_buf( array_t* array )
+{
+	return array->buf;
+}
+
+static siz_t bli_array_num_elem( array_t* array )
+{
+	return array->num_elem;
+}
+
+static siz_t bli_array_elem_size( array_t* array )
+{
+	return array->elem_size;
+}
+
+// Array entry modification
+
+static void bli_array_set_buf( void* buf, array_t* array ) \
+{
+	array->buf = buf;
+}
+
+static void bli_array_set_num_elem( siz_t num_elem, array_t* array ) \
+{
+	array->num_elem = num_elem;
+}
+
+static void bli_array_set_elem_size( siz_t elem_size, array_t* array ) \
+{
+	array->elem_size = elem_size;
+}
+
+// -----------------------------------------------------------------------------
+
+void bli_array_init
+     (
+       const siz_t       num_elem,
+       const siz_t       elem_size,
+       array_t* restrict array
+     );
+void bli_array_resize
+     (
+       const siz_t       num_elem_new,
+       array_t* restrict array
+     );
+void bli_array_finalize
+     (
+       array_t* restrict array
+     );
+
+void* bli_array_elem
+     (
+       const siz_t       index,
+       array_t* restrict array
+     );
+void bli_array_set_elem
+     (
+       void*    restrict elem,
+       const siz_t       index,
+       array_t* restrict array
+     );
+
+#endif
+
+// end bli_array.h
+// begin bli_apool.h
+
+
+#ifndef BLIS_APOOL_H
+#define BLIS_APOOL_H
+
+// -- Locked pool-of-arrays type --
+
+
+
+
+// apool entry query
+
+static pool_t* bli_apool_pool( apool_t* apool )
+{
+	return &(apool->pool);
+}
+
+static  bli_pthread_mutex_t* bli_apool_mutex( apool_t* apool )
+{
+	return &(apool->mutex);
+}
+
+static siz_t bli_apool_def_array_len( apool_t* pool )
+{
+	return pool->def_array_len;
+}
+
+static bool_t bli_apool_is_exhausted( apool_t* apool )
+{
+	pool_t* restrict pool = bli_apool_pool( apool );
+
+	return bli_pool_is_exhausted( pool );
+}
+
+// apool action
+
+static void bli_apool_lock( apool_t* apool )
+{
+	bli_pthread_mutex_lock( bli_apool_mutex( apool ) );
+}
+
+static void bli_apool_unlock( apool_t* apool )
+{
+	bli_pthread_mutex_unlock( bli_apool_mutex( apool ) );
+}
+
+// apool entry modification
+
+static void bli_apool_set_def_array_len( siz_t def_array_len, apool_t* pool ) \
+{
+	pool->def_array_len = def_array_len;
+}
+
+// -----------------------------------------------------------------------------
+
+void bli_apool_init
+     (
+       apool_t* restrict apool
+     );
+void bli_apool_finalize
+     (
+       apool_t* restrict apool
+     );
+
+array_t* bli_apool_checkout_array
+     (
+       siz_t             n_threads,
+       apool_t* restrict apool
+     );
+void bli_apool_checkin_array
+     (
+       array_t* restrict array,
+       apool_t* restrict apool
+     );
+
+pool_t* bli_apool_array_elem
+     (
+       siz_t             index,
+       array_t* restrict array
+     );
+
+void bli_apool_grow
+     (
+       siz_t             num_blocks_add,
+       apool_t* restrict apool
+     );
+
+void bli_apool_alloc_block
+     (
+       siz_t              num_elem,
+       array_t** restrict array_p
+     );
+void bli_apool_free_block
+     (
+       array_t* restrict array
+     );
+
+
+#endif
+
+// end bli_apool.h
+// begin bli_sba.h
+
+
+#ifndef BLIS_SBA_H
+#define BLIS_SBA_H
+
+apool_t* bli_sba_query( void );
+
+// -----------------------------------------------------------------------------
+
+void bli_sba_init( void );
+void bli_sba_finalize( void );
+
+array_t* bli_sba_checkout_array
+     (
+       const siz_t n_threads
+     );
+
+void bli_sba_checkin_array
+     (
+       array_t* restrict array
+     );
+
+void bli_sba_rntm_set_pool
+     (
+       siz_t             index,
+       array_t* restrict array,
+       rntm_t*  restrict rntm
+     );
+
+void* bli_sba_acquire
+     (
+       rntm_t* restrict rntm,
+       siz_t            req_size
+     );
+void bli_sba_release
+     (
+       rntm_t* restrict rntm,
+       void*   restrict block
+     );
+
+
+#endif
+
+// end bli_sba.h
 // begin bli_memsys.h
 
 
 #ifndef BLIS_MEMSYS_H
 #define BLIS_MEMSYS_H
-
-// -----------------------------------------------------------------------------
-
-membrk_t* bli_memsys_global_membrk( void );
 
 // -----------------------------------------------------------------------------
 
@@ -21547,12 +24182,7 @@ static pblk_t* bli_mem_pblk( mem_t* mem )
 
 static void* bli_mem_buffer( mem_t* mem )
 {
-	return bli_pblk_buf_align( bli_mem_pblk( mem ) );
-}
-
-static void* bli_mem_buf_sys( mem_t* mem )
-{
-	return bli_pblk_buf_sys( bli_mem_pblk( mem ) );
+	return bli_pblk_buf( bli_mem_pblk( mem ) );
 }
 
 static packbuf_t bli_mem_buf_type( mem_t* mem )
@@ -21563,11 +24193,6 @@ static packbuf_t bli_mem_buf_type( mem_t* mem )
 static pool_t* bli_mem_pool( mem_t* mem )
 {
 	return mem->pool;
-}
-
-static membrk_t* bli_mem_membrk( mem_t* mem )
-{
-	return mem->membrk;
 }
 
 static siz_t bli_mem_size( mem_t* mem )
@@ -21597,12 +24222,7 @@ static void bli_mem_set_pblk( pblk_t* pblk, mem_t* mem )
 
 static void bli_mem_set_buffer( void* buf, mem_t* mem )
 {
-	bli_pblk_set_buf_align( buf, &(mem->pblk) );
-}
-
-static void bli_mem_set_buf_sys( void* buf, mem_t* mem )
-{
-	bli_pblk_set_buf_sys( buf, &(mem->pblk) );
+	bli_pblk_set_buf( buf, &(mem->pblk) );
 }
 
 static void bli_mem_set_buf_type( packbuf_t buf_type, mem_t* mem )
@@ -21615,11 +24235,6 @@ static void bli_mem_set_pool( pool_t* pool, mem_t* mem )
 	mem->pool = pool;
 }
 
-static void bli_mem_set_membrk( membrk_t* membrk, mem_t* mem )
-{
-	mem->membrk = membrk;
-}
-
 static void bli_mem_set_size( siz_t size, mem_t* mem )
 {
 	mem->size = size;
@@ -21628,10 +24243,8 @@ static void bli_mem_set_size( siz_t size, mem_t* mem )
 static void bli_mem_clear( mem_t* mem )
 {
 	bli_mem_set_buffer( NULL, mem );
-	bli_mem_set_buf_sys( NULL, mem );
 	bli_mem_set_pool( NULL, mem );
 	bli_mem_set_size( 0, mem );
-	bli_mem_set_membrk( NULL, mem );
 }
 
 
@@ -21665,7 +24278,7 @@ void bli_acquire_mpart_tl2br_check( subpart_t  requested_part,
 
 // -- Matrix partitioning ------------------------------------------------------
 
-void bli_acquire_mpart
+BLIS_EXPORT_BLIS void bli_acquire_mpart
      (
        dim_t     i,
        dim_t     j,
@@ -21678,23 +24291,7 @@ void bli_acquire_mpart
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0( opname ) \
-     ( \
-       dir_t     direct, \
-       subpart_t req_part, \
-       dim_t     i, \
-       dim_t     b, \
-       obj_t*    obj, \
-       obj_t*    sub_obj \
-     );
-
-GENPROT( acquire_mpart_mdim )
-GENPROT( acquire_mpart_ndim )
-
-#undef  GENPROT
-#define GENPROT( opname ) \
-\
-void PASTEMAC0( opname ) \
+BLIS_EXPORT_BLIS void PASTEMAC0( opname ) \
      ( \
        subpart_t req_part, \
        dim_t     i, \
@@ -21710,14 +24307,45 @@ GENPROT( acquire_mpart_r2l )
 GENPROT( acquire_mpart_tl2br )
 GENPROT( acquire_mpart_br2tl )
 
+
+#undef  GENPROT
+#define GENPROT( opname ) \
+\
+BLIS_EXPORT_BLIS void PASTEMAC0( opname ) \
+     ( \
+       dir_t     direct, \
+       subpart_t req_part, \
+       dim_t     i, \
+       dim_t     b, \
+       obj_t*    obj, \
+       obj_t*    sub_obj \
+     );
+
+GENPROT( acquire_mpart_mdim )
+GENPROT( acquire_mpart_ndim )
+GENPROT( acquire_mpart_mndim )
+
+
 // -- Vector partitioning ------------------------------------------------------
+
+#undef  GENPROT
+#define GENPROT( opname ) \
+\
+BLIS_EXPORT_BLIS void PASTEMAC0( opname ) \
+     ( \
+       subpart_t req_part, \
+       dim_t     i, \
+       dim_t     b, \
+       obj_t*    obj, \
+       obj_t*    sub_obj \
+     );
 
 GENPROT( acquire_vpart_f2b )
 GENPROT( acquire_vpart_b2f )
 
 // -- Scalar acquisition -------------------------------------------------------
 
-void bli_acquire_mij
+BLIS_EXPORT_BLIS void bli_acquire_mij
      (
        dim_t     i,
        dim_t     j,
@@ -21725,7 +24353,7 @@ void bli_acquire_mij
        obj_t*    sub_obj
      );
 
-void bli_acquire_vi
+BLIS_EXPORT_BLIS void bli_acquire_vi
      (
        dim_t     i,
        obj_t*    obj,
@@ -21742,13 +24370,11 @@ void bli_prune_unref_mparts( obj_t* p, mdim_t mdim_p,
 // begin bli_query.h
 
 
-bool_t bli_obj_equals( obj_t* a,
-                       obj_t* b );
+BLIS_EXPORT_BLIS bool_t bli_obj_equals( obj_t* a, obj_t* b );
 
-bool_t bli_obj_imag_equals( obj_t* a,
-                            obj_t* b );
+BLIS_EXPORT_BLIS bool_t bli_obj_imag_equals( obj_t* a, obj_t* b );
 
-bool_t bli_obj_imag_is_zero( obj_t* a );
+BLIS_EXPORT_BLIS bool_t bli_obj_imag_is_zero( obj_t* a );
 // end bli_query.h
 // begin bli_auxinfo.h
 
@@ -21844,46 +24470,47 @@ static void bli_auxinfo_set_dt_on_output( num_t dt_on_output, auxinfo_t* ai )
 
 // --- BLIS to BLAS/LAPACK mappings --------------------------------------------
 
-void bli_param_map_blis_to_netlib_side( side_t side, char* blas_side );
-void bli_param_map_blis_to_netlib_uplo( uplo_t uplo, char* blas_uplo );
-void bli_param_map_blis_to_netlib_trans( trans_t trans, char* blas_trans );
-void bli_param_map_blis_to_netlib_diag( diag_t diag, char* blas_diag );
-void bli_param_map_blis_to_netlib_machval( machval_t machval, char* blas_machval );
+BLIS_EXPORT_BLIS void bli_param_map_blis_to_netlib_side( side_t side, char* blas_side );
+BLIS_EXPORT_BLIS void bli_param_map_blis_to_netlib_uplo( uplo_t uplo, char* blas_uplo );
+BLIS_EXPORT_BLIS void bli_param_map_blis_to_netlib_trans( trans_t trans, char* blas_trans );
+BLIS_EXPORT_BLIS void bli_param_map_blis_to_netlib_diag( diag_t diag, char* blas_diag );
+BLIS_EXPORT_BLIS void bli_param_map_blis_to_netlib_machval( machval_t machval, char* blas_machval );
 
 
 // --- BLAS/LAPACK to BLIS mappings --------------------------------------------
 
-void bli_param_map_netlib_to_blis_side( char side, side_t* blis_side );
-void bli_param_map_netlib_to_blis_uplo( char uplo, uplo_t* blis_uplo );
-void bli_param_map_netlib_to_blis_trans( char trans, trans_t* blis_trans );
-void bli_param_map_netlib_to_blis_diag( char diag, diag_t* blis_diag );
+BLIS_EXPORT_BLIS void bli_param_map_netlib_to_blis_side( char side, side_t* blis_side );
+BLIS_EXPORT_BLIS void bli_param_map_netlib_to_blis_uplo( char uplo, uplo_t* blis_uplo );
+BLIS_EXPORT_BLIS void bli_param_map_netlib_to_blis_trans( char trans, trans_t* blis_trans );
+BLIS_EXPORT_BLIS void bli_param_map_netlib_to_blis_diag( char diag, diag_t* blis_diag );
 
 
 // --- BLIS char to BLIS mappings ----------------------------------------------
 
-void bli_param_map_char_to_blis_side( char side, side_t* blis_side );
-void bli_param_map_char_to_blis_uplo( char uplo, uplo_t* blis_uplo );
-void bli_param_map_char_to_blis_trans( char trans, trans_t* blis_trans );
-void bli_param_map_char_to_blis_conj( char conj, conj_t* blis_conj );
-void bli_param_map_char_to_blis_diag( char diag, diag_t* blis_diag );
-void bli_param_map_char_to_blis_dt( char dt, num_t* blis_dt );
+BLIS_EXPORT_BLIS void bli_param_map_char_to_blis_side( char side, side_t* blis_side );
+BLIS_EXPORT_BLIS void bli_param_map_char_to_blis_uplo( char uplo, uplo_t* blis_uplo );
+BLIS_EXPORT_BLIS void bli_param_map_char_to_blis_trans( char trans, trans_t* blis_trans );
+BLIS_EXPORT_BLIS void bli_param_map_char_to_blis_conj( char conj, conj_t* blis_conj );
+BLIS_EXPORT_BLIS void bli_param_map_char_to_blis_diag( char diag, diag_t* blis_diag );
+BLIS_EXPORT_BLIS void bli_param_map_char_to_blis_dt( char dt, num_t* blis_dt );
 
 
 // --- BLIS to BLIS char mappings ----------------------------------------------
 
-void bli_param_map_blis_to_char_side( side_t blis_side, char* side );
-void bli_param_map_blis_to_char_uplo( uplo_t blis_uplo, char* uplo );
-void bli_param_map_blis_to_char_trans( trans_t blis_trans, char* trans );
-void bli_param_map_blis_to_char_conj( conj_t blis_conj, char* conj );
-void bli_param_map_blis_to_char_diag( diag_t blis_diag, char* diag );
-void bli_param_map_blis_to_char_dt( num_t blis_dt, char* dt );
+BLIS_EXPORT_BLIS void bli_param_map_blis_to_char_side( side_t blis_side, char* side );
+BLIS_EXPORT_BLIS void bli_param_map_blis_to_char_uplo( uplo_t blis_uplo, char* uplo );
+BLIS_EXPORT_BLIS void bli_param_map_blis_to_char_trans( trans_t blis_trans, char* trans );
+BLIS_EXPORT_BLIS void bli_param_map_blis_to_char_conj( conj_t blis_conj, char* conj );
+BLIS_EXPORT_BLIS void bli_param_map_blis_to_char_diag( diag_t blis_diag, char* diag );
+BLIS_EXPORT_BLIS void bli_param_map_blis_to_char_dt( num_t blis_dt, char* dt );
 
 // end bli_param_map.h
 // begin bli_clock.h
 
 
-double bli_clock( void );
-double bli_clock_min_diff( double time_min, double time_start );
+BLIS_EXPORT_BLIS double bli_clock( void );
+BLIS_EXPORT_BLIS double bli_clock_min_diff( double time_min, double time_start );
+
 double bli_clock_helper( void );
 
 // end bli_clock.h
@@ -21956,6 +24583,8 @@ err_t bli_check_packv_schema_on_unpack( obj_t* a );
 
 err_t bli_check_object_buffer( obj_t* a );
 
+err_t bli_check_valid_malloc_buf( void* ptr );
+
 err_t bli_check_valid_packbuf( packbuf_t buf_type );
 err_t bli_check_if_exhausted_pool( pool_t* pool );
 err_t bli_check_sufficient_stack_buf_size( num_t dt, cntx_t* cntx );
@@ -21975,20 +24604,15 @@ err_t bli_check_valid_kc_mod_mult( blksz_t* kc, blksz_t* kr );
 
 
 
-void     bli_error_init( void );
-void     bli_error_finalize( void );
+BLIS_EXPORT_BLIS errlev_t bli_error_checking_level( void );
+BLIS_EXPORT_BLIS void     bli_error_checking_level_set( errlev_t new_level );
 
-void     bli_error_init_msgs( void );
-void     bli_print_msg( char* str, char* file, guint_t line );
-void     bli_abort( void );
+BLIS_EXPORT_BLIS bool_t    bli_error_checking_is_enabled( void );
 
-errlev_t bli_error_checking_level( void );
-void     bli_error_checking_level_set( errlev_t new_level );
+void      bli_print_msg( char* str, char* file, guint_t line );
+void      bli_abort( void );
 
-bool_t   bli_error_checking_is_enabled( void );
-
-char*    bli_error_string_for_code( gint_t code );
-
+char*     bli_error_string_for_code( gint_t code );
 
 // end bli_error.h
 // begin bli_f2c.h
@@ -22128,8 +24752,7 @@ bla_double bli_dlamch( bla_character* cmach, ftnlen cmach_len );
 //
 // Prototype object-based interface.
 //
-void bli_machval( machval_t mval,
-                  obj_t*    v );
+BLIS_EXPORT_BLIS void bli_machval( machval_t mval, obj_t* v );
 
 
 //
@@ -22138,7 +24761,7 @@ void bli_machval( machval_t mval,
 #undef  GENTPROTR
 #define GENTPROTR( ctype_v, ctype_vr, chv, chvr, opname ) \
 \
-void PASTEMAC(chv,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(chv,opname) \
      ( \
        machval_t mval, \
        void*     v     \
@@ -22158,9 +24781,9 @@ typedef struct getopt_s
 	int   optopt;
 } getopt_t;
 
-void bli_getopt_init_state( int opterr, getopt_t* state );
+BLIS_EXPORT_BLIS void bli_getopt_init_state( int opterr, getopt_t* state );
 
-int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* state );
+BLIS_EXPORT_BLIS int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* state );
 
 // end bli_getopt.h
 // begin bli_opid.h
@@ -22182,8 +24805,9 @@ static bool_t bli_opid_is_level3( opid_t opid )
 
 // -- Control tree prototypes --
 
-cntl_t* bli_cntl_create_node
+BLIS_EXPORT_BLIS cntl_t* bli_cntl_create_node
      (
+       rntm_t* rntm,
        opid_t  family,
        bszid_t bszid,
        void*   var_func,
@@ -22191,41 +24815,46 @@ cntl_t* bli_cntl_create_node
        cntl_t* sub_node
      );
 
-void bli_cntl_free_node
+BLIS_EXPORT_BLIS void bli_cntl_free_node
      (
+       rntm_t* rntm,
        cntl_t* cntl
      );
 
-void bli_cntl_clear_node
+BLIS_EXPORT_BLIS void bli_cntl_clear_node
      (
        cntl_t* cntl
      );
 
 // -----------------------------------------------------------------------------
 
-void bli_cntl_free
+BLIS_EXPORT_BLIS void bli_cntl_free
      (
-       cntl_t* cntl,
+       rntm_t*    rntm,
+       cntl_t*    cntl,
        thrinfo_t* thread
      );
 
-void bli_cntl_free_w_thrinfo
+BLIS_EXPORT_BLIS void bli_cntl_free_w_thrinfo
      (
-       cntl_t* cntl,
+       rntm_t*    rntm,
+       cntl_t*    cntl,
        thrinfo_t* thread
      );
 
-void bli_cntl_free_wo_thrinfo
+BLIS_EXPORT_BLIS void bli_cntl_free_wo_thrinfo
      (
+       rntm_t*    rntm,
+       cntl_t*    cntl
+     );
+
+BLIS_EXPORT_BLIS cntl_t* bli_cntl_copy
+     (
+       rntm_t* rntm,
        cntl_t* cntl
      );
 
-cntl_t* bli_cntl_copy
-     (
-       cntl_t* cntl
-     );
-
-void bli_cntl_mark_family
+BLIS_EXPORT_BLIS void bli_cntl_mark_family
      (
        opid_t  family,
        cntl_t* cntl
@@ -22258,6 +24887,11 @@ static void* bli_cntl_var_func( cntl_t* cntl )
 	return cntl->var_func;
 }
 
+static cntl_t* bli_cntl_sub_prenode( cntl_t* cntl )
+{
+	return cntl->sub_prenode;
+}
+
 static cntl_t* bli_cntl_sub_node( cntl_t* cntl )
 {
 	return cntl->sub_node;
@@ -22280,6 +24914,12 @@ static mem_t* bli_cntl_pack_mem( cntl_t* cntl )
 }
 
 // cntl_t query (complex)
+
+static bool_t bli_cntl_is_null( cntl_t* cntl )
+{
+	return ( bool_t )
+	       ( cntl == NULL );
+}
 
 static bool_t bli_cntl_is_leaf( cntl_t* cntl )
 {
@@ -22310,6 +24950,11 @@ static void bli_cntl_set_var_func( void* var_func, cntl_t* cntl )
 	cntl->var_func = var_func;
 }
 
+static void bli_cntl_set_sub_prenode( cntl_t* sub_prenode, cntl_t* cntl )
+{
+	cntl->sub_prenode = sub_prenode;
+}
+
 static void bli_cntl_set_sub_node( cntl_t* sub_node, cntl_t* cntl )
 {
 	cntl->sub_node = sub_node;
@@ -22332,36 +24977,37 @@ static void bli_cntl_set_pack_mem( mem_t* pack_mem, cntl_t* cntl )
 
 // -- General library information ----------------------------------------------
 
-char* bli_info_get_version_str( void );
-char* bli_info_get_int_type_size_str( void );
+BLIS_EXPORT_BLIS char* bli_info_get_version_str( void );
+BLIS_EXPORT_BLIS char* bli_info_get_int_type_size_str( void );
 
 
 // -- General configuration-related --------------------------------------------
 
-gint_t bli_info_get_int_type_size( void );
-gint_t bli_info_get_num_fp_types( void );
-gint_t bli_info_get_max_type_size( void );
-gint_t bli_info_get_page_size( void );
-gint_t bli_info_get_simd_num_registers( void );
-gint_t bli_info_get_simd_size( void );
-gint_t bli_info_get_simd_align_size( void );
-gint_t bli_info_get_stack_buf_max_size( void );
-gint_t bli_info_get_stack_buf_align_size( void );
-gint_t bli_info_get_heap_addr_align_size( void );
-gint_t bli_info_get_heap_stride_align_size( void );
-gint_t bli_info_get_pool_addr_align_size( void );
-gint_t bli_info_get_enable_stay_auto_init( void );
-gint_t bli_info_get_enable_blas( void );
-gint_t bli_info_get_enable_cblas( void );
-gint_t bli_info_get_blas_int_type_size( void );
-gint_t bli_info_get_enable_packbuf_pools( void );
-gint_t bli_info_get_enable_threading( void );
-gint_t bli_info_get_enable_openmp( void );
-gint_t bli_info_get_enable_pthreads( void );
-gint_t bli_info_get_thread_part_jrir_slab( void );
-gint_t bli_info_get_thread_part_jrir_rr( void );
-gint_t bli_info_get_enable_memkind( void );
-gint_t bli_info_get_enable_sandbox( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_int_type_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_num_fp_types( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_max_type_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_page_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_simd_num_registers( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_simd_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_simd_align_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_stack_buf_max_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_stack_buf_align_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_heap_addr_align_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_heap_stride_align_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_pool_addr_align_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_enable_stay_auto_init( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_enable_blas( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_enable_cblas( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_blas_int_type_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_enable_pba_pools( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_enable_sba_pools( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_enable_threading( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_enable_openmp( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_enable_pthreads( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_thread_part_jrir_slab( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_thread_part_jrir_rr( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_enable_memkind( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_enable_sandbox( void );
 
 
 // -- Kernel implementation-related --------------------------------------------
@@ -22369,25 +25015,25 @@ gint_t bli_info_get_enable_sandbox( void );
 
 // -- Level-3 kernel definitions --
 
-char* bli_info_get_gemm_ukr_impl_string( ind_t method, num_t dt );
-char* bli_info_get_gemmtrsm_l_ukr_impl_string( ind_t method, num_t dt );
-char* bli_info_get_gemmtrsm_u_ukr_impl_string( ind_t method, num_t dt );
-char* bli_info_get_trsm_l_ukr_impl_string( ind_t method, num_t dt );
-char* bli_info_get_trsm_u_ukr_impl_string( ind_t method, num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_gemm_ukr_impl_string( ind_t method, num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_gemmtrsm_l_ukr_impl_string( ind_t method, num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_gemmtrsm_u_ukr_impl_string( ind_t method, num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_trsm_l_ukr_impl_string( ind_t method, num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_trsm_u_ukr_impl_string( ind_t method, num_t dt );
 
 
 // -- BLIS implementation query (level-3) --------------------------------------
 
-char* bli_info_get_gemm_impl_string( num_t dt );
-char* bli_info_get_hemm_impl_string( num_t dt );
-char* bli_info_get_herk_impl_string( num_t dt );
-char* bli_info_get_her2k_impl_string( num_t dt );
-char* bli_info_get_symm_impl_string( num_t dt );
-char* bli_info_get_syrk_impl_string( num_t dt );
-char* bli_info_get_syr2k_impl_string( num_t dt );
-char* bli_info_get_trmm_impl_string( num_t dt );
-char* bli_info_get_trmm3_impl_string( num_t dt );
-char* bli_info_get_trsm_impl_string( num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_gemm_impl_string( num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_hemm_impl_string( num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_herk_impl_string( num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_her2k_impl_string( num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_symm_impl_string( num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_syrk_impl_string( num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_syr2k_impl_string( num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_trmm_impl_string( num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_trmm3_impl_string( num_t dt );
+BLIS_EXPORT_BLIS char* bli_info_get_trsm_impl_string( num_t dt );
 
 // end bli_info.h
 // begin bli_arch.h
@@ -22396,12 +25042,12 @@ char* bli_info_get_trsm_impl_string( num_t dt );
 #ifndef BLIS_ARCH_H
 #define BLIS_ARCH_H
 
-arch_t  bli_arch_query_id( void );
+arch_t bli_arch_query_id( void );
 
-void    bli_arch_set_id_once( void );
-void    bli_arch_set_id( void );
+void   bli_arch_set_id_once( void );
+void   bli_arch_set_id( void );
 
-char*   bli_arch_string( arch_t id );
+char*  bli_arch_string( arch_t id );
 
 
 #endif
@@ -22428,27 +25074,28 @@ char*   bli_arch_string( arch_t id );
 #ifndef BLIS_CPUID_H
 #define BLIS_CPUID_H
 
-arch_t   bli_cpuid_query_id( void );
+arch_t    bli_cpuid_query_id( void );
 
 // Intel
-bool_t   bli_cpuid_is_skx( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_knl( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_haswell( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_sandybridge( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_penryn( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_skx( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_knl( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_haswell( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_sandybridge( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_penryn( uint32_t family, uint32_t model, uint32_t features );
 
 // AMD
-bool_t   bli_cpuid_is_zen( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_excavator( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_steamroller( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_piledriver( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_bulldozer( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_zen( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_excavator( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_steamroller( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_piledriver( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_bulldozer( uint32_t family, uint32_t model, uint32_t features );
 
 // ARM
-bool_t   bli_cpuid_is_cortexa57( uint32_t model, uint32_t part, uint32_t features );
-bool_t   bli_cpuid_is_cortexa53( uint32_t model, uint32_t part, uint32_t features );
-bool_t   bli_cpuid_is_cortexa15( uint32_t model, uint32_t part, uint32_t features );
-bool_t   bli_cpuid_is_cortexa9( uint32_t model, uint32_t part, uint32_t features );
+bool_t    bli_cpuid_is_thunderx2( uint32_t model, uint32_t part, uint32_t features );
+bool_t    bli_cpuid_is_cortexa57( uint32_t model, uint32_t part, uint32_t features );
+bool_t    bli_cpuid_is_cortexa53( uint32_t model, uint32_t part, uint32_t features );
+bool_t    bli_cpuid_is_cortexa15( uint32_t model, uint32_t part, uint32_t features );
+bool_t    bli_cpuid_is_cortexa9( uint32_t model, uint32_t part, uint32_t features );
 
 uint32_t bli_cpuid_query( uint32_t* family, uint32_t* model, uint32_t* features );
 
@@ -22535,7 +25182,7 @@ void bli_string_mkupper( char* s );
 // begin bli_setgetij.h
 
 
-err_t bli_setijm
+BLIS_EXPORT_BLIS err_t bli_setijm
      (
        double  ar,
        double  ai,
@@ -22547,7 +25194,7 @@ err_t bli_setijm
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        double         ar, \
        double         ai, \
@@ -22560,7 +25207,7 @@ INSERT_GENTPROT_BASIC0( setijm )
 
 // -----------------------------------------------------------------------------
 
-err_t bli_getijm
+BLIS_EXPORT_BLIS err_t bli_getijm
       (
         dim_t   i,
         dim_t   j,
@@ -22572,7 +25219,7 @@ err_t bli_getijm
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        dim_t          i, \
        dim_t          j, \
@@ -22589,13 +25236,13 @@ INSERT_GENTPROT_BASIC0( getijm )
 
 // -- setr ---------------------------------------------------------------------
 
-void bli_setrm
+BLIS_EXPORT_BLIS void bli_setrm
      (
        obj_t* alpha,
        obj_t* b
      );
 
-void bli_setrv
+BLIS_EXPORT_BLIS void bli_setrv
      (
        obj_t* alpha,
        obj_t* x
@@ -22603,13 +25250,13 @@ void bli_setrv
 
 // -- seti ---------------------------------------------------------------------
 
-void bli_setim
+BLIS_EXPORT_BLIS void bli_setim
      (
        obj_t* alpha,
        obj_t* b
      );
 
-void bli_setiv
+BLIS_EXPORT_BLIS void bli_setiv
      (
        obj_t* alpha,
        obj_t* x
@@ -22624,7 +25271,7 @@ void bli_setiv
 // Prototype object-based interface.
 //
 
-void bli_castm
+BLIS_EXPORT_BLIS void bli_castm
      (
        obj_t* a,
        obj_t* b
@@ -22637,7 +25284,7 @@ void bli_castm
 #undef  GENTPROT2
 #define GENTPROT2( ctype_a, ctype_b, cha, chb, opname ) \
 \
-void PASTEMAC2(cha,chb,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC2(cha,chb,opname) \
      ( \
        trans_t transa, \
        dim_t   m, \
@@ -22667,7 +25314,7 @@ void bli_castm_check
 // Prototype object-based interface.
 //
 
-void bli_castnzm
+BLIS_EXPORT_BLIS void bli_castnzm
      (
        obj_t* a,
        obj_t* b
@@ -22680,7 +25327,7 @@ void bli_castnzm
 #undef  GENTPROT2
 #define GENTPROT2( ctype_a, ctype_b, cha, chb, opname ) \
 \
-void PASTEMAC2(cha,chb,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC2(cha,chb,opname) \
      ( \
        trans_t transa, \
        dim_t   m, \
@@ -22710,7 +25357,7 @@ void bli_castnzm_check
 // Prototype object-based interface.
 //
 
-void bli_castv
+BLIS_EXPORT_BLIS void bli_castv
      (
        obj_t* x,
        obj_t* y
@@ -22723,7 +25370,7 @@ void bli_castv
 #undef  GENTPROT2
 #define GENTPROT2( ctype_x, ctype_y, chx, chy, opname ) \
 \
-void PASTEMAC2(chx,chy,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC2(chx,chy,opname) \
      ( \
        conj_t  conjx, \
        dim_t   n, \
@@ -22748,7 +25395,7 @@ void bli_castv_check
 // begin bli_projm.h
 
 
-void bli_projm
+BLIS_EXPORT_BLIS void bli_projm
      (
        obj_t* a,
        obj_t* b
@@ -22764,7 +25411,7 @@ void bli_projm_check
 // begin bli_projv.h
 
 
-void bli_projv
+BLIS_EXPORT_BLIS void bli_projv
      (
        obj_t* x,
        obj_t* y
@@ -22916,7 +25563,7 @@ void bli_l0_xx2sc_check
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  chi, \
        obj_t*  absq  \
@@ -22929,7 +25576,7 @@ GENPROT( normfsc )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  chi, \
        obj_t*  psi  \
@@ -22945,7 +25592,7 @@ GENPROT( subsc )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  chi  \
      );
@@ -22956,7 +25603,7 @@ GENPROT( invertsc )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  chi, \
        double* zeta_r, \
@@ -22969,7 +25616,7 @@ GENPROT( getsc )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        double  zeta_r, \
        double  zeta_i, \
@@ -22982,7 +25629,7 @@ GENPROT( setsc )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  chi, \
        obj_t*  zeta_r, \
@@ -22995,7 +25642,7 @@ GENPROT( unzipsc )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  zeta_r, \
        obj_t*  zeta_i, \
@@ -23022,7 +25669,7 @@ GENPROT( zipsc )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        conj_t  conjchi, \
        ctype*  chi, \
@@ -23038,7 +25685,7 @@ INSERT_GENTPROT_BASIC0( subsc )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        conj_t  conjchi, \
        ctype*  chi  \
@@ -23050,7 +25697,7 @@ INSERT_GENTPROT_BASIC0( invertsc )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        ctype*   chi, \
        ctype_r* absq  \
@@ -23063,7 +25710,7 @@ INSERT_GENTPROTR_BASIC0( normfsc )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        ctype*  chi, \
        ctype*  psi  \
@@ -23075,7 +25722,7 @@ INSERT_GENTPROT_BASIC0( sqrtsc )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        ctype*  chi, \
        double* zeta_r, \
@@ -23088,7 +25735,7 @@ INSERT_GENTPROT_BASIC0( getsc )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        double  zeta_r, \
        double  zeta_i, \
@@ -23101,7 +25748,7 @@ INSERT_GENTPROT_BASIC0( setsc )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        ctype*   chi, \
        ctype_r* zeta_r, \
@@ -23114,7 +25761,7 @@ INSERT_GENTPROTR_BASIC0( unzipsc )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        ctype_r* zeta_r, \
        ctype_r* zeta_i, \
@@ -23125,14 +25772,14 @@ INSERT_GENTPROTR_BASIC0( zipsc )
 
 // -----------------------------------------------------------------------------
 
-void bli_igetsc
+BLIS_EXPORT_BLIS void bli_igetsc
      (
        dim_t*  chi,
        double* zeta_r,
        double* zeta_i
      );
 
-void bli_isetsc
+BLIS_EXPORT_BLIS void bli_isetsc
      (
        double  zeta_r,
        double  zeta_i,
@@ -23331,7 +25978,7 @@ GENPROT( setsc )
 #undef  GENFRONT
 #define GENFRONT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  chi, \
        obj_t*  psi  \
@@ -23346,7 +25993,7 @@ GENFRONT( copysc )
 #undef  GENTPROT2
 #define GENTPROT2( ctype_x, ctype_y, chx, chy, varname ) \
 \
-void PASTEMAC2(chx,chy,varname) \
+BLIS_EXPORT_BLIS void PASTEMAC2(chx,chy,varname) \
      ( \
        conj_t conjchi, \
        void*  chi, \
@@ -23779,7 +26426,7 @@ INSERT_GENTDEF( xpbyv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y  \
@@ -23794,7 +26441,7 @@ GENTPROT( subv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  index  \
@@ -23807,7 +26454,7 @@ GENTPROT( amaxv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -23822,7 +26469,7 @@ GENTPROT( axpbyv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -23837,7 +26484,7 @@ GENTPROT( scal2v )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y, \
@@ -23851,7 +26498,7 @@ GENTPROT( dotv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -23867,7 +26514,7 @@ GENTPROT( dotxv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x  \
        BLIS_OAPI_EX_PARAMS  \
@@ -23879,7 +26526,7 @@ GENTPROT( invertv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x  \
@@ -23893,7 +26540,7 @@ GENTPROT( setv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y  \
@@ -23906,7 +26553,7 @@ GENTPROT( swapv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  beta, \
@@ -23957,7 +26604,7 @@ GENTPROT( xpbyv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y  \
@@ -23972,7 +26619,7 @@ GENTPROT( subv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  index  \
@@ -23985,7 +26632,7 @@ GENTPROT( amaxv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -24000,7 +26647,7 @@ GENTPROT( axpbyv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -24015,7 +26662,7 @@ GENTPROT( scal2v )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y, \
@@ -24029,7 +26676,7 @@ GENTPROT( dotv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -24045,7 +26692,7 @@ GENTPROT( dotxv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x  \
        BLIS_OAPI_EX_PARAMS  \
@@ -24057,7 +26704,7 @@ GENTPROT( invertv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x  \
@@ -24071,7 +26718,7 @@ GENTPROT( setv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y  \
@@ -24084,7 +26731,7 @@ GENTPROT( swapv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  beta, \
@@ -24134,7 +26781,7 @@ GENTPROT( xpbyv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
       ( \
         conj_t  conjx, \
         dim_t   n, \
@@ -24151,7 +26798,7 @@ INSERT_GENTPROT_BASIC0( subv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t   n, \
        ctype*  x, inc_t incx, \
@@ -24165,7 +26812,7 @@ INSERT_GENTPROT_BASIC0( amaxv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        dim_t   n, \
@@ -24182,7 +26829,7 @@ INSERT_GENTPROT_BASIC0( axpbyv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        dim_t   n, \
@@ -24199,7 +26846,7 @@ INSERT_GENTPROT_BASIC0( scal2v )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        conj_t  conjy, \
@@ -24216,7 +26863,7 @@ INSERT_GENTPROT_BASIC0( dotv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        conj_t  conjy, \
@@ -24235,7 +26882,7 @@ INSERT_GENTPROT_BASIC0( dotxv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t   n, \
        ctype*  x, inc_t incx  \
@@ -24248,7 +26895,7 @@ INSERT_GENTPROT_BASIC0( invertv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjalpha, \
        dim_t   n, \
@@ -24264,7 +26911,7 @@ INSERT_GENTPROT_BASIC0( setv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t   n, \
        ctype*  x, inc_t incx, \
@@ -24278,7 +26925,7 @@ INSERT_GENTPROT_BASIC0( swapv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        dim_t   n, \
@@ -24510,7 +27157,7 @@ INSERT_GENTDEF( xpbyv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
       ( \
         conj_t  conjx, \
         dim_t   n, \
@@ -24527,7 +27174,7 @@ INSERT_GENTPROT_BASIC0( subv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t   n, \
        ctype*  x, inc_t incx, \
@@ -24541,7 +27188,7 @@ INSERT_GENTPROT_BASIC0( amaxv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        dim_t   n, \
@@ -24558,7 +27205,7 @@ INSERT_GENTPROT_BASIC0( axpbyv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        dim_t   n, \
@@ -24575,7 +27222,7 @@ INSERT_GENTPROT_BASIC0( scal2v )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        conj_t  conjy, \
@@ -24592,7 +27239,7 @@ INSERT_GENTPROT_BASIC0( dotv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        conj_t  conjy, \
@@ -24611,7 +27258,7 @@ INSERT_GENTPROT_BASIC0( dotxv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t   n, \
        ctype*  x, inc_t incx  \
@@ -24624,7 +27271,7 @@ INSERT_GENTPROT_BASIC0( invertv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjalpha, \
        dim_t   n, \
@@ -24640,7 +27287,7 @@ INSERT_GENTPROT_BASIC0( setv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t   n, \
        ctype*  x, inc_t incx, \
@@ -24654,7 +27301,7 @@ INSERT_GENTPROT_BASIC0( swapv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        dim_t   n, \
@@ -25037,7 +27684,7 @@ void bli_l1d_ax_check
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y  \
@@ -25052,7 +27699,7 @@ GENTPROT( subd )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -25067,7 +27714,7 @@ GENTPROT( scal2d )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x  \
        BLIS_OAPI_EX_PARAMS  \
@@ -25079,7 +27726,7 @@ GENTPROT( invertd )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x  \
@@ -25095,7 +27742,7 @@ GENTPROT( shiftd )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  beta, \
@@ -25146,7 +27793,7 @@ GENTPROT( xpbyd )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y  \
@@ -25161,7 +27808,7 @@ GENTPROT( subd )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -25176,7 +27823,7 @@ GENTPROT( scal2d )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x  \
        BLIS_OAPI_EX_PARAMS  \
@@ -25188,7 +27835,7 @@ GENTPROT( invertd )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x  \
@@ -25204,7 +27851,7 @@ GENTPROT( shiftd )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  beta, \
@@ -25254,7 +27901,7 @@ GENTPROT( xpbyd )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -25274,7 +27921,7 @@ INSERT_GENTPROT_BASIC0( subd )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -25294,7 +27941,7 @@ INSERT_GENTPROT_BASIC0( scal2d )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        dim_t   m, \
@@ -25309,7 +27956,7 @@ INSERT_GENTPROT_BASIC0( invertd )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjalpha, \
        doff_t  diagoffx, \
@@ -25327,7 +27974,7 @@ INSERT_GENTPROT_BASIC0( setd )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t   diagoffx, \
        dim_t    m, \
@@ -25343,7 +27990,7 @@ INSERT_GENTPROTR_BASIC0( setid )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        dim_t   m, \
@@ -25359,7 +28006,7 @@ INSERT_GENTPROT_BASIC0( shiftd )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -25555,7 +28202,7 @@ INSERT_GENTDEF( xpbyd )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -25575,7 +28222,7 @@ INSERT_GENTPROT_BASIC0( subd )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -25595,7 +28242,7 @@ INSERT_GENTPROT_BASIC0( scal2d )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        dim_t   m, \
@@ -25610,7 +28257,7 @@ INSERT_GENTPROT_BASIC0( invertd )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjalpha, \
        doff_t  diagoffx, \
@@ -25628,7 +28275,7 @@ INSERT_GENTPROT_BASIC0( setd )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t   diagoffx, \
        dim_t    m, \
@@ -25644,7 +28291,7 @@ INSERT_GENTPROTR_BASIC0( setid )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        dim_t   m, \
@@ -25660,7 +28307,7 @@ INSERT_GENTPROT_BASIC0( shiftd )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -26103,7 +28750,7 @@ INSERT_GENTDEF( dotxaxpyf )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alphax, \
        obj_t*  alphay, \
@@ -26119,7 +28766,7 @@ GENTPROT( axpy2v )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -26134,7 +28781,7 @@ GENTPROT( axpyf )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  xt, \
@@ -26151,7 +28798,7 @@ GENTPROT( dotaxpyv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  at, \
@@ -26170,7 +28817,7 @@ GENTPROT( dotxaxpyf )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -26223,7 +28870,7 @@ GENTPROT( dotxf )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alphax, \
        obj_t*  alphay, \
@@ -26239,7 +28886,7 @@ GENTPROT( axpy2v )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -26254,7 +28901,7 @@ GENTPROT( axpyf )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  xt, \
@@ -26271,7 +28918,7 @@ GENTPROT( dotaxpyv )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  at, \
@@ -26290,7 +28937,7 @@ GENTPROT( dotxaxpyf )
 #undef  GENTPROT
 #define GENTPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -26342,7 +28989,7 @@ GENTPROT( dotxf )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        conj_t  conjy, \
@@ -26361,7 +29008,7 @@ INSERT_GENTPROT_BASIC0( axpy2v )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conja, \
        conj_t  conjx, \
@@ -26380,7 +29027,7 @@ INSERT_GENTPROT_BASIC0( axpyf )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjxt, \
        conj_t  conjx, \
@@ -26400,7 +29047,7 @@ INSERT_GENTPROT_BASIC0( dotaxpyv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjat, \
        conj_t  conja, \
@@ -26424,7 +29071,7 @@ INSERT_GENTPROT_BASIC0( dotxaxpyf )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjat, \
        conj_t  conjx, \
@@ -26598,7 +29245,7 @@ INSERT_GENTDEF( dotxaxpyf )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        conj_t  conjy, \
@@ -26617,7 +29264,7 @@ INSERT_GENTPROT_BASIC0( axpy2v )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conja, \
        conj_t  conjx, \
@@ -26636,7 +29283,7 @@ INSERT_GENTPROT_BASIC0( axpyf )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjxt, \
        conj_t  conjx, \
@@ -26656,7 +29303,7 @@ INSERT_GENTPROT_BASIC0( dotaxpyv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjat, \
        conj_t  conja, \
@@ -26680,7 +29327,7 @@ INSERT_GENTPROT_BASIC0( dotxaxpyf )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjat, \
        conj_t  conjx, \
@@ -26988,7 +29635,9 @@ INSERT_GENTDEF( packm )
 typedef void (*PASTECH3(ch,opname,_ker,tsuf)) \
      ( \
        conj_t           conja, \
+       dim_t            cdim, \
        dim_t            n, \
+       dim_t            n_max, \
        ctype*  restrict kappa, \
        ctype*  restrict a, inc_t inca, inc_t lda, \
        ctype*  restrict p,             inc_t ldp, \
@@ -27023,7 +29672,9 @@ INSERT_GENTDEF( unpackm_cxk )
 typedef void (*PASTECH3(ch,opname,_ker,tsuf)) \
      ( \
        conj_t           conja, \
+       dim_t            cdim, \
        dim_t            n, \
+       dim_t            n_max, \
        ctype*  restrict kappa, \
        ctype*  restrict a, inc_t inca, inc_t lda, \
        ctype*  restrict p, inc_t is_p, inc_t ldp, \
@@ -27032,7 +29683,6 @@ typedef void (*PASTECH3(ch,opname,_ker,tsuf)) \
 
 INSERT_GENTDEF( packm_cxk_3mis )
 INSERT_GENTDEF( packm_cxk_4mi )
-
 
 // packm_rih_ker
 // packm_1er_ker
@@ -27044,7 +29694,9 @@ typedef void (*PASTECH3(ch,opname,_ker,tsuf)) \
      ( \
        conj_t           conja, \
        pack_t           schema, \
+       dim_t            cdim, \
        dim_t            n, \
+       dim_t            n_max, \
        ctype*  restrict kappa, \
        ctype*  restrict a, inc_t inca, inc_t lda, \
        ctype*  restrict p,             inc_t ldp, \
@@ -27147,7 +29799,7 @@ GENTDEF( unpackm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y  \
@@ -27162,7 +29814,7 @@ GENPROT( subm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -27177,7 +29829,7 @@ GENPROT( scal2m )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x  \
@@ -27191,7 +29843,7 @@ GENPROT( setm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  beta, \
@@ -27243,7 +29895,7 @@ GENPROT( xpbym_md )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  y  \
@@ -27258,7 +29910,7 @@ GENPROT( subm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -27273,7 +29925,7 @@ GENPROT( scal2m )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x  \
@@ -27287,7 +29939,7 @@ GENPROT( setm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  beta, \
@@ -27338,7 +29990,7 @@ GENPROT( xpbym_md )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -27359,7 +30011,7 @@ INSERT_GENTPROT_BASIC0( subm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -27380,7 +30032,7 @@ INSERT_GENTPROT_BASIC0( scal2m )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjalpha, \
        doff_t  diagoffx, \
@@ -27400,7 +30052,7 @@ INSERT_GENTPROT_BASIC0( setm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -27420,7 +30072,7 @@ INSERT_GENTPROT_BASIC0( xpbym )
 #undef  GENTPROT2
 #define GENTPROT2( ctype_x, ctype_y, chx, chy, opname ) \
 \
-void PASTEMAC3(chx,chy,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC3(chx,chy,opname,EX_SUF) \
      ( \
        doff_t   diagoffx, \
        diag_t   diagx, \
@@ -27613,7 +30265,7 @@ INSERT_GENTDEF( xpbym_md )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -27634,7 +30286,7 @@ INSERT_GENTPROT_BASIC0( subm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -27655,7 +30307,7 @@ INSERT_GENTPROT_BASIC0( scal2m )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjalpha, \
        doff_t  diagoffx, \
@@ -27675,7 +30327,7 @@ INSERT_GENTPROT_BASIC0( setm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -27695,7 +30347,7 @@ INSERT_GENTPROT_BASIC0( xpbym )
 #undef  GENTPROT2
 #define GENTPROT2( ctype_x, ctype_y, chx, chy, opname ) \
 \
-void PASTEMAC3(chx,chy,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC3(chx,chy,opname,EX_SUF) \
      ( \
        doff_t   diagoffx, \
        diag_t   diagx, \
@@ -27894,7 +30546,7 @@ GENPROT( xpbym_md )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,_unb_var1) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -27916,7 +30568,7 @@ INSERT_GENTPROT_BASIC0( subm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,_unb_var1) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -27938,7 +30590,7 @@ INSERT_GENTPROT_BASIC0( scal2m )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,_unb_var1) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        conj_t  conjalpha, \
        doff_t  diagoffx, \
@@ -27959,7 +30611,7 @@ INSERT_GENTPROT_BASIC0( setm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,_unb_var1) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -27980,7 +30632,7 @@ INSERT_GENTPROT_BASIC0( xpbym )
 #undef  GENTPROT2
 #define GENTPROT2( ctype_x, ctype_y, chx, chy, opname ) \
 \
-void PASTEMAC3(chx,chy,opname,_unb_var1) \
+BLIS_EXPORT_BLIS void PASTEMAC3(chx,chy,opname,_unb_var1) \
      ( \
        doff_t   diagoffx, \
        diag_t   diagx, \
@@ -28065,6 +30717,7 @@ static packbuf_t bli_cntl_packm_params_pack_buf_type( cntl_t* cntl )
 
 cntl_t* bli_packm_cntl_create_node
      (
+       rntm_t*   rntm,
        void*     var_func,
        void*     packm_var_func,
        bszid_t   bmid_m,
@@ -28286,7 +30939,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \
@@ -28316,7 +30971,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \
@@ -28373,7 +31030,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \
@@ -28403,7 +31062,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \
@@ -28460,7 +31121,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \
@@ -28490,7 +31153,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \
@@ -28547,7 +31212,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \
@@ -28577,7 +31244,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \
@@ -28634,7 +31303,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \
@@ -28664,7 +31335,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \
@@ -28688,7 +31361,9 @@ void PASTEMAC(ch,varname) \
      ( \
        conj_t  conja, \
        dim_t   panel_dim, \
+       dim_t   panel_dim_max, \
        dim_t   panel_len, \
+       dim_t   panel_len_max, \
        ctype*  kappa, \
        ctype*  a, inc_t inca, inc_t lda, \
        ctype*  p,             inc_t ldp, \
@@ -28709,7 +31384,9 @@ void PASTEMAC(ch,varname) \
      ( \
        conj_t  conja, \
        dim_t   panel_dim, \
+       dim_t   panel_dim_max, \
        dim_t   panel_len, \
+       dim_t   panel_len_max, \
        ctype*  kappa, \
        ctype*  a, inc_t inca, inc_t lda, \
        ctype*  p, inc_t is_p, inc_t ldp, \
@@ -28730,7 +31407,9 @@ void PASTEMAC(ch,varname) \
      ( \
        conj_t  conja, \
        dim_t   panel_dim, \
+       dim_t   panel_dim_max, \
        dim_t   panel_len, \
+       dim_t   panel_len_max, \
        ctype*  kappa, \
        ctype*  a, inc_t inca, inc_t lda, \
        ctype*  p, inc_t is_p, inc_t ldp, \
@@ -28752,7 +31431,9 @@ void PASTEMAC(ch,varname) \
        conj_t  conja, \
        pack_t  schema, \
        dim_t   panel_dim, \
+       dim_t   panel_dim_max, \
        dim_t   panel_len, \
+       dim_t   panel_len_max, \
        ctype*  kappa, \
        ctype*  a, inc_t inca, inc_t lda, \
        ctype*  p,             inc_t ldp, \
@@ -28774,7 +31455,9 @@ void PASTEMAC(ch,varname) \
        conj_t  conja, \
        pack_t  schema, \
        dim_t   panel_dim, \
+       dim_t   panel_dim_max, \
        dim_t   panel_len, \
+       dim_t   panel_len_max, \
        ctype*  kappa, \
        ctype*  a, inc_t inca, inc_t lda, \
        ctype*  p,             inc_t ldp, \
@@ -28860,9 +31543,13 @@ void PASTEMAC2(cha,chp,opname) \
        conj_t            conja, \
        dim_t             m, \
        dim_t             n, \
+       ctype_p* restrict kappa, \
        ctype_a* restrict a, inc_t inca, inc_t lda, \
        ctype_p* restrict p,             inc_t ldp  \
      );
+
+INSERT_GENTPROT2_BASIC0( packm_cxk_1e_md )
+INSERT_GENTPROT2_MIXDP0( packm_cxk_1e_md )
 
 INSERT_GENTPROT2_BASIC0( packm_cxk_1r_md )
 INSERT_GENTPROT2_MIXDP0( packm_cxk_1r_md )
@@ -28894,6 +31581,7 @@ typedef struct unpackm_params_s unpackm_params_t;
 
 cntl_t* bli_unpackm_cntl_create_node
      (
+       rntm_t*   rntm,
        void*     var_func,
        void*     unpackm_var_func,
        cntl_t*   sub_node
@@ -29015,23 +31703,6 @@ INSERT_GENTPROT_BASIC0( unpackm_cxk )
 
 // end bli_unpackm_cxk.h
 // end bli_unpackm.h
-
-// Other
-// begin bli_scalm.h
-
-
-// begin bli_scalm_cntl.h
-
-
-
-cntl_t* bli_scalm_cntl_create_node
-     (
-       void*   var_func,
-       cntl_t* sub_node
-     );
-// end bli_scalm_cntl.h
-
-// end bli_scalm.h
 
 // end bli_l1m.h
 
@@ -29307,7 +31978,7 @@ INSERT_GENTDEF( trsv )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -29325,7 +31996,7 @@ GENPROT( symv )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -29342,7 +32013,7 @@ GENPROT( syr2 )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -29357,7 +32028,7 @@ GENPROT( syr )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -29409,7 +32080,7 @@ GENPROT( trsv )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -29427,7 +32098,7 @@ GENPROT( symv )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -29444,7 +32115,7 @@ GENPROT( syr2 )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  x, \
@@ -29459,7 +32130,7 @@ GENPROT( syr )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -29510,7 +32181,7 @@ GENPROT( trsv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        trans_t transa, \
        conj_t  conjx, \
@@ -29530,7 +32201,7 @@ INSERT_GENTPROT_BASIC0( gemv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        conj_t  conjy, \
@@ -29549,7 +32220,7 @@ INSERT_GENTPROT_BASIC0( ger )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploa, \
        conj_t  conja, \
@@ -29570,7 +32241,7 @@ INSERT_GENTPROT_BASIC0( symv )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t   uploa, \
        conj_t   conjx, \
@@ -29587,7 +32258,7 @@ INSERT_GENTPROTR_BASIC0( her )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t   uploa, \
        conj_t   conjx, \
@@ -29604,7 +32275,7 @@ INSERT_GENTPROT_BASIC0( syr )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploa, \
        conj_t  conjx, \
@@ -29624,7 +32295,7 @@ INSERT_GENTPROT_BASIC0( syr2 )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploa, \
        trans_t transa, \
@@ -29828,7 +32499,7 @@ INSERT_GENTDEF( trsv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        trans_t transa, \
        conj_t  conjx, \
@@ -29848,7 +32519,7 @@ INSERT_GENTPROT_BASIC0( gemv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        conj_t  conjx, \
        conj_t  conjy, \
@@ -29867,7 +32538,7 @@ INSERT_GENTPROT_BASIC0( ger )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploa, \
        conj_t  conja, \
@@ -29888,7 +32559,7 @@ INSERT_GENTPROT_BASIC0( symv )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t   uploa, \
        conj_t   conjx, \
@@ -29905,7 +32576,7 @@ INSERT_GENTPROTR_BASIC0( her )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t   uploa, \
        conj_t   conjx, \
@@ -29922,7 +32593,7 @@ INSERT_GENTPROT_BASIC0( syr )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploa, \
        conj_t  conjx, \
@@ -29942,7 +32613,7 @@ INSERT_GENTPROT_BASIC0( syr2 )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploa, \
        trans_t transa, \
@@ -30708,20 +33379,20 @@ INSERT_GENTPROT_BASIC0( trsv_unf_var2 )
 void bli_l3_cntl_create_if
      (
        opid_t   family,
+       pack_t   schema_a,
+       pack_t   schema_b,
        obj_t*   a,
        obj_t*   b,
        obj_t*   c,
+       rntm_t*  rntm,
        cntl_t*  cntl_orig,
        cntl_t** cntl_use
      );
 
-void bli_l3_cntl_free_if
+void bli_l3_cntl_free
      (
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  c,
-       cntl_t* cntl_orig,
-       cntl_t* cntl_use,
+       rntm_t*    rntm,
+       cntl_t*    cntl_use,
        thrinfo_t* thread
      );
 
@@ -31461,7 +34132,7 @@ void bli_l3_packm
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -31479,7 +34150,7 @@ GENPROT( syr2k )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        side_t  side, \
        obj_t*  alpha, \
@@ -31498,7 +34169,7 @@ GENPROT( trmm3 )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -31514,7 +34185,7 @@ GENPROT( syrk )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        side_t  side, \
        obj_t*  alpha, \
@@ -31567,7 +34238,7 @@ GENPROT( trsm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -31585,7 +34256,7 @@ GENPROT( syr2k )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        side_t  side, \
        obj_t*  alpha, \
@@ -31604,7 +34275,7 @@ GENPROT( trmm3 )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -31620,7 +34291,7 @@ GENPROT( syrk )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        side_t  side, \
        obj_t*  alpha, \
@@ -31672,7 +34343,7 @@ GENPROT( trsm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        trans_t transa, \
        trans_t transb, \
@@ -31693,7 +34364,7 @@ INSERT_GENTPROT_BASIC0( gemm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        side_t  side, \
        uplo_t  uploa, \
@@ -31716,7 +34387,7 @@ INSERT_GENTPROT_BASIC0( symm )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t   uploc, \
        trans_t  transa, \
@@ -31735,7 +34406,7 @@ INSERT_GENTPROTR_BASIC0( herk )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t   uploc, \
        trans_t  transa, \
@@ -31756,7 +34427,7 @@ INSERT_GENTPROTR_BASIC0( her2k )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploc, \
        trans_t transa, \
@@ -31775,7 +34446,7 @@ INSERT_GENTPROT_BASIC0( syrk )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploc, \
        trans_t transa, \
@@ -31796,7 +34467,7 @@ INSERT_GENTPROT_BASIC0( syr2k )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        side_t  side, \
        uplo_t  uploa, \
@@ -31819,7 +34490,7 @@ INSERT_GENTPROT_BASIC0( trmm3 )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        side_t  side, \
        uplo_t  uploa, \
@@ -31877,7 +34548,7 @@ INSERT_GENTPROT_BASIC0( trsm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        trans_t transa, \
        trans_t transb, \
@@ -31898,7 +34569,7 @@ INSERT_GENTPROT_BASIC0( gemm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        side_t  side, \
        uplo_t  uploa, \
@@ -31921,7 +34592,7 @@ INSERT_GENTPROT_BASIC0( symm )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t   uploc, \
        trans_t  transa, \
@@ -31940,7 +34611,7 @@ INSERT_GENTPROTR_BASIC0( herk )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t   uploc, \
        trans_t  transa, \
@@ -31961,7 +34632,7 @@ INSERT_GENTPROTR_BASIC0( her2k )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploc, \
        trans_t transa, \
@@ -31980,7 +34651,7 @@ INSERT_GENTPROT_BASIC0( syrk )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploc, \
        trans_t transa, \
@@ -32001,7 +34672,7 @@ INSERT_GENTPROT_BASIC0( syr2k )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        side_t  side, \
        uplo_t  uploa, \
@@ -32024,7 +34695,7 @@ INSERT_GENTPROT_BASIC0( trmm3 )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        side_t  side, \
        uplo_t  uploa, \
@@ -32055,7 +34726,7 @@ INSERT_GENTPROT_BASIC0( trsm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
@@ -32071,7 +34742,7 @@ GENPROT( gemm_ukernel )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  alpha, \
        obj_t*  a1x, \
@@ -32088,7 +34759,7 @@ GENPROT( gemmtrsm_ukernel )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  a, \
        obj_t*  b, \
@@ -32188,18 +34859,20 @@ GENPROT( trsm,     trsm_u_ukernel )
 
 cntl_t* bli_gemm_cntl_create
      (
-       opid_t family,
-       pack_t schema_a,
-       pack_t schema_b
+       rntm_t* rntm,
+       opid_t  family,
+       pack_t  schema_a,
+       pack_t  schema_b
      );
 
 // -----------------------------------------------------------------------------
 
 cntl_t* bli_gemmbp_cntl_create
      (
-       opid_t family,
-       pack_t schema_a,
-       pack_t schema_b
+       rntm_t* rntm,
+       opid_t  family,
+       pack_t  schema_a,
+       pack_t  schema_b
      );
 
 #if 0
@@ -32213,7 +34886,8 @@ cntl_t* bli_gemmpb_cntl_create
 
 void bli_gemm_cntl_free
      (
-       cntl_t* cntl,
+       rntm_t*    rntm,
+       cntl_t*    cntl,
        thrinfo_t* thread
      );
 
@@ -32221,6 +34895,7 @@ void bli_gemm_cntl_free
 
 cntl_t* bli_gemm_cntl_create_node
      (
+       rntm_t* rntm,
        opid_t  family,
        bszid_t bszid,
        void*   var_func,
@@ -32340,6 +35015,56 @@ INSERT_GENTPROT_BASIC0( gemm_ker_var2 )
 INSERT_GENTPROT_BASIC0( gemm4mb_ker_var2 ) // 4m1b
 
 // end bli_gemm_var.h
+
+// begin bli_gemm_ind_opt.h
+
+
+static void bli_gemm_ind_recast_1m_params
+     (
+       num_t* dt_exec,
+       pack_t schema_a,
+       obj_t* c,
+       dim_t* m,
+       dim_t* n,
+       dim_t* k,
+       inc_t* pd_a, inc_t* ps_a,
+       inc_t* pd_b, inc_t* ps_b,
+       inc_t* rs_c, inc_t* cs_c
+     )
+{
+	obj_t beta;
+
+	
+	bli_obj_scalar_detach( c, &beta );
+
+	
+	if ( bli_obj_imag_is_zero( &beta ) &&
+	     !bli_is_gen_stored( *rs_c, *cs_c ) )
+	{
+		*dt_exec = bli_dt_proj_to_real( *dt_exec );
+
+		if ( bli_is_1e_packed( schema_a ) )
+		{
+			*m    *= 2;
+			*n    *= 1;
+			*k    *= 2;
+			*pd_a *= 2; *ps_a *= 2;
+			*pd_b *= 1; *ps_b *= 2;
+			*rs_c *= 1; *cs_c *= 2;
+		}
+		else 
+		{
+			*m    *= 1;
+			*n    *= 2;
+			*k    *= 2;
+			*pd_a *= 1; *ps_a *= 2;
+			*pd_b *= 2; *ps_b *= 2;
+			*rs_c *= 2; *cs_c *= 1;
+		}
+	}
+}
+
+// end bli_gemm_ind_opt.h
 
 // Mixed datatype support.
 #ifdef BLIS_ENABLE_GEMM_MD
@@ -32985,26 +35710,30 @@ void bli_trmm3_front
 
 cntl_t* bli_trsm_cntl_create
      (
-       side_t side,
-       pack_t schema_a,
-       pack_t schema_b
+       rntm_t* rntm,
+       side_t  side,
+       pack_t  schema_a,
+       pack_t  schema_b
      );
 
 cntl_t* bli_trsm_l_cntl_create
      (
-       pack_t schema_a,
-       pack_t schema_b
+       rntm_t* rntm,
+       pack_t  schema_a,
+       pack_t  schema_b
      );
 
 cntl_t* bli_trsm_r_cntl_create
      (
-       pack_t schema_a,
-       pack_t schema_b
+       rntm_t* rntm,
+       pack_t  schema_a,
+       pack_t  schema_b
      );
 
 void bli_trsm_cntl_free
      (
-       cntl_t* cntl,
+       rntm_t*    rntm,
+       cntl_t*    cntl,
        thrinfo_t* thread
      );
 
@@ -33012,6 +35741,7 @@ void bli_trsm_cntl_free
 
 cntl_t* bli_trsm_cntl_create_node
      (
+       rntm_t* rntm,
        opid_t  family,
        bszid_t bszid,
        void*   var_func, 
@@ -33327,7 +36057,7 @@ void bli_utilv_sumsqv_check
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  asum  \
@@ -33340,7 +36070,7 @@ GENPROT( asumv )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  a  \
        BLIS_OAPI_EX_PARAMS  \
@@ -33354,7 +36084,7 @@ GENPROT( mktrim )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  norm  \
@@ -33369,7 +36099,7 @@ GENPROT( normiv )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  norm  \
@@ -33384,7 +36114,7 @@ GENPROT( normim )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        FILE*   file, \
        char*   s1, \
@@ -33401,7 +36131,7 @@ GENPROT( fprintm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        char*   s1, \
        obj_t*  x, \
@@ -33417,7 +36147,7 @@ GENPROT( printm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x  \
        BLIS_OAPI_EX_PARAMS  \
@@ -33430,7 +36160,7 @@ GENPROT( randnv )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x  \
        BLIS_OAPI_EX_PARAMS  \
@@ -33443,7 +36173,7 @@ GENPROT( randnm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  scale, \
@@ -33494,7 +36224,7 @@ GENPROT( sumsqv )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  asum  \
@@ -33507,7 +36237,7 @@ GENPROT( asumv )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  a  \
        BLIS_OAPI_EX_PARAMS  \
@@ -33521,7 +36251,7 @@ GENPROT( mktrim )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  norm  \
@@ -33536,7 +36266,7 @@ GENPROT( normiv )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  norm  \
@@ -33551,7 +36281,7 @@ GENPROT( normim )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        FILE*   file, \
        char*   s1, \
@@ -33568,7 +36298,7 @@ GENPROT( fprintm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        char*   s1, \
        obj_t*  x, \
@@ -33584,7 +36314,7 @@ GENPROT( printm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x  \
        BLIS_OAPI_EX_PARAMS  \
@@ -33597,7 +36327,7 @@ GENPROT( randnv )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x  \
        BLIS_OAPI_EX_PARAMS  \
@@ -33610,7 +36340,7 @@ GENPROT( randnm )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
        obj_t*  x, \
        obj_t*  scale, \
@@ -33660,7 +36390,7 @@ GENPROT( sumsqv )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t    n, \
        ctype*   x, inc_t incx, \
@@ -33674,7 +36404,7 @@ INSERT_GENTPROTR_BASIC0( asumv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploa, \
        dim_t   m, \
@@ -33690,7 +36420,7 @@ INSERT_GENTPROT_BASIC0( mktrim )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t    n, \
        ctype*   x, inc_t incx, \
@@ -33706,7 +36436,7 @@ INSERT_GENTPROTR_BASIC0( normiv )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t   diagoffx, \
        diag_t   diagx, \
@@ -33726,7 +36456,7 @@ INSERT_GENTPROTR_BASIC0( normim )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        char*  s1, \
        dim_t  n, \
@@ -33741,7 +36471,7 @@ INSERT_GENTPROT_BASIC0_I( printv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        char*  s1, \
        dim_t  m, \
@@ -33757,7 +36487,7 @@ INSERT_GENTPROT_BASIC0_I( printm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t    n, \
        ctype*   x, inc_t incx  \
@@ -33771,7 +36501,7 @@ INSERT_GENTPROT_BASIC0( randnv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        uplo_t  uplox, \
@@ -33788,7 +36518,7 @@ INSERT_GENTPROT_BASIC0( randnm )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t    n, \
        ctype*   x, inc_t incx, \
@@ -34004,7 +36734,7 @@ INSERT_GENTDEFR( sumsqv )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t    n, \
        ctype*   x, inc_t incx, \
@@ -34018,7 +36748,7 @@ INSERT_GENTPROTR_BASIC0( asumv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        uplo_t  uploa, \
        dim_t   m, \
@@ -34034,7 +36764,7 @@ INSERT_GENTPROT_BASIC0( mktrim )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t    n, \
        ctype*   x, inc_t incx, \
@@ -34050,7 +36780,7 @@ INSERT_GENTPROTR_BASIC0( normiv )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t   diagoffx, \
        diag_t   diagx, \
@@ -34070,7 +36800,7 @@ INSERT_GENTPROTR_BASIC0( normim )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        char*  s1, \
        dim_t  n, \
@@ -34085,7 +36815,7 @@ INSERT_GENTPROT_BASIC0_I( printv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        char*  s1, \
        dim_t  m, \
@@ -34101,7 +36831,7 @@ INSERT_GENTPROT_BASIC0_I( printm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t    n, \
        ctype*   x, inc_t incx  \
@@ -34115,7 +36845,7 @@ INSERT_GENTPROT_BASIC0( randnv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        doff_t  diagoffx, \
        uplo_t  uplox, \
@@ -34132,7 +36862,7 @@ INSERT_GENTPROT_BASIC0( randnm )
 #undef  GENTPROTR
 #define GENTPROTR( ctype, ctype_r, ch, chr, opname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
        dim_t    n, \
        ctype*   x, inc_t incx, \
@@ -34438,7 +37168,7 @@ INSERT_GENTPROTR_BASIC0( normim_unb_var1 )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        FILE*  file, \
        char*  s1, \
@@ -34454,7 +37184,7 @@ INSERT_GENTPROT_BASIC0_I( fprintv )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        FILE*  file, \
        char*  s1, \
@@ -34716,7 +37446,7 @@ double bla_z_abs(const bla_dcomplex *z);
 #ifdef LAPACK_ILP64
 long PASTEF770(lsame)(const char *ca, const char *cb, long ca_len, long cb_len);
 #else
-int PASTEF770(lsame)(const char *ca, const char *cb, int ca_len, int cb_len);
+BLIS_EXPORT_BLAS int PASTEF770(lsame)(const char *ca, const char *cb, int ca_len, int cb_len);
 #endif
 
 #endif
@@ -34726,7 +37456,7 @@ int PASTEF770(lsame)(const char *ca, const char *cb, int ca_len, int cb_len);
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF770(xerbla)(const bla_character *srname, const bla_integer *info, ftnlen srname_len);
+BLIS_EXPORT_BLAS int PASTEF770(xerbla)(const bla_character *srname, const bla_integer *info, ftnlen srname_len);
 
 #endif
 // end bla_xerbla.h
@@ -34739,8 +37469,8 @@ int PASTEF770(xerbla)(const bla_character *srname, const bla_integer *info, ftnl
 
 #ifdef BLIS_ENABLE_BLAS
 
-bla_real   PASTEF77(s,cabs1)(bla_scomplex *z);
-bla_double PASTEF77(d,cabs1)(bla_dcomplex *z);
+BLIS_EXPORT_BLAS bla_real   PASTEF77(s,cabs1)(bla_scomplex *z);
+BLIS_EXPORT_BLAS bla_double PASTEF77(d,cabs1)(bla_dcomplex *z);
 
 #endif
 // end bla_cabs1.h
@@ -34758,7 +37488,7 @@ bla_double PASTEF77(d,cabs1)(bla_dcomplex *z);
 #undef  GENTPROT
 #define GENTPROT( ftype_x, chx, blasname ) \
 \
-f77_int PASTEF772(i,chx,blasname) \
+BLIS_EXPORT_BLAS f77_int PASTEF772(i,chx,blasname) \
      ( \
        const f77_int* n, \
        const ftype_x* x, const f77_int* incx  \
@@ -34779,7 +37509,7 @@ INSERT_GENTPROT_BLAS( amax )
 #undef  GENTPROTR2
 #define GENTPROTR2( ftype_x, ftype_r, chx, chr, blasname ) \
 \
-ftype_r PASTEF772(chr,chx,blasname) \
+BLIS_EXPORT_BLAS ftype_r PASTEF772(chr,chx,blasname) \
      ( \
        const f77_int* n, \
        const ftype_x* x, const f77_int* incx  \
@@ -34800,7 +37530,7 @@ INSERT_GENTPROTR2_BLAS( asum )
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_int* n, \
        const ftype*   alpha, \
@@ -34823,7 +37553,7 @@ INSERT_GENTPROT_BLAS( axpy )
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_int* n, \
        const ftype*   x, const f77_int* incx, \
@@ -34845,7 +37575,7 @@ INSERT_GENTPROT_BLAS( copy )
 #undef  GENTPROTDOT
 #define GENTPROTDOT( ftype, ch, chc, blasname ) \
 \
-ftype PASTEF772(ch,blasname,chc) \
+BLIS_EXPORT_BLAS ftype PASTEF772(ch,blasname,chc) \
      ( \
        const f77_int* n, \
        const ftype*   x, const f77_int* incx, \
@@ -34858,7 +37588,7 @@ INSERT_GENTPROTDOT_BLAS( dot )
 
 // -- "Black sheep" dot product function prototypes --
 
-float PASTEF77(sd,sdot)
+BLIS_EXPORT_BLAS float PASTEF77(sd,sdot)
      (
        const f77_int* n,
        const float*   sb,
@@ -34866,7 +37596,7 @@ float PASTEF77(sd,sdot)
        const float*   y, const f77_int* incy
      );
 
-double PASTEF77(d,sdot)
+BLIS_EXPORT_BLAS double PASTEF77(d,sdot)
      (
          const f77_int* n,
          const float*   x, const f77_int* incx,
@@ -34884,7 +37614,7 @@ double PASTEF77(d,sdot)
 #undef  GENTPROTR2
 #define GENTPROTR2( ftype_x, ftype_r, chx, chr, blasname ) \
 \
-ftype_r PASTEF772(chr,chx,blasname) \
+BLIS_EXPORT_BLAS ftype_r PASTEF772(chr,chx,blasname) \
      ( \
        const f77_int* n, \
        const ftype_x* x, const f77_int* incx  \
@@ -34900,10 +37630,10 @@ INSERT_GENTPROTR2_BLAS( nrm2 )
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(s,rot)(const bla_integer *n, bla_real *sx, const bla_integer *incx, bla_real *sy, const bla_integer *incy, const bla_real *c__, const bla_real *s);
-int PASTEF77(d,rot)(const bla_integer *n, bla_double *dx, const bla_integer *incx, bla_double *dy, const bla_integer *incy, const bla_double *c__, const bla_double *s);
-int PASTEF77(cs,rot)(const bla_integer *n, bla_scomplex *cx, const bla_integer *incx, bla_scomplex *cy, const bla_integer *incy, const bla_real *c__, const bla_real *s);
-int PASTEF77(zd,rot)(const bla_integer *n, bla_dcomplex *zx, const bla_integer *incx, bla_dcomplex *zy, const bla_integer *incy, const bla_double *c__, const bla_double *s);
+BLIS_EXPORT_BLAS int PASTEF77(s,rot)(const bla_integer *n, bla_real *sx, const bla_integer *incx, bla_real *sy, const bla_integer *incy, const bla_real *c__, const bla_real *s);
+BLIS_EXPORT_BLAS int PASTEF77(d,rot)(const bla_integer *n, bla_double *dx, const bla_integer *incx, bla_double *dy, const bla_integer *incy, const bla_double *c__, const bla_double *s);
+BLIS_EXPORT_BLAS int PASTEF77(cs,rot)(const bla_integer *n, bla_scomplex *cx, const bla_integer *incx, bla_scomplex *cy, const bla_integer *incy, const bla_real *c__, const bla_real *s);
+BLIS_EXPORT_BLAS int PASTEF77(zd,rot)(const bla_integer *n, bla_dcomplex *zx, const bla_integer *incx, bla_dcomplex *zy, const bla_integer *incy, const bla_double *c__, const bla_double *s);
 
 #endif
 // end bla_rot.h
@@ -34912,10 +37642,10 @@ int PASTEF77(zd,rot)(const bla_integer *n, bla_dcomplex *zx, const bla_integer *
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(s,rotg)(bla_real *sa, bla_real *sb, bla_real *c__, bla_real *s);
-int PASTEF77(d,rotg)(bla_double *da, bla_double *db, bla_double *c__, bla_double *s);
-int PASTEF77(c,rotg)(bla_scomplex *ca, bla_scomplex *cb, bla_real *c__, bla_scomplex *s);
-int PASTEF77(z,rotg)(bla_dcomplex *ca, bla_dcomplex *cb, bla_double *c__, bla_dcomplex *s);
+BLIS_EXPORT_BLAS int PASTEF77(s,rotg)(bla_real *sa, bla_real *sb, bla_real *c__, bla_real *s);
+BLIS_EXPORT_BLAS int PASTEF77(d,rotg)(bla_double *da, bla_double *db, bla_double *c__, bla_double *s);
+BLIS_EXPORT_BLAS int PASTEF77(c,rotg)(bla_scomplex *ca, bla_scomplex *cb, bla_real *c__, bla_scomplex *s);
+BLIS_EXPORT_BLAS int PASTEF77(z,rotg)(bla_dcomplex *ca, bla_dcomplex *cb, bla_double *c__, bla_dcomplex *s);
 
 #endif
 // end bla_rotg.h
@@ -34924,8 +37654,8 @@ int PASTEF77(z,rotg)(bla_dcomplex *ca, bla_dcomplex *cb, bla_double *c__, bla_dc
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(s,rotm)(const bla_integer *n, bla_real *sx, const bla_integer *incx, bla_real *sy, const bla_integer *incy, const bla_real *sparam);
-int PASTEF77(d,rotm)(const bla_integer *n, bla_double *dx, const bla_integer *incx, bla_double *dy, const bla_integer *incy, const bla_double *dparam);
+BLIS_EXPORT_BLAS int PASTEF77(s,rotm)(const bla_integer *n, bla_real *sx, const bla_integer *incx, bla_real *sy, const bla_integer *incy, const bla_real *sparam);
+BLIS_EXPORT_BLAS int PASTEF77(d,rotm)(const bla_integer *n, bla_double *dx, const bla_integer *incx, bla_double *dy, const bla_integer *incy, const bla_double *dparam);
 
 #endif
 // end bla_rotm.h
@@ -34934,8 +37664,8 @@ int PASTEF77(d,rotm)(const bla_integer *n, bla_double *dx, const bla_integer *in
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(s,rotmg)(bla_real *sd1, bla_real *sd2, bla_real *sx1, const bla_real *sy1, bla_real *sparam);
-int PASTEF77(d,rotmg)(bla_double *dd1, bla_double *dd2, bla_double *dx1, const bla_double *dy1, bla_double *dparam);
+BLIS_EXPORT_BLAS int PASTEF77(s,rotmg)(bla_real *sd1, bla_real *sd2, bla_real *sx1, const bla_real *sy1, bla_real *sparam);
+BLIS_EXPORT_BLAS int PASTEF77(d,rotmg)(bla_double *dd1, bla_double *dd2, bla_double *dx1, const bla_double *dy1, bla_double *dparam);
 
 #endif
 // end bla_rotmg.h
@@ -34949,7 +37679,7 @@ int PASTEF77(d,rotmg)(bla_double *dd1, bla_double *dd2, bla_double *dx1, const b
 #undef  GENTPROTSCAL
 #define GENTPROTSCAL( ftype_a, ftype_x, cha, chx, blasname ) \
 \
-void PASTEF772(chx,cha,blasname) \
+BLIS_EXPORT_BLAS void PASTEF772(chx,cha,blasname) \
      ( \
        const f77_int* n, \
        const ftype_a* alpha, \
@@ -34971,7 +37701,7 @@ INSERT_GENTPROTSCAL_BLAS( scal )
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_int* n, \
        ftype*   x, const f77_int* incx, \
@@ -34994,7 +37724,7 @@ INSERT_GENTPROT_BLAS( swap )
 #undef  GENTPROT
 #define GENTPROT( ftype_x, chx, blasname ) \
 \
-void PASTEF773(i,chx,blasname,sub) \
+BLIS_EXPORT_BLAS void PASTEF773(i,chx,blasname,sub) \
      ( \
        const f77_int* n, \
        const ftype_x* x, const f77_int* incx, \
@@ -35015,7 +37745,7 @@ INSERT_GENTPROT_BLAS( amax )
 #undef  GENTPROTR2
 #define GENTPROTR2( ftype_x, ftype_r, chx, chr, blasname ) \
 \
-void PASTEF773(chr,chx,blasname,sub) \
+BLIS_EXPORT_BLAS void PASTEF773(chr,chx,blasname,sub) \
      ( \
        const f77_int* n, \
        const ftype_x* x, const f77_int* incx, \
@@ -35036,7 +37766,7 @@ INSERT_GENTPROTR2_BLAS( asum )
 #undef  GENTPROTDOT
 #define GENTPROTDOT( ftype, ch, chc, blasname ) \
 \
-void PASTEF773(ch,blasname,chc,sub) \
+BLIS_EXPORT_BLAS void PASTEF773(ch,blasname,chc,sub) \
      ( \
        const f77_int* n, \
        const ftype*   x, const f77_int* incx, \
@@ -35050,7 +37780,7 @@ INSERT_GENTPROTDOT_BLAS( dot )
 
 // -- "Black sheep" dot product function prototypes --
 
-void PASTEF772(sds,dot,sub)
+BLIS_EXPORT_BLAS void PASTEF772(sds,dot,sub)
      (
        const f77_int* n,
        const float*  sb,
@@ -35059,7 +37789,7 @@ void PASTEF772(sds,dot,sub)
              float*   rval
      );
 
-void PASTEF772(ds,dot,sub)
+BLIS_EXPORT_BLAS void PASTEF772(ds,dot,sub)
      (
        const f77_int* n,
        const float*   x, const f77_int* incx,
@@ -35078,7 +37808,7 @@ void PASTEF772(ds,dot,sub)
 #undef  GENTPROTR2
 #define GENTPROTR2( ftype_x, ftype_r, chx, chr, blasname ) \
 \
-void PASTEF773(chr,chx,blasname,sub) \
+BLIS_EXPORT_BLAS void PASTEF773(chr,chx,blasname,sub) \
      ( \
        const f77_int* n, \
        const ftype_x* x, const f77_int* incx, \
@@ -35105,7 +37835,7 @@ INSERT_GENTPROTR2_BLAS( nrm2 )
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* transa, \
        const f77_int*  m, \
@@ -35132,7 +37862,7 @@ INSERT_GENTPROT_BLAS( gemv )
 #undef  GENTPROTDOT
 #define GENTPROTDOT( ftype, chxy, chc, blasname ) \
 \
-void PASTEF772(chxy,blasname,chc) \
+BLIS_EXPORT_BLAS void PASTEF772(chxy,blasname,chc) \
      ( \
        const f77_int* m, \
        const f77_int* n, \
@@ -35157,7 +37887,7 @@ INSERT_GENTPROTDOT_BLAS( ger )
 #undef  GENTPROTCO
 #define GENTPROTCO( ftype, ftype_r, ch, chr, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploa, \
        const f77_int*  m, \
@@ -35183,7 +37913,7 @@ INSERT_GENTPROTCO_BLAS( hemv )
 #undef  GENTPROTCO
 #define GENTPROTCO( ftype, ftype_r, ch, chr, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploa, \
        const f77_int*  m, \
@@ -35207,7 +37937,7 @@ INSERT_GENTPROTCO_BLAS( her )
 #undef  GENTPROTCO
 #define GENTPROTCO( ftype, ftype_r, ch, chr, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploa, \
        const f77_int*  m, \
@@ -35232,7 +37962,7 @@ INSERT_GENTPROTCO_BLAS( her2 )
 #undef  GENTPROTRO
 #define GENTPROTRO( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploa, \
        const f77_int*  m, \
@@ -35258,7 +37988,7 @@ INSERT_GENTPROTRO_BLAS( symv )
 #undef  GENTPROTRO
 #define GENTPROTRO( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploa, \
        const f77_int*  m, \
@@ -35282,7 +38012,7 @@ INSERT_GENTPROTRO_BLAS( syr )
 #undef  GENTPROTRO
 #define GENTPROTRO( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploa, \
        const f77_int*  m, \
@@ -35307,7 +38037,7 @@ INSERT_GENTPROTRO_BLAS( syr2 )
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploa, \
        const f77_char* transa, \
@@ -35332,7 +38062,7 @@ INSERT_GENTPROT_BLAS( trmv )
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploa, \
        const f77_char* transa, \
@@ -35639,8 +38369,8 @@ INSERT_GENTPROT_BLAS( trsv )
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(c,hpmv)(const bla_character *uplo, const bla_integer *n, const bla_scomplex *alpha, const bla_scomplex *ap, const bla_scomplex *x, const bla_integer *incx, const bla_scomplex *beta, bla_scomplex *y, const bla_integer *incy);
-int PASTEF77(z,hpmv)(const bla_character *uplo, const bla_integer *n, const bla_dcomplex *alpha, const bla_dcomplex *ap, const bla_dcomplex *x, const bla_integer *incx, const bla_dcomplex *beta, bla_dcomplex *y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(c,hpmv)(const bla_character *uplo, const bla_integer *n, const bla_scomplex *alpha, const bla_scomplex *ap, const bla_scomplex *x, const bla_integer *incx, const bla_scomplex *beta, bla_scomplex *y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(z,hpmv)(const bla_character *uplo, const bla_integer *n, const bla_dcomplex *alpha, const bla_dcomplex *ap, const bla_dcomplex *x, const bla_integer *incx, const bla_dcomplex *beta, bla_dcomplex *y, const bla_integer *incy);
 
 #endif
 // end bla_hpmv.h
@@ -35649,8 +38379,8 @@ int PASTEF77(z,hpmv)(const bla_character *uplo, const bla_integer *n, const bla_
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(c,hpr)(const bla_character *uplo, const bla_integer *n, const bla_real *alpha, const bla_scomplex *x, const bla_integer *incx, bla_scomplex *ap);
-int PASTEF77(z,hpr)(const bla_character *uplo, const bla_integer *n, const bla_double *alpha, const bla_dcomplex *x, const bla_integer *incx, bla_dcomplex *ap);
+BLIS_EXPORT_BLAS int PASTEF77(c,hpr)(const bla_character *uplo, const bla_integer *n, const bla_real *alpha, const bla_scomplex *x, const bla_integer *incx, bla_scomplex *ap);
+BLIS_EXPORT_BLAS int PASTEF77(z,hpr)(const bla_character *uplo, const bla_integer *n, const bla_double *alpha, const bla_dcomplex *x, const bla_integer *incx, bla_dcomplex *ap);
 
 #endif
 // end bla_hpr.h
@@ -35659,8 +38389,8 @@ int PASTEF77(z,hpr)(const bla_character *uplo, const bla_integer *n, const bla_d
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(c,hpr2)(const bla_character *uplo, const bla_integer *n, const bla_scomplex *alpha, const bla_scomplex *x, const bla_integer *incx, const bla_scomplex *y, const bla_integer *incy, bla_scomplex *ap);
-int PASTEF77(z,hpr2)(const bla_character *uplo, const bla_integer *n, const bla_dcomplex *alpha, const bla_dcomplex *x, const bla_integer *incx, const bla_dcomplex *y, const bla_integer *incy, bla_dcomplex *ap);
+BLIS_EXPORT_BLAS int PASTEF77(c,hpr2)(const bla_character *uplo, const bla_integer *n, const bla_scomplex *alpha, const bla_scomplex *x, const bla_integer *incx, const bla_scomplex *y, const bla_integer *incy, bla_scomplex *ap);
+BLIS_EXPORT_BLAS int PASTEF77(z,hpr2)(const bla_character *uplo, const bla_integer *n, const bla_dcomplex *alpha, const bla_dcomplex *x, const bla_integer *incx, const bla_dcomplex *y, const bla_integer *incy, bla_dcomplex *ap);
 
 #endif
 // end bla_hpr2.h
@@ -35669,8 +38399,8 @@ int PASTEF77(z,hpr2)(const bla_character *uplo, const bla_integer *n, const bla_
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(d,spmv)(const bla_character *uplo, const bla_integer *n, const bla_double *alpha, const bla_double *ap, const bla_double *x, const bla_integer *incx, const bla_double *beta, bla_double *y, const bla_integer *incy);
-int PASTEF77(s,spmv)(const bla_character *uplo, const bla_integer *n, const bla_real *alpha, const bla_real *ap, const bla_real *x, const bla_integer *incx, const bla_real *beta, bla_real *y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(d,spmv)(const bla_character *uplo, const bla_integer *n, const bla_double *alpha, const bla_double *ap, const bla_double *x, const bla_integer *incx, const bla_double *beta, bla_double *y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(s,spmv)(const bla_character *uplo, const bla_integer *n, const bla_real *alpha, const bla_real *ap, const bla_real *x, const bla_integer *incx, const bla_real *beta, bla_real *y, const bla_integer *incy);
 
 #endif
 // end bla_spmv.h
@@ -35679,8 +38409,8 @@ int PASTEF77(s,spmv)(const bla_character *uplo, const bla_integer *n, const bla_
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(d,spr)(const bla_character *uplo, const bla_integer *n, const bla_double *alpha, const bla_double *x, const bla_integer *incx, bla_double *ap);
-int PASTEF77(s,spr)(const bla_character *uplo, const bla_integer *n, const bla_real *alpha, const bla_real *x, const bla_integer *incx, bla_real *ap);
+BLIS_EXPORT_BLAS int PASTEF77(d,spr)(const bla_character *uplo, const bla_integer *n, const bla_double *alpha, const bla_double *x, const bla_integer *incx, bla_double *ap);
+BLIS_EXPORT_BLAS int PASTEF77(s,spr)(const bla_character *uplo, const bla_integer *n, const bla_real *alpha, const bla_real *x, const bla_integer *incx, bla_real *ap);
 
 #endif
 // end bla_spr.h
@@ -35689,8 +38419,8 @@ int PASTEF77(s,spr)(const bla_character *uplo, const bla_integer *n, const bla_r
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(d,spr2)(const bla_character *uplo, const bla_integer *n, const bla_double *alpha, const bla_double *x, const bla_integer *incx, const bla_double *y, const bla_integer *incy, bla_double *ap);
-int PASTEF77(s,spr2)(const bla_character *uplo, const bla_integer *n, const bla_real *alpha, const bla_real *x, const bla_integer *incx, const bla_real *y, const bla_integer *incy, bla_real *ap);
+BLIS_EXPORT_BLAS int PASTEF77(d,spr2)(const bla_character *uplo, const bla_integer *n, const bla_double *alpha, const bla_double *x, const bla_integer *incx, const bla_double *y, const bla_integer *incy, bla_double *ap);
+BLIS_EXPORT_BLAS int PASTEF77(s,spr2)(const bla_character *uplo, const bla_integer *n, const bla_real *alpha, const bla_real *x, const bla_integer *incx, const bla_real *y, const bla_integer *incy, bla_real *ap);
 
 #endif
 // end bla_spr2.h
@@ -35699,10 +38429,10 @@ int PASTEF77(s,spr2)(const bla_character *uplo, const bla_integer *n, const bla_
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(c,tpmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_scomplex *ap, bla_scomplex *x, const bla_integer *incx);
-int PASTEF77(d,tpmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_double *ap, bla_double *x, const bla_integer *incx);
-int PASTEF77(s,tpmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_real *ap, bla_real *x, const bla_integer *incx);
-int PASTEF77(z,tpmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_dcomplex *ap, bla_dcomplex *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(c,tpmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_scomplex *ap, bla_scomplex *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(d,tpmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_double *ap, bla_double *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(s,tpmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_real *ap, bla_real *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(z,tpmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_dcomplex *ap, bla_dcomplex *x, const bla_integer *incx);
 
 #endif
 // end bla_tpmv.h
@@ -35711,10 +38441,10 @@ int PASTEF77(z,tpmv)(const bla_character *uplo, const bla_character *trans, cons
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(c,tpsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_scomplex *ap, bla_scomplex *x, const bla_integer *incx);
-int PASTEF77(d,tpsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_double *ap, bla_double *x, const bla_integer *incx);
-int PASTEF77(s,tpsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_real *ap, bla_real *x, const bla_integer *incx);
-int PASTEF77(z,tpsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_dcomplex *ap, bla_dcomplex *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(c,tpsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_scomplex *ap, bla_scomplex *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(d,tpsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_double *ap, bla_double *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(s,tpsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_real *ap, bla_real *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(z,tpsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_dcomplex *ap, bla_dcomplex *x, const bla_integer *incx);
 
 #endif
 // end bla_tpsv.h
@@ -35726,10 +38456,10 @@ int PASTEF77(z,tpsv)(const bla_character *uplo, const bla_character *trans, cons
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(c,gbmv)(const bla_character *trans, const bla_integer *m, const bla_integer *n, const bla_integer *kl, const bla_integer *ku, const bla_scomplex *alpha, const bla_scomplex *a, const bla_integer *lda, const bla_scomplex *x, const bla_integer *incx, const bla_scomplex *beta, bla_scomplex *y, const bla_integer *incy);
-int PASTEF77(d,gbmv)(const bla_character *trans, const bla_integer *m, const bla_integer *n, const bla_integer *kl, const bla_integer *ku, const bla_double *alpha, const bla_double *a, const bla_integer *lda, const bla_double *x, const bla_integer *incx, const bla_double *beta, bla_double *y, const bla_integer *incy);
-int PASTEF77(s,gbmv)(const bla_character *trans, const bla_integer *m, const bla_integer *n, const bla_integer *kl, const bla_integer *ku, const bla_real *alpha, const bla_real *a, const bla_integer *lda, const bla_real *x, const bla_integer * incx, const bla_real *beta, bla_real *y, const bla_integer *incy);
-int PASTEF77(z,gbmv)(const bla_character *trans, const bla_integer *m, const bla_integer *n, const bla_integer *kl, const bla_integer *ku, const bla_dcomplex *alpha, const bla_dcomplex *a, const bla_integer *lda, const bla_dcomplex *x, const bla_integer *incx, const bla_dcomplex *beta, bla_dcomplex * y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(c,gbmv)(const bla_character *trans, const bla_integer *m, const bla_integer *n, const bla_integer *kl, const bla_integer *ku, const bla_scomplex *alpha, const bla_scomplex *a, const bla_integer *lda, const bla_scomplex *x, const bla_integer *incx, const bla_scomplex *beta, bla_scomplex *y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(d,gbmv)(const bla_character *trans, const bla_integer *m, const bla_integer *n, const bla_integer *kl, const bla_integer *ku, const bla_double *alpha, const bla_double *a, const bla_integer *lda, const bla_double *x, const bla_integer *incx, const bla_double *beta, bla_double *y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(s,gbmv)(const bla_character *trans, const bla_integer *m, const bla_integer *n, const bla_integer *kl, const bla_integer *ku, const bla_real *alpha, const bla_real *a, const bla_integer *lda, const bla_real *x, const bla_integer * incx, const bla_real *beta, bla_real *y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(z,gbmv)(const bla_character *trans, const bla_integer *m, const bla_integer *n, const bla_integer *kl, const bla_integer *ku, const bla_dcomplex *alpha, const bla_dcomplex *a, const bla_integer *lda, const bla_dcomplex *x, const bla_integer *incx, const bla_dcomplex *beta, bla_dcomplex * y, const bla_integer *incy);
 
 #endif
 // end bla_gbmv.h
@@ -35738,8 +38468,8 @@ int PASTEF77(z,gbmv)(const bla_character *trans, const bla_integer *m, const bla
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(c,hbmv)(const bla_character *uplo, const bla_integer *n, const bla_integer *k, const bla_scomplex *alpha, const bla_scomplex *a, const bla_integer *lda, const bla_scomplex *x, const bla_integer *incx, const bla_scomplex *beta, bla_scomplex *y, const bla_integer *incy);
-int PASTEF77(z,hbmv)(const bla_character *uplo, const bla_integer *n, const bla_integer *k, const bla_dcomplex *alpha, const bla_dcomplex *a, const bla_integer *lda, const bla_dcomplex *x, const bla_integer *incx, const bla_dcomplex *beta, bla_dcomplex *y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(c,hbmv)(const bla_character *uplo, const bla_integer *n, const bla_integer *k, const bla_scomplex *alpha, const bla_scomplex *a, const bla_integer *lda, const bla_scomplex *x, const bla_integer *incx, const bla_scomplex *beta, bla_scomplex *y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(z,hbmv)(const bla_character *uplo, const bla_integer *n, const bla_integer *k, const bla_dcomplex *alpha, const bla_dcomplex *a, const bla_integer *lda, const bla_dcomplex *x, const bla_integer *incx, const bla_dcomplex *beta, bla_dcomplex *y, const bla_integer *incy);
 
 #endif
 // end bla_hbmv.h
@@ -35748,8 +38478,8 @@ int PASTEF77(z,hbmv)(const bla_character *uplo, const bla_integer *n, const bla_
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(d,sbmv)(const bla_character *uplo, const bla_integer *n, const bla_integer *k, const bla_double *alpha, const bla_double *a, const bla_integer *lda, const bla_double *x, const bla_integer *incx, const bla_double *beta, bla_double *y, const bla_integer *incy);
-int PASTEF77(s,sbmv)(const bla_character *uplo, const bla_integer *n, const bla_integer *k, const bla_real *alpha, const bla_real *a, const bla_integer *lda, const bla_real *x, const bla_integer *incx, const bla_real *beta, bla_real *y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(d,sbmv)(const bla_character *uplo, const bla_integer *n, const bla_integer *k, const bla_double *alpha, const bla_double *a, const bla_integer *lda, const bla_double *x, const bla_integer *incx, const bla_double *beta, bla_double *y, const bla_integer *incy);
+BLIS_EXPORT_BLAS int PASTEF77(s,sbmv)(const bla_character *uplo, const bla_integer *n, const bla_integer *k, const bla_real *alpha, const bla_real *a, const bla_integer *lda, const bla_real *x, const bla_integer *incx, const bla_real *beta, bla_real *y, const bla_integer *incy);
 
 #endif
 // end bla_sbmv.h
@@ -35758,10 +38488,10 @@ int PASTEF77(s,sbmv)(const bla_character *uplo, const bla_integer *n, const bla_
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(c,tbmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_scomplex *a, const bla_integer *lda, bla_scomplex *x, const bla_integer *incx);
-int PASTEF77(d,tbmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_double *a, const bla_integer *lda, bla_double *x, const bla_integer *incx);
-int PASTEF77(s,tbmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_real *a, const bla_integer *lda, bla_real *x, const bla_integer *incx);
-int PASTEF77(z,tbmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_dcomplex *a, const bla_integer *lda, bla_dcomplex *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(c,tbmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_scomplex *a, const bla_integer *lda, bla_scomplex *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(d,tbmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_double *a, const bla_integer *lda, bla_double *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(s,tbmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_real *a, const bla_integer *lda, bla_real *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(z,tbmv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_dcomplex *a, const bla_integer *lda, bla_dcomplex *x, const bla_integer *incx);
 
 #endif
 // end bla_tbmv.h
@@ -35770,10 +38500,10 @@ int PASTEF77(z,tbmv)(const bla_character *uplo, const bla_character *trans, cons
 
 #ifdef BLIS_ENABLE_BLAS
 
-int PASTEF77(c,tbsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_scomplex *a, const bla_integer *lda, bla_scomplex *x, const bla_integer *incx);
-int PASTEF77(d,tbsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_double *a, const bla_integer *lda, bla_double *x, const bla_integer *incx);
-int PASTEF77(s,tbsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_real *a, const bla_integer *lda, bla_real *x, const bla_integer *incx);
-int PASTEF77(z,tbsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_dcomplex *a, const bla_integer *lda, bla_dcomplex *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(c,tbsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_scomplex *a, const bla_integer *lda, bla_scomplex *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(d,tbsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_double *a, const bla_integer *lda, bla_double *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(s,tbsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_real *a, const bla_integer *lda, bla_real *x, const bla_integer *incx);
+BLIS_EXPORT_BLAS int PASTEF77(z,tbsv)(const bla_character *uplo, const bla_character *trans, const bla_character *diag, const bla_integer *n, const bla_integer *k, const bla_dcomplex *a, const bla_integer *lda, bla_dcomplex *x, const bla_integer *incx);
 
 #endif
 // end bla_tbsv.h
@@ -35791,7 +38521,7 @@ int PASTEF77(z,tbsv)(const bla_character *uplo, const bla_character *trans, cons
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* transa, \
        const f77_char* transb, \
@@ -35820,7 +38550,7 @@ INSERT_GENTPROT_BLAS( gemm )
 #undef  GENTPROTCO
 #define GENTPROTCO( ftype, ftype_r, ch, chr, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* side, \
        const f77_char* uploa, \
@@ -35848,7 +38578,7 @@ INSERT_GENTPROTCO_BLAS( hemm )
 #undef  GENTPROTCO
 #define GENTPROTCO( ftype, ftype_r, ch, chr, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploc, \
        const f77_char* transa, \
@@ -35875,7 +38605,7 @@ INSERT_GENTPROTCO_BLAS( herk )
 #undef  GENTPROTCO
 #define GENTPROTCO( ftype, ftype_r, ch, chr, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploc, \
        const f77_char* transa, \
@@ -35903,7 +38633,7 @@ INSERT_GENTPROTCO_BLAS( her2k )
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* side, \
        const f77_char* uploa, \
@@ -35931,7 +38661,7 @@ INSERT_GENTPROT_BLAS( symm )
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploc, \
        const f77_char* transa, \
@@ -35958,7 +38688,7 @@ INSERT_GENTPROT_BLAS( syrk )
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* uploc, \
        const f77_char* transa, \
@@ -35986,7 +38716,7 @@ INSERT_GENTPROT_BLAS( syr2k )
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* side, \
        const f77_char* uploa, \
@@ -36014,7 +38744,7 @@ INSERT_GENTPROT_BLAS( trmm )
 #undef  GENTPROT
 #define GENTPROT( ftype, ch, blasname ) \
 \
-void PASTEF77(ch,blasname) \
+BLIS_EXPORT_BLAS void PASTEF77(ch,blasname) \
      ( \
        const f77_char* side, \
        const f77_char* uploa, \
@@ -36441,7 +39171,7 @@ INSERT_GENTPROT_BLAS( trsm )
 // Prototype Fortran-compatible BLIS interfaces.
 //
 
-void PASTEF770(bli_thread_set_ways)
+BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_ways)
      (
        const f77_int* jc,
        const f77_int* pc,
@@ -36450,7 +39180,7 @@ void PASTEF770(bli_thread_set_ways)
        const f77_int* ir
      );
 
-void PASTEF770(bli_thread_set_num_threads)
+BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
      (
        const f77_int* nt
      );
@@ -36506,34 +39236,46 @@ void PASTEF770(bli_thread_set_num_threads)
 #include <errno.h> // skipped
 #include <ctype.h> // skipped
 
+// Determine the compiler (hopefully) and define conveniently named macros
+// accordingly.
+#if   defined(__ICC) || defined(__INTEL_COMPILER)
+  #define BLIS_ICC
+#elif defined(__clang__)
+  #define BLIS_CLANG
+#elif defined(__GNUC__)
+  #define BLIS_GCC
+#endif
+
 // Determine if we are on a 64-bit or 32-bit architecture.
 #if defined(_M_X64) || defined(__x86_64) || defined(__aarch64__) || \
     defined(_ARCH_PPC64)
-#define BLIS_ARCH_64
+  #define BLIS_ARCH_64
 #else
-#define BLIS_ARCH_32
+  #define BLIS_ARCH_32
 #endif
 
 // Determine the target operating system.
 #if defined(_WIN32) || defined(__CYGWIN__)
-#define BLIS_OS_WINDOWS 1
+  #define BLIS_OS_WINDOWS 1
+#elif defined(__gnu_hurd__)
+  #define BLIS_OS_GNU 1
 #elif defined(__APPLE__) || defined(__MACH__)
-#define BLIS_OS_OSX 1
+  #define BLIS_OS_OSX 1
 #elif defined(__ANDROID__)
-#define BLIS_OS_ANDROID 1
+  #define BLIS_OS_ANDROID 1
 #elif defined(__linux__)
-#define BLIS_OS_LINUX 1
+  #define BLIS_OS_LINUX 1
 #elif defined(__bgq__)
-#define BLIS_OS_BGQ 1
+  #define BLIS_OS_BGQ 1
 #elif defined(__bg__)
-#define BLIS_OS_BGP 1
+  #define BLIS_OS_BGP 1
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
-      defined(__bsdi__) || defined(__DragonFly__)
-#define BLIS_OS_BSD 1
+      defined(__bsdi__) || defined(__DragonFly__) || defined(__FreeBSD_kernel__)
+  #define BLIS_OS_BSD 1
 #elif defined(EMSCRIPTEN)
-#define BLIS_OS_EMSCRIPTEN
+  #define BLIS_OS_EMSCRIPTEN
 #else
-#error "Cannot determine operating system"
+  #error "Cannot determine operating system"
 #endif
 
 // A few changes that may be necessary in Windows environments.
@@ -36544,11 +39286,13 @@ void PASTEF770(bli_thread_set_num_threads)
   #define VC_EXTRALEAN
 #include <windows.h> // skipped
 
-  // Undefine attribute specifiers in Windows.
-  #define __attribute__(x)
+  #if !defined(__clang__) && !defined(__GNUC__)
+    // Undefine attribute specifiers in Windows.
+    #define __attribute__(x)
 
-  // Undefine restrict.
-  #define restrict
+    // Undefine restrict.
+    #define restrict
+  #endif
 
 #endif
 
@@ -36581,20 +39325,28 @@ void PASTEF770(bli_thread_set_num_threads)
 
 
 // Enabled sub-configurations (config_list)
+#define BLIS_CONFIG_SKX
+#define BLIS_CONFIG_KNL
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
 #define BLIS_CONFIG_PENRYN
+#define BLIS_CONFIG_ZEN
+#define BLIS_CONFIG_EXCAVATOR
 #define BLIS_CONFIG_STEAMROLLER
 #define BLIS_CONFIG_PILEDRIVER
+#define BLIS_CONFIG_BULLDOZER
 #define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_ZEN
-#define BLIS_KERNELS_HASWELL
+#define BLIS_KERNELS_SKX
+#define BLIS_KERNELS_KNL
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
+#define BLIS_KERNELS_HASWELL
+#define BLIS_KERNELS_ZEN
 #define BLIS_KERNELS_PILEDRIVER
+#define BLIS_KERNELS_BULLDOZER
 #define BLIS_KERNELS_GENERIC
 
 
@@ -36615,7 +39367,21 @@ void PASTEF770(bli_thread_set_num_threads)
 #endif
 
 #if 1
-#define BLIS_ENABLE_PACKBUF_POOLS
+#define BLIS_ENABLE_PBA_POOLS
+#else
+#define BLIS_DISABLE_PBA_POOLS
+#endif
+
+#if 1
+#define BLIS_ENABLE_SBA_POOLS
+#else
+#define BLIS_DISABLE_SBA_POOLS
+#endif
+
+#if 0
+#define BLIS_ENABLE_MEM_TRACING
+#else
+#define BLIS_DISABLE_MEM_TRACING
 #endif
 
 #if 0 == 64
@@ -36680,6 +39446,12 @@ void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_DISABLE_MEMKIND
 #endif
 
+#if 1
+#define BLIS_ENABLE_PRAGMA_OMP_SIMD
+#else
+#define BLIS_DISABLE_PRAGMA_OMP_SIMD
+#endif
+
 #if 0
 #define BLIS_ENABLE_SANDBOX
 #else
@@ -36691,6 +39463,25 @@ void PASTEF770(bli_thread_set_num_threads)
 #else
 #define BLIS_DISABLE_SHARED
 #endif
+
+#if !defined(BLIS_ENABLE_SHARED)
+    #define BLIS_EXPORT
+#else
+    #if defined(_WIN32) || defined(__CYGWIN__)
+        #ifdef BLIS_IS_BUILDING_LIBRARY
+            #define BLIS_EXPORT __declspec(dllexport)
+        #else
+            #define BLIS_EXPORT __declspec(dllimport)
+        #endif
+    #elif defined(__GNUC__) && __GNUC__ >= 4
+        #define BLIS_EXPORT __attribute__ ((visibility ("default")))
+    #else
+        #define BLIS_EXPORT
+    #endif
+#endif
+
+#define BLIS_EXPORT_BLIS BLIS_EXPORT
+#define BLIS_EXPORT_BLAS BLIS_EXPORT
 
 #endif
 // end bli_config.h
@@ -36920,12 +39711,12 @@ typedef  gint_t  bool_t;
 // interoperability with BLIS.
 #ifndef _DEFINED_DIM_T
 #define _DEFINED_DIM_T
-typedef  gint_t  dim_t;      // dimension type
+typedef   gint_t dim_t;      // dimension type
 #endif
-typedef  gint_t  inc_t;      // increment/stride type
-typedef  gint_t  doff_t;     // diagonal offset type
-typedef guint_t  siz_t;      // byte size type
-typedef guint_t  objbits_t;  // object information bit field
+typedef   gint_t inc_t;      // increment/stride type
+typedef   gint_t doff_t;     // diagonal offset type
+typedef  guint_t siz_t;      // byte size type
+typedef uint32_t objbits_t;  // object information bit field
 
 // -- Real types --
 
@@ -37017,6 +39808,7 @@ typedef dcomplex  f77_dcomplex;
 
 
 
+// info
 #define BLIS_DATATYPE_SHIFT                0
 #define   BLIS_DOMAIN_SHIFT                0
 #define   BLIS_PRECISION_SHIFT             1
@@ -37048,10 +39840,16 @@ typedef dcomplex  f77_dcomplex;
 #define   BLIS_COMP_DOMAIN_SHIFT           29
 #define   BLIS_COMP_PREC_SHIFT             30
 
+// info2
+#define BLIS_SCALAR_DT_SHIFT                0
+#define   BLIS_SCALAR_DOMAIN_SHIFT          0
+#define   BLIS_SCALAR_PREC_SHIFT            1
+
 //
 // -- BLIS info bit field masks ------------------------------------------------
 //
 
+// info
 #define BLIS_DATATYPE_BITS                 ( 0x7  << BLIS_DATATYPE_SHIFT )
 #define   BLIS_DOMAIN_BIT                  ( 0x1  << BLIS_DOMAIN_SHIFT )
 #define   BLIS_PRECISION_BIT               ( 0x1  << BLIS_PRECISION_SHIFT )
@@ -37082,6 +39880,11 @@ typedef dcomplex  f77_dcomplex;
 #define BLIS_COMP_DT_BITS                  ( 0x7  << BLIS_COMP_DT_SHIFT )
 #define   BLIS_COMP_DOMAIN_BIT             ( 0x1  << BLIS_COMP_DOMAIN_SHIFT )
 #define   BLIS_COMP_PREC_BIT               ( 0x1  << BLIS_COMP_PREC_SHIFT )
+
+// info2
+#define BLIS_SCALAR_DT_BITS                ( 0x7  << BLIS_SCALAR_DT_SHIFT )
+#define   BLIS_SCALAR_DOMAIN_BIT           ( 0x1  << BLIS_SCALAR_DOMAIN_SHIFT )
+#define   BLIS_SCALAR_PREC_BIT             ( 0x1  << BLIS_SCALAR_PREC_SHIFT )
 
 
 //
@@ -37316,10 +40119,10 @@ typedef enum
 	BLIS_SUBPART0,
 	BLIS_SUBPART1,
 	BLIS_SUBPART2,
-	BLIS_SUBPART1T,
+	BLIS_SUBPART1AND0,
+	BLIS_SUBPART1AND2,
+	BLIS_SUBPART1A,
 	BLIS_SUBPART1B,
-	BLIS_SUBPART1L,
-	BLIS_SUBPART1R,
 	BLIS_SUBPART00,
 	BLIS_SUBPART10,
 	BLIS_SUBPART20,
@@ -37622,12 +40425,14 @@ typedef enum
 	BLIS_ARCH_BULLDOZER,
 
 	// ARM
+	BLIS_ARCH_THUNDERX2,
 	BLIS_ARCH_CORTEXA57,
 	BLIS_ARCH_CORTEXA53,
 	BLIS_ARCH_CORTEXA15,
 	BLIS_ARCH_CORTEXA9,
 
 	// IBM/Power
+	BLIS_ARCH_POWER9,
 	BLIS_ARCH_POWER7,
 	BLIS_ARCH_BGQ,
 
@@ -37636,41 +40441,15 @@ typedef enum
 
 } arch_t;
 
-#define BLIS_NUM_ARCHS 18
+#define BLIS_NUM_ARCHS 20
 
 
 //
 // -- BLIS misc. structure types -----------------------------------------------
 //
 
-// -- Pool block type --
-
-typedef struct
-{
-	void* buf_sys;
-	void* buf_align;
-} pblk_t;
-
-
-// -- Pool type --
-
-typedef struct
-{
-	pblk_t* block_ptrs;
-	dim_t   block_ptrs_len;
-
-	dim_t   top_index;
-	dim_t   num_blocks;
-
-	siz_t   block_size;
-	siz_t   align_size;
-} pool_t;
-
-
-// -- Memory broker object type --
-
 // These headers must be included here (or earlier) because definitions they
-// provide are needed in the membrk_t struct.
+// provide are needed in the pool_t and related structs.
 // begin bli_pthread.h
 
 
@@ -37682,39 +40461,82 @@ typedef struct
 // This branch defines a pthread-like API, bli_pthread_*(), and implements it
 // in terms of Windows API calls.
 
+// -- pthread_mutex_*() --
+
 typedef SRWLOCK bli_pthread_mutex_t;
 typedef void bli_pthread_mutexattr_t;
 
 #define BLIS_PTHREAD_MUTEX_INITIALIZER SRWLOCK_INIT
 
-int bli_pthread_mutex_init( bli_pthread_mutex_t* mutex, const bli_pthread_mutexattr_t *attr );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_init
+     (
+       bli_pthread_mutex_t*           mutex,
+       const bli_pthread_mutexattr_t* attr
+     );
 
-int bli_pthread_mutex_destroy( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_destroy
+     (
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_mutex_lock( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_lock
+     (
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_mutex_trylock( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_trylock
+     (
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_mutex_unlock( bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_mutex_unlock
+     (
+       bli_pthread_mutex_t* mutex
+     );
+
+// -- pthread_once_*() --
 
 typedef INIT_ONCE bli_pthread_once_t;
 
 #define BLIS_PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
 
-void bli_pthread_once( bli_pthread_once_t* once, void (*init)( void ) );
+BLIS_EXPORT_BLIS void bli_pthread_once
+     (
+       bli_pthread_once_t* once,
+       void              (*init)(void)
+     );
+
+// -- pthread_cond_*() --
 
 typedef CONDITION_VARIABLE bli_pthread_cond_t;
 typedef void bli_pthread_condattr_t;
 
 #define BLIS_PTHREAD_COND_INITIALIZER CONDITION_VARIABLE_INIT
 
-int bli_pthread_cond_init( bli_pthread_cond_t* cond, const bli_pthread_condattr_t* attr );
+BLIS_EXPORT_BLIS int bli_pthread_cond_init
+     (
+       bli_pthread_cond_t*           cond,
+       const bli_pthread_condattr_t* attr
+     );
 
-int bli_pthread_cond_destroy( bli_pthread_cond_t* cond );
+BLIS_EXPORT_BLIS int bli_pthread_cond_destroy
+     (
+       bli_pthread_cond_t* cond
+     );
 
-int bli_pthread_cond_wait( bli_pthread_cond_t* cond, bli_pthread_mutex_t* mutex );
+BLIS_EXPORT_BLIS int bli_pthread_cond_wait
+     (
+       bli_pthread_cond_t*  cond,
+       bli_pthread_mutex_t* mutex
+     );
 
-int bli_pthread_cond_broadcast( bli_pthread_cond_t* cond );
+BLIS_EXPORT_BLIS int bli_pthread_cond_broadcast
+     (
+       bli_pthread_cond_t* cond
+     );
+
+// -- pthread_create(), pthread_join() --
+
 typedef struct
 {
     HANDLE handle;
@@ -37723,11 +40545,21 @@ typedef struct
 
 typedef void bli_pthread_attr_t;
 
-int bli_pthread_create( bli_pthread_t *thread, const bli_pthread_attr_t *attr, void* (*start_routine)( void* ), void *arg );
+BLIS_EXPORT_BLIS int bli_pthread_create
+     (
+       bli_pthread_t*            thread,
+       const bli_pthread_attr_t* attr,
+       void*                   (*start_routine)(void*),
+       void*                     arg
+     );
 
-int bli_pthread_join( bli_pthread_t thread, void **retval );
+BLIS_EXPORT_BLIS int bli_pthread_join
+     (
+       bli_pthread_t thread,
+       void**        retval
+     );
 
-// barrier-related definitions
+// -- pthread_barrier_*() --
 
 typedef void bli_pthread_barrierattr_t;
 
@@ -37739,11 +40571,22 @@ typedef struct
     int                 tripCount;
 } bli_pthread_barrier_t;
 
-int bli_pthread_barrier_init( bli_pthread_barrier_t *barrier, const bli_pthread_barrierattr_t *attr, unsigned int count );
+BLIS_EXPORT_BLIS int bli_pthread_barrier_init
+     (
+       bli_pthread_barrier_t*           barrier,
+       const bli_pthread_barrierattr_t* attr,
+       unsigned int                     count
+     );
 
-int bli_pthread_barrier_destroy( bli_pthread_barrier_t *barrier );
+BLIS_EXPORT_BLIS int bli_pthread_barrier_destroy
+     (
+       bli_pthread_barrier_t* barrier
+     );
 
-int bli_pthread_barrier_wait( bli_pthread_barrier_t *barrier );
+BLIS_EXPORT_BLIS int bli_pthread_barrier_wait
+     (
+       bli_pthread_barrier_t* barrier
+     );
 
 #else // !defined(_MSC_VER)
 
@@ -37796,7 +40639,7 @@ typedef pthread_barrierattr_t  bli_pthread_barrierattr_t;
 
 // -- pthread_create(), pthread_join() --
 
-int bli_pthread_create
+BLIS_EXPORT_BLIS int bli_pthread_create
      (
        bli_pthread_t*            thread,
        const bli_pthread_attr_t* attr,
@@ -37804,7 +40647,7 @@ int bli_pthread_create
        void*                     arg
      );
 
-int bli_pthread_join
+BLIS_EXPORT_BLIS int bli_pthread_join
      (
        bli_pthread_t thread,
        void**        retval
@@ -37812,59 +40655,59 @@ int bli_pthread_join
 
 // -- pthread_mutex_*() --
 
-int bli_pthread_mutex_init
+BLIS_EXPORT_BLIS int bli_pthread_mutex_init
      (
        bli_pthread_mutex_t*           mutex,
        const bli_pthread_mutexattr_t* attr
      );
 
-int bli_pthread_mutex_destroy
+BLIS_EXPORT_BLIS int bli_pthread_mutex_destroy
      (
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_mutex_lock
+BLIS_EXPORT_BLIS int bli_pthread_mutex_lock
      (
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_mutex_trylock
+BLIS_EXPORT_BLIS int bli_pthread_mutex_trylock
      (
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_mutex_unlock
+BLIS_EXPORT_BLIS int bli_pthread_mutex_unlock
      (
        bli_pthread_mutex_t* mutex
      );
 
 // -- pthread_cond_*() --
 
-int bli_pthread_cond_init
+BLIS_EXPORT_BLIS int bli_pthread_cond_init
      (
        bli_pthread_cond_t*           cond,
        const bli_pthread_condattr_t* attr
      );
 
-int bli_pthread_cond_destroy
+BLIS_EXPORT_BLIS int bli_pthread_cond_destroy
      (
        bli_pthread_cond_t* cond
      );
 
-int bli_pthread_cond_wait
+BLIS_EXPORT_BLIS int bli_pthread_cond_wait
      (
        bli_pthread_cond_t*  cond,
        bli_pthread_mutex_t* mutex
      );
 
-int bli_pthread_cond_broadcast
+BLIS_EXPORT_BLIS int bli_pthread_cond_broadcast
      (
        bli_pthread_cond_t* cond
      );
 
 // -- pthread_once_*() --
 
-void bli_pthread_once
+BLIS_EXPORT_BLIS void bli_pthread_once
      (
        bli_pthread_once_t* once,
        void              (*init)(void)
@@ -37872,19 +40715,19 @@ void bli_pthread_once
 
 // -- pthread_barrier_*() --
 
-int bli_pthread_barrier_init
+BLIS_EXPORT_BLIS int bli_pthread_barrier_init
      (
        bli_pthread_barrier_t*           barrier,
        const bli_pthread_barrierattr_t* attr,
        unsigned int                     count
      );
 
-int bli_pthread_barrier_destroy
+BLIS_EXPORT_BLIS int bli_pthread_barrier_destroy
      (
        bli_pthread_barrier_t* barrier
      );
 
-int bli_pthread_barrier_wait
+BLIS_EXPORT_BLIS int bli_pthread_barrier_wait
      (
        bli_pthread_barrier_t* barrier
      );
@@ -37902,35 +40745,96 @@ typedef void  (*free_ft)   ( void*  p    );
 
 // -----------------------------------------------------------------------------
 
-void* bli_malloc_pool( size_t size );
-void  bli_free_pool( void* p );
+#if 0
+BLIS_EXPORT_BLIS void* bli_malloc_pool( size_t size );
+BLIS_EXPORT_BLIS void   bli_free_pool( void* p );
+#endif
 
 void* bli_malloc_intl( size_t size );
 void* bli_calloc_intl( size_t size );
 void  bli_free_intl( void* p );
 
-void* bli_malloc_user( size_t size );
-void  bli_free_user( void* p );
+BLIS_EXPORT_BLIS void* bli_malloc_user( size_t size );
+BLIS_EXPORT_BLIS void  bli_free_user( void* p );
 
 // -----------------------------------------------------------------------------
 
-void* bli_malloc_align( malloc_ft f, size_t size, size_t align_size );
-void  bli_free_align( free_ft f, void* p );
+void* bli_fmalloc_align( malloc_ft f, size_t size, size_t align_size );
+void  bli_ffree_align( free_ft f, void* p );
 
-void* bli_malloc_noalign( malloc_ft f, size_t size );
-void  bli_free_noalign( free_ft f, void* p );
+void* bli_fmalloc_noalign( malloc_ft f, size_t size );
+void  bli_ffree_noalign( free_ft f, void* p );
 
-void  bli_malloc_align_check( malloc_ft f, size_t size, size_t align_size );
+void  bli_fmalloc_align_check( malloc_ft f, size_t size, size_t align_size );
+void  bli_fmalloc_post_check( void* p );
 
 // end bli_malloc.h
+
+// -- Pool block type --
+
+typedef struct
+{
+	void*     buf;
+	siz_t     block_size;
+
+} pblk_t;
+
+
+// -- Pool type --
+
+typedef struct
+{
+	void*     block_ptrs;
+	dim_t     block_ptrs_len;
+
+	dim_t     top_index;
+	dim_t     num_blocks;
+
+	siz_t     block_size;
+	siz_t     align_size;
+
+	malloc_ft malloc_fp;
+	free_ft   free_fp;
+
+} pool_t;
+
+
+// -- Array type --
+
+typedef struct
+{
+	void*     buf;
+
+	siz_t     num_elem;
+	siz_t     elem_size;
+
+} array_t;
+
+
+// -- Locked pool-of-arrays-of-pools type --
+
+typedef struct
+{
+	bli_pthread_mutex_t mutex;
+	pool_t              pool;
+
+	siz_t               def_array_len;
+
+} apool_t;
+
+
+// -- packing block allocator: Locked set of pools type --
 
 typedef struct membrk_s
 {
 	pool_t              pools[3];
 	bli_pthread_mutex_t mutex;
 
+	// These fields are used for general-purpose allocation.
+	siz_t               align_size;
 	malloc_ft           malloc_fp;
 	free_ft             free_fp;
+
 } membrk_t;
 
 
@@ -37941,7 +40845,6 @@ typedef struct mem_s
 	pblk_t    pblk;
 	packbuf_t buf_type;
 	pool_t*   pool;
-	membrk_t* membrk;
 	siz_t     size;
 } mem_t;
 
@@ -37954,6 +40857,7 @@ struct cntl_s
 	opid_t         family;
 	bszid_t        bszid;
 	void*          var_func;
+	struct cntl_s* sub_prenode;
 	struct cntl_s* sub_node;
 
 	// Optional fields (needed only by some operations such as packm).
@@ -38055,6 +40959,7 @@ typedef struct obj_s
 	doff_t        diag_off;
 
 	objbits_t     info;
+	objbits_t     info2;
 	siz_t         elem_size;
 
 	void*         buffer;
@@ -38089,6 +40994,7 @@ static void bli_obj_init_full_shallow_copy_of( obj_t* a, obj_t* b )
 	b->diag_off  = a->diag_off;
 
 	b->info      = a->info;
+	b->info2     = a->info2;
 	b->elem_size = a->elem_size;
 
 	b->buffer    = a->buffer;
@@ -38119,6 +41025,7 @@ static void bli_obj_init_subpart_from( obj_t* a, obj_t* b )
 	b->diag_off  = a->diag_off;
 
 	b->info      = a->info;
+	b->info2     = a->info2;
 	b->elem_size = a->elem_size;
 
 	b->buffer    = a->buffer;
@@ -38162,7 +41069,6 @@ typedef struct cntx_s
 	pack_t    schema_b_panel;
 	pack_t    schema_c_panel;
 
-	membrk_t* membrk;
 } cntx_t;
 
 
@@ -38170,8 +41076,17 @@ typedef struct cntx_s
 
 typedef struct rntm_s
 {
+	// "External" fields: these may be queried by the end-user.
 	dim_t     num_threads;
 	dim_t     thrloop[ BLIS_NUM_LOOPS ];
+
+	// "Internal" fields: these should not be exposed to the end-user.
+
+	// The small block pool, which is attached in the l3 thread decorator.
+	pool_t*   sba_pool;
+
+	// The packing block allocator, which is attached in the l3 thread decorator.
+	membrk_t* membrk;
 
 } rntm_t;
 
@@ -38259,28 +41174,31 @@ typedef enum
 	// Buffer-specific errors 
 	BLIS_EXPECTED_NONNULL_OBJECT_BUFFER        = (-110),
 
-	// Memory allocator errors
-	BLIS_INVALID_PACKBUF                       = (-120),
-	BLIS_EXHAUSTED_CONTIG_MEMORY_POOL          = (-122),
-	BLIS_INSUFFICIENT_STACK_BUF_SIZE           = (-123),
-	BLIS_ALIGNMENT_NOT_POWER_OF_TWO            = (-124),
-	BLIS_ALIGNMENT_NOT_MULT_OF_PTR_SIZE        = (-125),
+	// Memory errors
+	BLIS_MALLOC_RETURNED_NULL                  = (-120),
+
+	// Internal memory pool errors
+	BLIS_INVALID_PACKBUF                       = (-130),
+	BLIS_EXHAUSTED_CONTIG_MEMORY_POOL          = (-131),
+	BLIS_INSUFFICIENT_STACK_BUF_SIZE           = (-132),
+	BLIS_ALIGNMENT_NOT_POWER_OF_TWO            = (-133),
+	BLIS_ALIGNMENT_NOT_MULT_OF_PTR_SIZE        = (-134),
 
 	// Object-related errors
-	BLIS_EXPECTED_OBJECT_ALIAS                 = (-130),
+	BLIS_EXPECTED_OBJECT_ALIAS                 = (-140),
 
 	// Architecture-related errors
-	BLIS_INVALID_ARCH_ID                       = (-140),
+	BLIS_INVALID_ARCH_ID                       = (-150),
 
 	// Blocksize-related errors
-	BLIS_MC_DEF_NONMULTIPLE_OF_MR              = (-150),
-	BLIS_MC_MAX_NONMULTIPLE_OF_MR              = (-151),
-	BLIS_NC_DEF_NONMULTIPLE_OF_NR              = (-152),
-	BLIS_NC_MAX_NONMULTIPLE_OF_NR              = (-153),
-	BLIS_KC_DEF_NONMULTIPLE_OF_KR              = (-154),
-	BLIS_KC_MAX_NONMULTIPLE_OF_KR              = (-155),
+	BLIS_MC_DEF_NONMULTIPLE_OF_MR              = (-160),
+	BLIS_MC_MAX_NONMULTIPLE_OF_MR              = (-161),
+	BLIS_NC_DEF_NONMULTIPLE_OF_NR              = (-162),
+	BLIS_NC_MAX_NONMULTIPLE_OF_NR              = (-163),
+	BLIS_KC_DEF_NONMULTIPLE_OF_KR              = (-164),
+	BLIS_KC_MAX_NONMULTIPLE_OF_KR              = (-165),
 
-	BLIS_ERROR_CODE_MAX                        = (-160)
+	BLIS_ERROR_CODE_MAX                        = (-170)
 } err_t;
 
 #endif
@@ -38298,480 +41216,480 @@ extern "C" {
 #endif
 
 
-float  cblas_sdsdot(f77_int N, float alpha, const float *X,
+BLIS_EXPORT_BLAS float  cblas_sdsdot(f77_int N, float alpha, const float *X,
                     f77_int incX, const float *Y, f77_int incY);
-double cblas_dsdot(f77_int N, const float *X, f77_int incX, const float *Y,
+BLIS_EXPORT_BLAS double cblas_dsdot(f77_int N, const float *X, f77_int incX, const float *Y,
                    f77_int incY);
-float  cblas_sdot(f77_int N, const float  *X, f77_int incX,
+BLIS_EXPORT_BLAS float  cblas_sdot(f77_int N, const float  *X, f77_int incX,
                   const float  *Y, f77_int incY);
-double cblas_ddot(f77_int N, const double *X, f77_int incX,
+BLIS_EXPORT_BLAS double cblas_ddot(f77_int N, const double *X, f77_int incX,
                   const double *Y, f77_int incY);
 
 
-void   cblas_cdotu_sub(f77_int N, const void *X, f77_int incX,
+BLIS_EXPORT_BLAS void   cblas_cdotu_sub(f77_int N, const void *X, f77_int incX,
                        const void *Y, f77_int incY, void *dotu);
-void   cblas_cdotc_sub(f77_int N, const void *X, f77_int incX,
+BLIS_EXPORT_BLAS void   cblas_cdotc_sub(f77_int N, const void *X, f77_int incX,
                        const void *Y, f77_int incY, void *dotc);
 
-void   cblas_zdotu_sub(f77_int N, const void *X, f77_int incX,
+BLIS_EXPORT_BLAS void   cblas_zdotu_sub(f77_int N, const void *X, f77_int incX,
                        const void *Y, f77_int incY, void *dotu);
-void   cblas_zdotc_sub(f77_int N, const void *X, f77_int incX,
+BLIS_EXPORT_BLAS void   cblas_zdotc_sub(f77_int N, const void *X, f77_int incX,
                        const void *Y, f77_int incY, void *dotc);
 
 
 
-float  cblas_snrm2(f77_int N, const float *X, f77_int incX);
-float  cblas_sasum(f77_int N, const float *X, f77_int incX);
+BLIS_EXPORT_BLAS float  cblas_snrm2(f77_int N, const float *X, f77_int incX);
+BLIS_EXPORT_BLAS float  cblas_sasum(f77_int N, const float *X, f77_int incX);
 
-double cblas_dnrm2(f77_int N, const double *X, f77_int incX);
-double cblas_dasum(f77_int N, const double *X, f77_int incX);
+BLIS_EXPORT_BLAS double cblas_dnrm2(f77_int N, const double *X, f77_int incX);
+BLIS_EXPORT_BLAS double cblas_dasum(f77_int N, const double *X, f77_int incX);
 
-float  cblas_scnrm2(f77_int N, const void *X, f77_int incX);
-float  cblas_scasum(f77_int N, const void *X, f77_int incX);
+BLIS_EXPORT_BLAS float  cblas_scnrm2(f77_int N, const void *X, f77_int incX);
+BLIS_EXPORT_BLAS float  cblas_scasum(f77_int N, const void *X, f77_int incX);
 
-double cblas_dznrm2(f77_int N, const void *X, f77_int incX);
-double cblas_dzasum(f77_int N, const void *X, f77_int incX);
-
-
-
-f77_int cblas_isamax(f77_int N, const float  *X, f77_int incX);
-f77_int cblas_idamax(f77_int N, const double *X, f77_int incX);
-f77_int cblas_icamax(f77_int N, const void   *X, f77_int incX);
-f77_int cblas_izamax(f77_int N, const void   *X, f77_int incX);
+BLIS_EXPORT_BLAS double cblas_dznrm2(f77_int N, const void *X, f77_int incX);
+BLIS_EXPORT_BLAS double cblas_dzasum(f77_int N, const void *X, f77_int incX);
 
 
 
+BLIS_EXPORT_BLAS f77_int cblas_isamax(f77_int N, const float  *X, f77_int incX);
+BLIS_EXPORT_BLAS f77_int cblas_idamax(f77_int N, const double *X, f77_int incX);
+BLIS_EXPORT_BLAS f77_int cblas_icamax(f77_int N, const void   *X, f77_int incX);
+BLIS_EXPORT_BLAS f77_int cblas_izamax(f77_int N, const void   *X, f77_int incX);
 
-void cblas_sswap(f77_int N, float *X, f77_int incX,
+
+
+
+void BLIS_EXPORT_BLAS cblas_sswap(f77_int N, float *X, f77_int incX,
                  float *Y, f77_int incY);
-void cblas_scopy(f77_int N, const float *X, f77_int incX,
+void BLIS_EXPORT_BLAS cblas_scopy(f77_int N, const float *X, f77_int incX,
                  float *Y, f77_int incY);
-void cblas_saxpy(f77_int N, float alpha, const float *X,
+void BLIS_EXPORT_BLAS cblas_saxpy(f77_int N, float alpha, const float *X,
                  f77_int incX, float *Y, f77_int incY);
 
-void cblas_dswap(f77_int N, double *X, f77_int incX,
+void BLIS_EXPORT_BLAS cblas_dswap(f77_int N, double *X, f77_int incX,
                  double *Y, f77_int incY);
-void cblas_dcopy(f77_int N, const double *X, f77_int incX,
+void BLIS_EXPORT_BLAS cblas_dcopy(f77_int N, const double *X, f77_int incX,
                  double *Y, f77_int incY);
-void cblas_daxpy(f77_int N, double alpha, const double *X,
+void BLIS_EXPORT_BLAS cblas_daxpy(f77_int N, double alpha, const double *X,
                  f77_int incX, double *Y, f77_int incY);
 
-void cblas_cswap(f77_int N, void *X, f77_int incX,
+void BLIS_EXPORT_BLAS cblas_cswap(f77_int N, void *X, f77_int incX,
                  void *Y, f77_int incY);
-void cblas_ccopy(f77_int N, const void *X, f77_int incX,
+void BLIS_EXPORT_BLAS cblas_ccopy(f77_int N, const void *X, f77_int incX,
                  void *Y, f77_int incY);
-void cblas_caxpy(f77_int N, const void *alpha, const void *X,
+void BLIS_EXPORT_BLAS cblas_caxpy(f77_int N, const void *alpha, const void *X,
                  f77_int incX, void *Y, f77_int incY);
 
-void cblas_zswap(f77_int N, void *X, f77_int incX,
+void BLIS_EXPORT_BLAS cblas_zswap(f77_int N, void *X, f77_int incX,
                  void *Y, f77_int incY);
-void cblas_zcopy(f77_int N, const void *X, f77_int incX,
+void BLIS_EXPORT_BLAS cblas_zcopy(f77_int N, const void *X, f77_int incX,
                  void *Y, f77_int incY);
-void cblas_zaxpy(f77_int N, const void *alpha, const void *X,
+void BLIS_EXPORT_BLAS cblas_zaxpy(f77_int N, const void *alpha, const void *X,
                  f77_int incX, void *Y, f77_int incY);
 
 
 
-void cblas_srotg(float *a, float *b, float *c, float *s);
-void cblas_srotmg(float *d1, float *d2, float *b1, const float b2, float *P);
-void cblas_srot(f77_int N, float *X, f77_int incX,
+void BLIS_EXPORT_BLAS cblas_srotg(float *a, float *b, float *c, float *s);
+void BLIS_EXPORT_BLAS cblas_srotmg(float *d1, float *d2, float *b1, const float b2, float *P);
+void BLIS_EXPORT_BLAS cblas_srot(f77_int N, float *X, f77_int incX,
                 float *Y, f77_int incY, const float c, const float s);
-void cblas_srotm(f77_int N, float *X, f77_int incX,
+void BLIS_EXPORT_BLAS cblas_srotm(f77_int N, float *X, f77_int incX,
                 float *Y, f77_int incY, const float *P);
 
-void cblas_drotg(double *a, double *b, double *c, double *s);
-void cblas_drotmg(double *d1, double *d2, double *b1, const double b2, double *P);
-void cblas_drot(f77_int N, double *X, f77_int incX,
+void BLIS_EXPORT_BLAS cblas_drotg(double *a, double *b, double *c, double *s);
+void BLIS_EXPORT_BLAS cblas_drotmg(double *d1, double *d2, double *b1, const double b2, double *P);
+void BLIS_EXPORT_BLAS cblas_drot(f77_int N, double *X, f77_int incX,
                 double *Y, f77_int incY, const double c, const double  s);
-void cblas_drotm(f77_int N, double *X, f77_int incX,
+void BLIS_EXPORT_BLAS cblas_drotm(f77_int N, double *X, f77_int incX,
                 double *Y, f77_int incY, const double *P);
 
 
 
-void cblas_sscal(f77_int N, float alpha, float *X, f77_int incX);
-void cblas_dscal(f77_int N, double alpha, double *X, f77_int incX);
-void cblas_cscal(f77_int N, const void *alpha, void *X, f77_int incX);
-void cblas_zscal(f77_int N, const void *alpha, void *X, f77_int incX);
-void cblas_csscal(f77_int N, float alpha, void *X, f77_int incX);
-void cblas_zdscal(f77_int N, double alpha, void *X, f77_int incX);
+void BLIS_EXPORT_BLAS cblas_sscal(f77_int N, float alpha, float *X, f77_int incX);
+void BLIS_EXPORT_BLAS cblas_dscal(f77_int N, double alpha, double *X, f77_int incX);
+void BLIS_EXPORT_BLAS cblas_cscal(f77_int N, const void *alpha, void *X, f77_int incX);
+void BLIS_EXPORT_BLAS cblas_zscal(f77_int N, const void *alpha, void *X, f77_int incX);
+void BLIS_EXPORT_BLAS cblas_csscal(f77_int N, float alpha, void *X, f77_int incX);
+void BLIS_EXPORT_BLAS cblas_zdscal(f77_int N, double alpha, void *X, f77_int incX);
 
 
 
 
-void cblas_sgemv(enum CBLAS_ORDER order,
+void BLIS_EXPORT_BLAS cblas_sgemv(enum CBLAS_ORDER order,
                  enum CBLAS_TRANSPOSE TransA, f77_int M, f77_int N,
                  float alpha, const float *A, f77_int lda,
                  const float *X, f77_int incX, float beta,
                  float *Y, f77_int incY);
-void cblas_sgbmv(enum CBLAS_ORDER order,
+void BLIS_EXPORT_BLAS cblas_sgbmv(enum CBLAS_ORDER order,
                  enum CBLAS_TRANSPOSE TransA, f77_int M, f77_int N,
                  f77_int KL, f77_int KU, float alpha,
                  const float *A, f77_int lda, const float *X,
                  f77_int incX, float beta, float *Y, f77_int incY);
-void cblas_strmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_strmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const float *A, f77_int lda,
                  float *X, f77_int incX);
-void cblas_stbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_stbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, f77_int K, const float *A, f77_int lda,
                  float *X, f77_int incX);
-void cblas_stpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_stpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const float *Ap, float *X, f77_int incX);
-void cblas_strsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_strsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const float *A, f77_int lda, float *X,
                  f77_int incX);
-void cblas_stbsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_stbsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, f77_int K, const float *A, f77_int lda,
                  float *X, f77_int incX);
-void cblas_stpsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_stpsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const float *Ap, float *X, f77_int incX);
 
-void cblas_dgemv(enum CBLAS_ORDER order,
+void BLIS_EXPORT_BLAS cblas_dgemv(enum CBLAS_ORDER order,
                  enum CBLAS_TRANSPOSE TransA, f77_int M, f77_int N,
                  double alpha, const double *A, f77_int lda,
                  const double *X, f77_int incX, double beta,
                  double *Y, f77_int incY);
-void cblas_dgbmv(enum CBLAS_ORDER order,
+void BLIS_EXPORT_BLAS cblas_dgbmv(enum CBLAS_ORDER order,
                  enum CBLAS_TRANSPOSE TransA, f77_int M, f77_int N,
                  f77_int KL, f77_int KU, double alpha,
                  const double *A, f77_int lda, const double *X,
                  f77_int incX, double beta, double *Y, f77_int incY);
-void cblas_dtrmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dtrmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const double *A, f77_int lda,
                  double *X, f77_int incX);
-void cblas_dtbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dtbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, f77_int K, const double *A, f77_int lda,
                  double *X, f77_int incX);
-void cblas_dtpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dtpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const double *Ap, double *X, f77_int incX);
-void cblas_dtrsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dtrsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const double *A, f77_int lda, double *X,
                  f77_int incX);
-void cblas_dtbsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dtbsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, f77_int K, const double *A, f77_int lda,
                  double *X, f77_int incX);
-void cblas_dtpsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dtpsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const double *Ap, double *X, f77_int incX);
 
-void cblas_cgemv(enum CBLAS_ORDER order,
+void BLIS_EXPORT_BLAS cblas_cgemv(enum CBLAS_ORDER order,
                  enum CBLAS_TRANSPOSE TransA, f77_int M, f77_int N,
                  const void *alpha, const void *A, f77_int lda,
                  const void *X, f77_int incX, const void *beta,
                  void *Y, f77_int incY);
-void cblas_cgbmv(enum CBLAS_ORDER order,
+void BLIS_EXPORT_BLAS cblas_cgbmv(enum CBLAS_ORDER order,
                  enum CBLAS_TRANSPOSE TransA, f77_int M, f77_int N,
                  f77_int KL, f77_int KU, const void *alpha,
                  const void *A, f77_int lda, const void *X,
                  f77_int incX, const void *beta, void *Y, f77_int incY);
-void cblas_ctrmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ctrmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const void *A, f77_int lda,
                  void *X, f77_int incX);
-void cblas_ctbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ctbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, f77_int K, const void *A, f77_int lda,
                  void *X, f77_int incX);
-void cblas_ctpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ctpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const void *Ap, void *X, f77_int incX);
-void cblas_ctrsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ctrsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const void *A, f77_int lda, void *X,
                  f77_int incX);
-void cblas_ctbsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ctbsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, f77_int K, const void *A, f77_int lda,
                  void *X, f77_int incX);
-void cblas_ctpsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ctpsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const void *Ap, void *X, f77_int incX);
 
-void cblas_zgemv(enum CBLAS_ORDER order,
+void BLIS_EXPORT_BLAS cblas_zgemv(enum CBLAS_ORDER order,
                  enum CBLAS_TRANSPOSE TransA, f77_int M, f77_int N,
                  const void *alpha, const void *A, f77_int lda,
                  const void *X, f77_int incX, const void *beta,
                  void *Y, f77_int incY);
-void cblas_zgbmv(enum CBLAS_ORDER order,
+void BLIS_EXPORT_BLAS cblas_zgbmv(enum CBLAS_ORDER order,
                  enum CBLAS_TRANSPOSE TransA, f77_int M, f77_int N,
                  f77_int KL, f77_int KU, const void *alpha,
                  const void *A, f77_int lda, const void *X,
                  f77_int incX, const void *beta, void *Y, f77_int incY);
-void cblas_ztrmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ztrmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const void *A, f77_int lda,
                  void *X, f77_int incX);
-void cblas_ztbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ztbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, f77_int K, const void *A, f77_int lda,
                  void *X, f77_int incX);
-void cblas_ztpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ztpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const void *Ap, void *X, f77_int incX);
-void cblas_ztrsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ztrsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const void *A, f77_int lda, void *X,
                  f77_int incX);
-void cblas_ztbsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ztbsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, f77_int K, const void *A, f77_int lda,
                  void *X, f77_int incX);
-void cblas_ztpsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ztpsv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE TransA, enum CBLAS_DIAG Diag,
                  f77_int N, const void *Ap, void *X, f77_int incX);
 
 
 
-void cblas_ssymv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ssymv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, float alpha, const float *A,
                  f77_int lda, const float *X, f77_int incX,
                  float beta, float *Y, f77_int incY);
-void cblas_ssbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ssbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, f77_int K, float alpha, const float *A,
                  f77_int lda, const float *X, f77_int incX,
                  float beta, float *Y, f77_int incY);
-void cblas_sspmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_sspmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, float alpha, const float *Ap,
                  const float *X, f77_int incX,
                  float beta, float *Y, f77_int incY);
-void cblas_sger(enum CBLAS_ORDER order, f77_int M, f77_int N,
+void BLIS_EXPORT_BLAS cblas_sger(enum CBLAS_ORDER order, f77_int M, f77_int N,
                 float alpha, const float *X, f77_int incX,
                 const float *Y, f77_int incY, float *A, f77_int lda);
-void cblas_ssyr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ssyr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, float alpha, const float *X,
                 f77_int incX, float *A, f77_int lda);
-void cblas_sspr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_sspr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, float alpha, const float *X,
                 f77_int incX, float *Ap);
-void cblas_ssyr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ssyr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, float alpha, const float *X,
                 f77_int incX, const float *Y, f77_int incY, float *A,
                 f77_int lda);
-void cblas_sspr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_sspr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, float alpha, const float *X,
                 f77_int incX, const float *Y, f77_int incY, float *A);
 
-void cblas_dsymv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dsymv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, double alpha, const double *A,
                  f77_int lda, const double *X, f77_int incX,
                  double beta, double *Y, f77_int incY);
-void cblas_dsbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dsbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, f77_int K, double alpha, const double *A,
                  f77_int lda, const double *X, f77_int incX,
                  double beta, double *Y, f77_int incY);
-void cblas_dspmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dspmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, double alpha, const double *Ap,
                  const double *X, f77_int incX,
                  double beta, double *Y, f77_int incY);
-void cblas_dger(enum CBLAS_ORDER order, f77_int M, f77_int N,
+void BLIS_EXPORT_BLAS cblas_dger(enum CBLAS_ORDER order, f77_int M, f77_int N,
                 double alpha, const double *X, f77_int incX,
                 const double *Y, f77_int incY, double *A, f77_int lda);
-void cblas_dsyr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dsyr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, double alpha, const double *X,
                 f77_int incX, double *A, f77_int lda);
-void cblas_dspr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dspr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, double alpha, const double *X,
                 f77_int incX, double *Ap);
-void cblas_dsyr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dsyr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, double alpha, const double *X,
                 f77_int incX, const double *Y, f77_int incY, double *A,
                 f77_int lda);
-void cblas_dspr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dspr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, double alpha, const double *X,
                 f77_int incX, const double *Y, f77_int incY, double *A);
 
 
 
-void cblas_chemv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_chemv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, const void *alpha, const void *A,
                  f77_int lda, const void *X, f77_int incX,
                  const void *beta, void *Y, f77_int incY);
-void cblas_chbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_chbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, f77_int K, const void *alpha, const void *A,
                  f77_int lda, const void *X, f77_int incX,
                  const void *beta, void *Y, f77_int incY);
-void cblas_chpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_chpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, const void *alpha, const void *Ap,
                  const void *X, f77_int incX,
                  const void *beta, void *Y, f77_int incY);
-void cblas_cgeru(enum CBLAS_ORDER order, f77_int M, f77_int N,
+void BLIS_EXPORT_BLAS cblas_cgeru(enum CBLAS_ORDER order, f77_int M, f77_int N,
                  const void *alpha, const void *X, f77_int incX,
                  const void *Y, f77_int incY, void *A, f77_int lda);
-void cblas_cgerc(enum CBLAS_ORDER order, f77_int M, f77_int N,
+void BLIS_EXPORT_BLAS cblas_cgerc(enum CBLAS_ORDER order, f77_int M, f77_int N,
                  const void *alpha, const void *X, f77_int incX,
                  const void *Y, f77_int incY, void *A, f77_int lda);
-void cblas_cher(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_cher(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, float alpha, const void *X, f77_int incX,
                 void *A, f77_int lda);
-void cblas_chpr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_chpr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, float alpha, const void *X,
                 f77_int incX, void *A);
-void cblas_cher2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, f77_int N,
+void BLIS_EXPORT_BLAS cblas_cher2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, f77_int N,
                 const void *alpha, const void *X, f77_int incX,
                 const void *Y, f77_int incY, void *A, f77_int lda);
-void cblas_chpr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, f77_int N,
+void BLIS_EXPORT_BLAS cblas_chpr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, f77_int N,
                 const void *alpha, const void *X, f77_int incX,
                 const void *Y, f77_int incY, void *Ap);
 
-void cblas_zhemv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_zhemv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, const void *alpha, const void *A,
                  f77_int lda, const void *X, f77_int incX,
                  const void *beta, void *Y, f77_int incY);
-void cblas_zhbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_zhbmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, f77_int K, const void *alpha, const void *A,
                  f77_int lda, const void *X, f77_int incX,
                  const void *beta, void *Y, f77_int incY);
-void cblas_zhpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_zhpmv(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                  f77_int N, const void *alpha, const void *Ap,
                  const void *X, f77_int incX,
                  const void *beta, void *Y, f77_int incY);
-void cblas_zgeru(enum CBLAS_ORDER order, f77_int M, f77_int N,
+void BLIS_EXPORT_BLAS cblas_zgeru(enum CBLAS_ORDER order, f77_int M, f77_int N,
                  const void *alpha, const void *X, f77_int incX,
                  const void *Y, f77_int incY, void *A, f77_int lda);
-void cblas_zgerc(enum CBLAS_ORDER order, f77_int M, f77_int N,
+void BLIS_EXPORT_BLAS cblas_zgerc(enum CBLAS_ORDER order, f77_int M, f77_int N,
                  const void *alpha, const void *X, f77_int incX,
                  const void *Y, f77_int incY, void *A, f77_int lda);
-void cblas_zher(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_zher(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, double alpha, const void *X, f77_int incX,
                 void *A, f77_int lda);
-void cblas_zhpr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_zhpr(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
                 f77_int N, double alpha, const void *X,
                 f77_int incX, void *A);
-void cblas_zher2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, f77_int N,
+void BLIS_EXPORT_BLAS cblas_zher2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, f77_int N,
                 const void *alpha, const void *X, f77_int incX,
                 const void *Y, f77_int incY, void *A, f77_int lda);
-void cblas_zhpr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, f77_int N,
+void BLIS_EXPORT_BLAS cblas_zhpr2(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, f77_int N,
                 const void *alpha, const void *X, f77_int incX,
                 const void *Y, f77_int incY, void *Ap);
 
 
 
 
-void cblas_sgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
+void BLIS_EXPORT_BLAS cblas_sgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_TRANSPOSE TransB, f77_int M, f77_int N,
                  f77_int K, float alpha, const float *A,
                  f77_int lda, const float *B, f77_int ldb,
                  float beta, float *C, f77_int ldc);
-void cblas_ssymm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_ssymm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, f77_int M, f77_int N,
                  float alpha, const float *A, f77_int lda,
                  const float *B, f77_int ldb, float beta,
                  float *C, f77_int ldc);
-void cblas_ssyrk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ssyrk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                  float alpha, const float *A, f77_int lda,
                  float beta, float *C, f77_int ldc);
-void cblas_ssyr2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_ssyr2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                   enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                   float alpha, const float *A, f77_int lda,
                   const float *B, f77_int ldb, float beta,
                   float *C, f77_int ldc);
-void cblas_strmm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_strmm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_DIAG Diag, f77_int M, f77_int N,
                  float alpha, const float *A, f77_int lda,
                  float *B, f77_int ldb);
-void cblas_strsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_strsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_DIAG Diag, f77_int M, f77_int N,
                  float alpha, const float *A, f77_int lda,
                  float *B, f77_int ldb);
 
-void cblas_dgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
+void BLIS_EXPORT_BLAS cblas_dgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_TRANSPOSE TransB, f77_int M, f77_int N,
                  f77_int K, double alpha, const double *A,
                  f77_int lda, const double *B, f77_int ldb,
                  double beta, double *C, f77_int ldc);
-void cblas_dsymm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_dsymm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, f77_int M, f77_int N,
                  double alpha, const double *A, f77_int lda,
                  const double *B, f77_int ldb, double beta,
                  double *C, f77_int ldc);
-void cblas_dsyrk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dsyrk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                  double alpha, const double *A, f77_int lda,
                  double beta, double *C, f77_int ldc);
-void cblas_dsyr2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_dsyr2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                   enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                   double alpha, const double *A, f77_int lda,
                   const double *B, f77_int ldb, double beta,
                   double *C, f77_int ldc);
-void cblas_dtrmm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_dtrmm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_DIAG Diag, f77_int M, f77_int N,
                  double alpha, const double *A, f77_int lda,
                  double *B, f77_int ldb);
-void cblas_dtrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_dtrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_DIAG Diag, f77_int M, f77_int N,
                  double alpha, const double *A, f77_int lda,
                  double *B, f77_int ldb);
 
-void cblas_cgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
+void BLIS_EXPORT_BLAS cblas_cgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_TRANSPOSE TransB, f77_int M, f77_int N,
                  f77_int K, const void *alpha, const void *A,
                  f77_int lda, const void *B, f77_int ldb,
                  const void *beta, void *C, f77_int ldc);
-void cblas_csymm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_csymm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, f77_int M, f77_int N,
                  const void *alpha, const void *A, f77_int lda,
                  const void *B, f77_int ldb, const void *beta,
                  void *C, f77_int ldc);
-void cblas_csyrk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_csyrk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                  const void *alpha, const void *A, f77_int lda,
                  const void *beta, void *C, f77_int ldc);
-void cblas_csyr2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_csyr2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                   enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                   const void *alpha, const void *A, f77_int lda,
                   const void *B, f77_int ldb, const void *beta,
                   void *C, f77_int ldc);
-void cblas_ctrmm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_ctrmm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_DIAG Diag, f77_int M, f77_int N,
                  const void *alpha, const void *A, f77_int lda,
                  void *B, f77_int ldb);
-void cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_ctrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_DIAG Diag, f77_int M, f77_int N,
                  const void *alpha, const void *A, f77_int lda,
                  void *B, f77_int ldb);
 
-void cblas_zgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
+void BLIS_EXPORT_BLAS cblas_zgemm(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_TRANSPOSE TransB, f77_int M, f77_int N,
                  f77_int K, const void *alpha, const void *A,
                  f77_int lda, const void *B, f77_int ldb,
                  const void *beta, void *C, f77_int ldc);
-void cblas_zsymm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_zsymm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, f77_int M, f77_int N,
                  const void *alpha, const void *A, f77_int lda,
                  const void *B, f77_int ldb, const void *beta,
                  void *C, f77_int ldc);
-void cblas_zsyrk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_zsyrk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                  const void *alpha, const void *A, f77_int lda,
                  const void *beta, void *C, f77_int ldc);
-void cblas_zsyr2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_zsyr2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                   enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                   const void *alpha, const void *A, f77_int lda,
                   const void *B, f77_int ldb, const void *beta,
                   void *C, f77_int ldc);
-void cblas_ztrmm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_ztrmm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_DIAG Diag, f77_int M, f77_int N,
                  const void *alpha, const void *A, f77_int lda,
                  void *B, f77_int ldb);
-void cblas_ztrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_ztrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE TransA,
                  enum CBLAS_DIAG Diag, f77_int M, f77_int N,
                  const void *alpha, const void *A, f77_int lda,
@@ -38779,37 +41697,37 @@ void cblas_ztrsm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
 
 
 
-void cblas_chemm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_chemm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, f77_int M, f77_int N,
                  const void *alpha, const void *A, f77_int lda,
                  const void *B, f77_int ldb, const void *beta,
                  void *C, f77_int ldc);
-void cblas_cherk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_cherk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                  float alpha, const void *A, f77_int lda,
                  float beta, void *C, f77_int ldc);
-void cblas_cher2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_cher2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                   enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                   const void *alpha, const void *A, f77_int lda,
                   const void *B, f77_int ldb, float beta,
                   void *C, f77_int ldc);
 
-void cblas_zhemm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
+void BLIS_EXPORT_BLAS cblas_zhemm(enum CBLAS_ORDER Order, enum CBLAS_SIDE Side,
                  enum CBLAS_UPLO Uplo, f77_int M, f77_int N,
                  const void *alpha, const void *A, f77_int lda,
                  const void *B, f77_int ldb, const void *beta,
                  void *C, f77_int ldc);
-void cblas_zherk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_zherk(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                  enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                  double alpha, const void *A, f77_int lda,
                  double beta, void *C, f77_int ldc);
-void cblas_zher2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+void BLIS_EXPORT_BLAS cblas_zher2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                   enum CBLAS_TRANSPOSE Trans, f77_int N, f77_int K,
                   const void *alpha, const void *A, f77_int lda,
                   const void *B, f77_int ldb, double beta,
                   void *C, f77_int ldc);
 
-void cblas_xerbla(f77_int p, const char *rout, const char *form, ...);
+void BLIS_EXPORT_BLAS cblas_xerbla(f77_int p, const char *rout, const char *form, ...);
 
 #ifdef __cplusplus
 }

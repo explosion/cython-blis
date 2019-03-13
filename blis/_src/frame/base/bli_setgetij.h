@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -32,7 +32,7 @@
 
 */
 
-err_t bli_setijm
+BLIS_EXPORT_BLIS err_t bli_setijm
      (
        double  ar,
        double  ai,
@@ -44,7 +44,7 @@ err_t bli_setijm
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        double         ar, \
        double         ai, \
@@ -57,7 +57,7 @@ INSERT_GENTPROT_BASIC0( setijm )
 
 // -----------------------------------------------------------------------------
 
-err_t bli_getijm
+BLIS_EXPORT_BLIS err_t bli_getijm
       (
         dim_t   i,
         dim_t   j,
@@ -69,7 +69,7 @@ err_t bli_getijm
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC(ch,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC(ch,opname) \
      ( \
        dim_t          i, \
        dim_t          j, \

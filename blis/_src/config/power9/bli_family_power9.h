@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -32,48 +32,34 @@
 
 */
 
-#ifndef BLIS_L3_IND_OPT_H
-#define BLIS_L3_IND_OPT_H
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
 
-#define bli_l3_ind_recast_1m_params( dt_exec, schema_a, c, \
-                                     m, n, k, \
-                                     pd_a, ps_a, \
-                                     pd_b, ps_b, \
-                                     rs_c, cs_c ) \
-{ \
-	obj_t beta; \
-\
-	/* Detach the beta scalar from c so that we can test its imaginary
-	   component. */ \
-	bli_obj_scalar_detach( c, &beta ); \
-\
-	/* If beta is in the real domain, and c is row- or column-stored,
-	   then we may proceed with the optimization. */ \
-	if ( /*bli_obj_imag_equals( &beta, &BLIS_ZERO ) &&*/ \
-	     bli_obj_imag_is_zero( &beta ) && \
-	     !bli_is_gen_stored( rs_c, cs_c ) ) \
-	{ \
-		dt_exec = bli_dt_proj_to_real( dt_exec ); \
-\
-		if ( bli_is_1e_packed( schema_a ) ) \
-		{ \
-			m    *= 2; \
-			n    *= 1; \
-			k    *= 2; \
-			pd_a *= 2; ps_a *= 2; \
-			pd_b *= 1; ps_b *= 2; \
-			rs_c *= 1; cs_c *= 2; \
-		} \
-		else /* if ( bli_is_1r_packed( schema_a ) ) */ \
-		{ \
-			m    *= 1; \
-			n    *= 2; \
-			k    *= 2; \
-			pd_a *= 1; ps_a *= 2; \
-			pd_b *= 2; ps_b *= 2; \
-			rs_c *= 2; cs_c *= 1; \
-		} \
-	} \
-}
+//#define BLIS_SIMD_NUM_REGISTERS 32
+//#define BLIS_SIMD_SIZE 64
+//
+//#ifdef BLIS_NO_HBWMALLOC
+//  #include <stdlib.h>
+//    #define BLIS_MALLOC_POOL  malloc
+//    #define BLIS_FREE_POOL    free
+//#else
+//  #include <hbwmalloc.h>
+//    #define BLIS_MALLOC_POOL  hbw_malloc
+//    #define BLIS_FREE_POOL    hbw_free
+//#endif
 
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
+
+#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_8x4
+#define BLIS_DEFAULT_MR_D              8
+#define BLIS_DEFAULT_NR_D              4
+#define BLIS_DEFAULT_MC_D              64
+#define BLIS_DEFAULT_KC_D              256
+#define BLIS_DEFAULT_NC_D              4096
 #endif
+
+
+//#endif
+

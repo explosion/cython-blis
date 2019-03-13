@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -36,18 +37,18 @@
 
 void* bli_thrcomm_bcast
      (
-       thrcomm_t* comm,
        dim_t      id,
-       void*      to_send
+       void*      to_send,
+       thrcomm_t* comm
      )
 {   
 	if ( comm == NULL || comm->n_threads == 1 ) return to_send;
 
 	if ( id == 0 ) comm->sent_object = to_send;
 
-	bli_thrcomm_barrier( comm, id );
+	bli_thrcomm_barrier( id, comm );
 	void* object = comm->sent_object;
-	bli_thrcomm_barrier( comm, id );
+	bli_thrcomm_barrier( id, comm );
 
 	return object;
 }
@@ -71,7 +72,7 @@ void* bli_thrcomm_bcast
 
 #endif
 
-void bli_thrcomm_barrier_atomic( thrcomm_t* comm, dim_t t_id )
+void bli_thrcomm_barrier_atomic( dim_t t_id, thrcomm_t* comm )
 {
 	// Return early if the comm is NULL or if there is only one
 	// thread participating.

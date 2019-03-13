@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -74,7 +74,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \
@@ -104,7 +106,9 @@ void PASTEMAC(ch,varname) \
        dim_t           m_panel_max, \
        dim_t           n_panel_max, \
        dim_t           panel_dim, \
+       dim_t           panel_dim_max, \
        dim_t           panel_len, \
+       dim_t           panel_len_max, \
        ctype* restrict kappa, \
        ctype* restrict c, inc_t rs_c, inc_t cs_c, \
                           inc_t incc, inc_t ldc, \

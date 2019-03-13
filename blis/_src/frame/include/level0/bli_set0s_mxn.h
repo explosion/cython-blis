@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -41,42 +41,36 @@
 // - The first char encodes the type of x.
 // - The second char encodes the type of y.
 
-#define bli_sset0s_mxn( m, n, y, rs_y, cs_y ) \
-{ \
-	dim_t _i, _j; \
-\
-	for ( _j = 0; _j < n; ++_j ) \
-	for ( _i = 0; _i < m; ++_i ) \
-	bli_sset0s( *(y + _i*rs_y + _j*cs_y) ); \
+static void bli_sset0s_mxn( const dim_t m, const dim_t n,
+                            float*    restrict y, const inc_t rs_y, const inc_t cs_y )
+{
+	for ( dim_t j = 0; j < n; ++j )
+	for ( dim_t i = 0; i < m; ++i )
+	bli_sset0s( *(y + i*rs_y + j*cs_y) );
 }
 
-#define bli_dset0s_mxn( m, n, y, rs_y, cs_y ) \
-{ \
-	dim_t _i, _j; \
-\
-	for ( _j = 0; _j < n; ++_j ) \
-	for ( _i = 0; _i < m; ++_i ) \
-	bli_dset0s( *(y + _i*rs_y + _j*cs_y) ); \
+static void bli_dset0s_mxn( const dim_t m, const dim_t n,
+                            double*   restrict y, const inc_t rs_y, const inc_t cs_y )
+{
+	for ( dim_t j = 0; j < n; ++j )
+	for ( dim_t i = 0; i < m; ++i )
+	bli_dset0s( *(y + i*rs_y + j*cs_y) );
 }
 
-#define bli_cset0s_mxn( m, n, y, rs_y, cs_y ) \
-{ \
-	dim_t _i, _j; \
-\
-	for ( _j = 0; _j < n; ++_j ) \
-	for ( _i = 0; _i < m; ++_i ) \
-	bli_cset0s( *(y + _i*rs_y + _j*cs_y) ); \
+static void bli_cset0s_mxn( const dim_t m, const dim_t n,
+                            scomplex* restrict y, const inc_t rs_y, const inc_t cs_y )
+{
+	for ( dim_t j = 0; j < n; ++j )
+	for ( dim_t i = 0; i < m; ++i )
+	bli_cset0s( *(y + i*rs_y + j*cs_y) );
 }
 
-#define bli_zset0s_mxn( m, n, y, rs_y, cs_y ) \
-{ \
-	dim_t _i, _j; \
-\
-	for ( _j = 0; _j < n; ++_j ) \
-	for ( _i = 0; _i < m; ++_i ) \
-	bli_zset0s( *(y + _i*rs_y + _j*cs_y) ); \
+static void bli_zset0s_mxn( const dim_t m, const dim_t n,
+                            dcomplex* restrict y, const inc_t rs_y, const inc_t cs_y )
+{
+	for ( dim_t j = 0; j < n; ++j )
+	for ( dim_t i = 0; i < m; ++i )
+	bli_zset0s( *(y + i*rs_y + j*cs_y) );
 }
-
-
 
 #endif

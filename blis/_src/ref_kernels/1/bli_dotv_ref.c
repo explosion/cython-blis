@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -48,11 +48,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
        cntx_t* restrict cntx  \
      ) \
 { \
-	ctype* restrict chi1; \
-	ctype* restrict psi1; \
-	ctype  dotxy; \
-	dim_t  i; \
-	conj_t conjx_use; \
+	ctype dotxy; \
 \
 	if ( bli_zero_dim1( n ) ) \
 	{ \
@@ -62,10 +58,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
 \
 	PASTEMAC(ch,set0s)( dotxy ); \
 \
-	chi1 = x; \
-	psi1 = y; \
-\
-	conjx_use = conjx; \
+	conj_t conjx_use = conjx; \
 \
 	/* If y must be conjugated, we do so indirectly by first toggling the
 	   effective conjugation of x and then conjugating the resulting dot
@@ -77,19 +70,20 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	{ \
 		if ( incx == 1 && incy == 1 ) \
 		{ \
-			for ( i = 0; i < n; ++i ) \
+			PRAGMA_SIMD \
+			for ( dim_t i = 0; i < n; ++i ) \
 			{ \
-				PASTEMAC(ch,dotjs)( chi1[i], psi1[i], dotxy ); \
+				PASTEMAC(ch,dotjs)( x[i], y[i], dotxy ); \
 			} \
 		} \
 		else \
 		{ \
-			for ( i = 0; i < n; ++i ) \
+			for ( dim_t i = 0; i < n; ++i ) \
 			{ \
-				PASTEMAC(ch,dotjs)( *chi1, *psi1, dotxy ); \
+				PASTEMAC(ch,dotjs)( *x, *y, dotxy ); \
 \
-				chi1 += incx; \
-				psi1 += incy; \
+				x += incx; \
+				y += incy; \
 			} \
 		} \
 	} \
@@ -97,19 +91,20 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	{ \
 		if ( incx == 1 && incy == 1 ) \
 		{ \
-			for ( i = 0; i < n; ++i ) \
+			PRAGMA_SIMD \
+			for ( dim_t i = 0; i < n; ++i ) \
 			{ \
-				PASTEMAC(ch,dots)( chi1[i], psi1[i], dotxy ); \
+				PASTEMAC(ch,dots)( x[i], y[i], dotxy ); \
 			} \
 		} \
 		else \
 		{ \
-			for ( i = 0; i < n; ++i ) \
+			for ( dim_t i = 0; i < n; ++i ) \
 			{ \
-				PASTEMAC(ch,dots)( *chi1, *psi1, dotxy ); \
+				PASTEMAC(ch,dots)( *x, *y, dotxy ); \
 \
-				chi1 += incx; \
-				psi1 += incy; \
+				x += incx; \
+				y += incy; \
 			} \
 		} \
 	} \

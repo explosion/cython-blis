@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -32,9 +32,28 @@
 
 */
 
+#include "blis.h"
 
 cntl_t* bli_scalm_cntl_create_node
      (
        void*   var_func,
        cntl_t* sub_node
-     );
+     )
+{
+	cntl_t* cntl;
+
+	// It's important that we set the bszid field to BLIS_NO_PART to indicate
+	// that no blocksize partitioning is performed. bli_cntl_free() will rely
+	// on this information to know how to step through the thrinfo_t tree in
+	// sync with the cntl_t tree.
+	cntl = bli_cntl_create_node
+	(
+	  BLIS_NOID,
+	  BLIS_NO_PART,
+	  var_func,
+	  NULL,
+	  sub_node
+	);
+
+	return cntl;
+}

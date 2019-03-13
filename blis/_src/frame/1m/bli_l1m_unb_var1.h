@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -40,7 +40,7 @@
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,_unb_var1) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -62,7 +62,7 @@ INSERT_GENTPROT_BASIC0( subm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,_unb_var1) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -84,7 +84,7 @@ INSERT_GENTPROT_BASIC0( scal2m )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,_unb_var1) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        conj_t  conjalpha, \
        doff_t  diagoffx, \
@@ -105,7 +105,7 @@ INSERT_GENTPROT_BASIC0( setm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-void PASTEMAC2(ch,opname,_unb_var1) \
+BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -126,7 +126,7 @@ INSERT_GENTPROT_BASIC0( xpbym )
 #undef  GENTPROT2
 #define GENTPROT2( ctype_x, ctype_y, chx, chy, opname ) \
 \
-void PASTEMAC3(chx,chy,opname,_unb_var1) \
+BLIS_EXPORT_BLIS void PASTEMAC3(chx,chy,opname,_unb_var1) \
      ( \
        doff_t   diagoffx, \
        diag_t   diagx, \

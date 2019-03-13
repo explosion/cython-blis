@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -86,7 +86,8 @@ static guint_t bli_round_to_mult( guint_t val, guint_t mult )
 
 // isnan, isinf
 // NOTE: These must remain macros, since isinf() and isnan() are macros
-// (defined in math.h).
+// (defined in math.h) that likely depend on the type of the argument 'a'
+// below.
 
 #define bli_isinf( a )  isinf( a )
 #define bli_isnan( a )  isnan( a )
