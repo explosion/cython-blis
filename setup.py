@@ -181,8 +181,17 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 if 'BLIS_COMPILER' in os.environ:
                     spec['compiler'] = os.environ['BLIS_COMPILER']
-                objects.append(self.build_object(env=env, **spec))
+                if not self.skip_object(**spec):
+                    objects.append(self.build_object(env=env, **spec))
         return objects
+
+    def skip_object(self, compiler, source, target, flags, macros, include):
+        """Skip skylake and knl kernels"""
+        for flag in flags:
+            if "skylake" in flag or "knl" in flag:
+                return True
+        else:
+            return False
 
     def build_object(self, compiler, source, target, flags, macros, include,
             env=None):
