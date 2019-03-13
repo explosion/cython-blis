@@ -136,7 +136,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         if 'BLIS_ARCH' in os.environ:
             return os.environ['BLIS_ARCH']
         else:
-            return 'x86_64'
+            return 'x86_64_no_skx'
 
     def get_compiler_name(self):
         if 'BLIS_COMPILER' in os.environ:
@@ -181,17 +181,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 spec['source'] = os.path.join(BLIS_DIR, spec['source'])
                 if 'BLIS_COMPILER' in os.environ:
                     spec['compiler'] = os.environ['BLIS_COMPILER']
-                if not self.skip_object(**spec):
-                    objects.append(self.build_object(env=env, **spec))
+                objects.append(self.build_object(env=env, **spec))
         return objects
-
-    def skip_object(self, compiler, source, target, flags, macros, include):
-        """Skip skylake and knl kernels"""
-        for flag in flags:
-            if "skylake" in flag or "knl" in flag:
-                return True
-        else:
-            return False
 
     def build_object(self, compiler, source, target, flags, macros, include,
             env=None):
