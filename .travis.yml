@@ -42,6 +42,7 @@ before_install:
 install:
         # TODO: Use homebrew to install pyenv, set Python version
   - python -m pip install -r requirements.txt
+  - ./bin/generate-make-jsonl "$TRAVIS_OS_NAME" x86_64_no_skx
   - python setup.py bdist_wheel
   - rm -rf blis*
   - python -m pip install dist/*.whl
