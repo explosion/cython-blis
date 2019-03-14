@@ -1,9 +1,9 @@
-environment:
-
-  matrix:
-    - PYTHON: "/c/Python35-x64"
-    - PYTHON: "/c/Python36-x64"
-    - PYTHON: "/c/Python37-x64"
+#environment:
+#
+#  matrix:
+#    - PYTHON: "/c/Python35-x64"
+#    - PYTHON: "/c/Python36-x64"
+#    - PYTHON: "/c/Python37-x64"
 
 install:
 - git submodule update --init --recursive
