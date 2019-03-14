@@ -1,49 +1,24 @@
-#environment:
-#
-#  matrix:
-#    - PYTHON: "/c/Python35-x64"
-#    - PYTHON: "/c/Python36-x64"
-#    - PYTHON: "/c/Python37-x64"
+environment:
+
+  matrix:
+    - PYTHON: "C:\\Python35-x64"
+    - PYTHON: "C:\\Python36-x64"
+    - PYTHON: "C:\\Python37-x64"
 
 install:
-- git submodule update --init --recursive
-- cd flame-blis
-- set "CC=clang"
-- set "PATH=C:\msys64\mingw64\bin;C:\msys64\bin;%PATH%"
-- set "PATH=C:\Program Files\LLVM\bin;%PATH%"
-- set "AR=llvm-ar"
-- set "AS=llvm-as"
-- call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
-
+- set "PATH=%PYTHON%;%path%"
 
 build_script:
-- set RANLIB=echo
-- set LIBPTHREAD=
-- set "PATH=%PATH%;C:\blis\lib"
-- set "CFLAGS=-Wno-macro-redefined"
-- cd %APPVEYOR_BUILD_FOLDER%
-- cd flame-blis
-- bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
-- bash -lc "cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
-- bash -lc "cd /c/projects/cython-blis/flame-blis && mingw32-make -j4 > make.log"
-- bash -lc "mkdir -p /c/projects/cython-blis/blis/_src/include/windows-x86_64"
-- bash -lc "cd /c/projects/cython-blis && cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
-- bash -lc "cp /c/projects/cython-blis/flame-blis/include/x86_64/blis.h /c/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h"
-- bash -lc "cp /c/projects/cython-blis/blis/_src/make/windows-x86_64.jsonl $APPVEYOR_BUILD_FOLDER/blis/_src/make/windows-x86_64.jsonl"
-- bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/blis/_src/include/windows-x86_64"
-- bash -lc "cp /c/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h $APPVEYOR_BUILD_FOLDER/blis/_src/include/windows-x86_64/blis.h"
-#- python -m pip install -U pip wheel
-#- python -m pip install -r requirements.txt
-#- python setup.py bdist_wheel
-#- cd ..
-#- bash -lc "cp -r $APPVEYOR_BUILD_FOLDER /c/build"
-#- bash -lc "python -m pip install /c/build/dist/*.whl"
+- python -m pip install -U pip wheel
+- python -m pip install -r requirements.txt
+- python setup.py bdist_wheel
+- cd ..
+- bash -lc "cp -r $APPVEYOR_BUILD_FOLDER /c/build"
+- bash -lc "python -m pip install /c/build/dist/*.whl"
 
-#test_script:
-#- python -m pytest --pyargs blis
+test_script:
+- python -m pytest --pyargs blis
 
 artifacts:
-  - path: blis/_src/make
-    name: windows-x86_64.jsonl
-  - path: blis/_src/include/windows-x86_64
-    name: blis.h
+  - path: dist/
+    name: wheels
