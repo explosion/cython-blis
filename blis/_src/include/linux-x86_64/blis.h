@@ -125,7 +125,6 @@ extern "C" {
 
 
 // Enabled sub-configurations (config_list)
-#define BLIS_CONFIG_SKX
 #define BLIS_CONFIG_KNL
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
@@ -139,7 +138,6 @@ extern "C" {
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_SKX
 #define BLIS_KERNELS_KNL
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
@@ -20721,98 +20719,7 @@ CNTX_INIT_PROTS( generic )
 
 // -- Intel64 architectures --
 #ifdef BLIS_FAMILY_SKX
-// begin bli_family_skx.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-// -- THREADING PARAMETERS -----------------------------------------------------
-
-#define BLIS_THREAD_RATIO_M     3
-#define BLIS_THREAD_RATIO_N     2
-
-#define BLIS_THREAD_MAX_IR      1
-#define BLIS_THREAD_MAX_JR      4
-
-// -- MEMORY ALLOCATION --------------------------------------------------------
-
-#define BLIS_SIMD_ALIGN_SIZE             64
-
-#define BLIS_SIMD_SIZE                   64
-#define BLIS_SIMD_NUM_REGISTERS          32
-
-//#include <stdlib.h>
-
-//#define BLIS_MALLOC_POOL malloc
-//#define BLIS_FREE_POOL free
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-// -- Cache and register blocksizes --
-
-//
-// Constraints:
-//
-// (1) MC must be a multiple of:
-//     (a) MR (for zero-padding purposes)
-//     (b) NR (for zero-padding purposes when MR and NR are "swapped")
-// (2) NC must be a multiple of
-//     (a) NR (for zero-padding purposes)
-//     (b) MR (for zero-padding purposes when MR and NR are "swapped")
-//
-
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_16x12_l2
-#define BLIS_DEFAULT_MC_D              144
-#define BLIS_DEFAULT_KC_D              336
-#define BLIS_DEFAULT_NC_D              5760
-#define BLIS_DEFAULT_MR_D              16
-#define BLIS_DEFAULT_NR_D              12
-#define BLIS_PACKDIM_MR_D              16
-#define BLIS_PACKDIM_NR_D              12
-
-// NOTE: If the micro-kernel, which is typically unrolled to a factor
-// of f, handles leftover edge cases (ie: when k % f > 0) then these
-// register blocksizes in the k dimension can be defined to 1.
-
-//#define BLIS_DEFAULT_KR_S              1
-//#define BLIS_DEFAULT_KR_D              1
-//#define BLIS_DEFAULT_KR_C              1
-//#define BLIS_DEFAULT_KR_Z              1
-
-// -- Maximum cache blocksizes (for optimizing edge cases) --
-
-// NOTE: These cache blocksize "extensions" have the same constraints as
-// the corresponding default blocksizes above. When these values are
-// larger than the default blocksizes, blocksizes used at edge cases are
-// enlarged if such an extension would encompass the remaining portion of
-// the matrix dimension.
-
-#define BLIS_MAXIMUM_MC_S              (BLIS_DEFAULT_MC_S + BLIS_DEFAULT_MC_S/4)
-#define BLIS_MAXIMUM_KC_S              (BLIS_DEFAULT_KC_S + BLIS_DEFAULT_KC_S/4)
-#define BLIS_MAXIMUM_NC_S              (BLIS_DEFAULT_NC_S +                   0)
-
-#define BLIS_MAXIMUM_MC_D              (BLIS_DEFAULT_MC_D + BLIS_DEFAULT_MC_D/4)
-#define BLIS_MAXIMUM_KC_D              (BLIS_DEFAULT_KC_D + BLIS_DEFAULT_KC_D/4)
-#define BLIS_MAXIMUM_NC_D              (BLIS_DEFAULT_NC_D +                   0)
-
-//#define BLIS_MAXIMUM_MC_C              (BLIS_DEFAULT_MC_C + BLIS_DEFAULT_MC_C/4)
-//#define BLIS_MAXIMUM_KC_C              (BLIS_DEFAULT_KC_C + BLIS_DEFAULT_KC_C/4)
-//#define BLIS_MAXIMUM_NC_C              (BLIS_DEFAULT_NC_C + BLIS_DEFAULT_NC_C/4)
-
-//#define BLIS_MAXIMUM_MC_Z              (BLIS_DEFAULT_MC_Z + BLIS_DEFAULT_MC_Z/4)
-//#define BLIS_MAXIMUM_KC_Z              (BLIS_DEFAULT_KC_Z + BLIS_DEFAULT_KC_Z/4)
-//#define BLIS_MAXIMUM_NC_Z              (BLIS_DEFAULT_NC_Z + BLIS_DEFAULT_NC_Z/4)
-
-
-#endif
-
-
-//#endif
-
-// end bli_family_skx.h
+#include "bli_family_skx.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_KNL
 // begin bli_family_knl.h
@@ -21398,17 +21305,7 @@ CNTX_INIT_PROTS( generic )
 
 // -- Intel64 architectures --
 #ifdef BLIS_KERNELS_SKX
-// begin bli_kernels_skx.h
-
-
-GEMM_UKR_PROT( float ,   s, gemm_skx_asm_32x12_l2 )
-GEMM_UKR_PROT( float ,   s, gemm_skx_asm_12x32_l2 )
-
-GEMM_UKR_PROT( double,   d, gemm_skx_asm_16x12_l2 )
-GEMM_UKR_PROT( double,   d, gemm_skx_asm_16x14 )
-
-
-// end bli_kernels_skx.h
+#include "bli_kernels_skx.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_KNL
 // begin bli_kernels_knl.h
@@ -39325,7 +39222,6 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 
 
 // Enabled sub-configurations (config_list)
-#define BLIS_CONFIG_SKX
 #define BLIS_CONFIG_KNL
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
@@ -39339,7 +39235,6 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_SKX
 #define BLIS_KERNELS_KNL
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
