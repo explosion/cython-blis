@@ -17,6 +17,6 @@ cp include/$ARCH/blis.h ../blis/_src/include/$OS-$ARCH/blis.h
 
 if [[ "$EXPORT" == "--export" ]]; then
   mkdir -p ../artifacts/
-  cp ../blis/_src/include/blis/_src/include/$OS-$ARCH/blis.h ../artifacts/blis-$OS-$ARCH.h
+  cp ../blis/_src/include/$OS-$ARCH/blis.h ../artifacts/blis-$OS-$ARCH.h
   cp ../blis/_src/make/$OS-$ARCH.jsonl ../artifacts/$OS-$ARCH.jsonl;
 fi
