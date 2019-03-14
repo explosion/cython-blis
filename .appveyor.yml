@@ -49,4 +49,4 @@ artifacts:
   - path: blis/_src/make
     name: windows-x86_64.jsonl
   - path: blis/_src/include/windows-x86_64
-  - name: blis.h
+    name: blis.h
