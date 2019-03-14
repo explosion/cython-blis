@@ -1,0 +1,55 @@
+language: python
+sudo: required
+dist: xenial
+
+env:
+  global: 
+    - PLAT=x86_64
+    - UNICODE_WIDTH=32
+
+matrix:
+  include:
+  - os: osx
+    language: generic
+    env:
+    - MB_PYTHON_VERSION="2.7"
+  - os: osx
+    language: generic
+    env:
+    - MB_PYTHON_VERSION="3.5"
+  - os: osx
+    language: generic
+    env:
+    - MB_PYTHON_VERSION="3.6"
+  - os: osx
+    language: generic
+    env:
+    - MB_PYTHON_VERSION="3.7"
+  - os: linux
+    python: "2.7"
+  - os: linux
+    python: "3.5"
+  - os: linux
+    python: "3.6"
+  - os: linux
+    python: "3.7"
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source ./travis/before_install_osx.sh; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then source ./travis/before_install_linux.sh; fi
+  - before_install
+
+install:
+        # TODO: Use homebrew to install pyenv, set Python version
+  - python -m pip install -r requirements.txt
+  - python setup.py bdist_wheel
+  - rm -rf blis*
+  - python -m pip install dist/*.whl
+
+script:
+  - python -m pytest tests/
+
+notifications:
+  email: false
+  slack:
+    secure: VSqtxg7u4NTZRfoZqjxPRPVS92KTy/mp62egfDZ9ujTP4VPxNe15QZuTB6r/ICPgEYqBtdhLc/aetuBcemt0bHfentV0F7bz7iDY/AFQC1h1i4G0D0wKMufuqOJFw9MOp2tSpuvCVzhCxR+Ymx/F9SaeYBAiwBawce4wu+qu3lA=
