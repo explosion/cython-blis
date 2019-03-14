@@ -11,4 +11,5 @@ echo "Compile"
 make > make.log 
 echo "Preprocess make log"
 cat make.log | python ../bin/munge_make_log.py $OS $ARCH > ../blis/_src/make/$OS-$ARCH.jsonl
+mkdir -p ../blis/_src/include/$OS-$ARCH/
 cp include/$ARCH/blis.h ../blis/_src/include/$OS-$ARCH/blis.h
