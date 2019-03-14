@@ -32,12 +32,12 @@ build_script:
 - bash -lc "cp /c/projects/cython-blis/blis/_src/make/windows-x86_64.jsonl $APPVEYOR_BUILD_FOLDER/blis/_src/make/windows-x86_64.jsonl"
 - bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/blis/_src/include/windows-x86_64"
 - bash -lc "cp /c/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h $APPVEYOR_BUILD_FOLDER/blis/_src/include/windows-x86_64/blis.h"
-- python -m pip install -U pip wheel
-- python -m pip install -r requirements.txt
-- python setup.py bdist_wheel
-- cd ..
-- bash -lc "cp -r $APPVEYOR_BUILD_FOLDER /c/build"
-- bash -lc "python -m pip install /c/build/dist/*.whl"
+  #- python -m pip install -U pip wheel
+  #- python -m pip install -r requirements.txt
+  #- python setup.py bdist_wheel
+  #- cd ..
+  #- bash -lc "cp -r $APPVEYOR_BUILD_FOLDER /c/build"
+  #- bash -lc "python -m pip install /c/build/dist/*.whl"
 
 test_script:
 - python -m pytest --pyargs blis
