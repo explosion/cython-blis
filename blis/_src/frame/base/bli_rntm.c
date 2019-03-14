@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -101,16 +101,15 @@ bli_rntm_print( rntm );
 		}
 		else if ( l3_op == BLIS_TRSM )
 		{
-			// For trsm_l, we extract all parallelism from the jc and jr loops.
-			// For trsm_r, we extract all parallelism from the ic loop.
+//printf( "bli_rntm_set_ways_for_op(): jc%d ic%d jr%d\n", (int)jc, (int)ic, (int)jr );
 			if ( bli_is_left( side ) )
 			{
 				bli_rntm_set_ways_only
 				(
 				  jc,
 				  1,
-				  1,
-				  ic * pc * jr * ir,
+				  ic * pc,
+				  jr * ir,
 				  1,
 				  rntm
 				);

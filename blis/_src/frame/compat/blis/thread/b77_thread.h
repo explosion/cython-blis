@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -37,7 +37,7 @@
 // Prototype Fortran-compatible BLIS interfaces.
 //
 
-void PASTEF770(bli_thread_set_ways)
+BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_ways)
      (
        const f77_int* jc,
        const f77_int* pc,
@@ -46,7 +46,7 @@ void PASTEF770(bli_thread_set_ways)
        const f77_int* ir
      );
 
-void PASTEF770(bli_thread_set_num_threads)
+BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
      (
        const f77_int* nt
      );

@@ -16,9 +16,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -196,20 +196,20 @@ dim_t bli_ipow( dim_t base, dim_t power );
 
 // -----------------------------------------------------------------------------
 
-dim_t bli_thread_get_env( const char* env, dim_t fallback );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_env( const char* env, dim_t fallback );
 //void  bli_thread_set_env( const char* env, dim_t value );
 
-dim_t bli_thread_get_jc_nt( void );
-dim_t bli_thread_get_pc_nt( void );
-dim_t bli_thread_get_ic_nt( void );
-dim_t bli_thread_get_jr_nt( void );
-dim_t bli_thread_get_ir_nt( void );
-dim_t bli_thread_get_num_threads( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_jc_nt( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_pc_nt( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_ic_nt( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_jr_nt( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_ir_nt( void );
+BLIS_EXPORT_BLIS dim_t bli_thread_get_num_threads( void );
 
-void  bli_thread_set_ways( dim_t jc, dim_t pc, dim_t ic, dim_t jr, dim_t ir );
-void  bli_thread_set_num_threads( dim_t value );
+BLIS_EXPORT_BLIS void  bli_thread_set_ways( dim_t jc, dim_t pc, dim_t ic, dim_t jr, dim_t ir );
+BLIS_EXPORT_BLIS void  bli_thread_set_num_threads( dim_t value );
 
-void  bli_thread_init_rntm( rntm_t* rntm );
+BLIS_EXPORT_BLIS void  bli_thread_init_rntm( rntm_t* rntm );
 
 void  bli_thread_init_rntm_from_env( rntm_t* rntm );
 

@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -89,6 +89,7 @@ void bli_l3_thrinfo_init_single
 
 void bli_l3_thrinfo_free
      (
+       rntm_t*    rntm,
        thrinfo_t* thread
      );
 
@@ -103,7 +104,12 @@ void bli_l3_thrinfo_create_root
        thrinfo_t** thread
      );
 
-void bli_l3_thrinfo_print_paths
+void bli_l3_thrinfo_print_gemm_paths
+     (
+       thrinfo_t** threads
+     );
+
+void bli_l3_thrinfo_print_trsm_paths
      (
        thrinfo_t** threads
      );
@@ -112,6 +118,7 @@ void bli_l3_thrinfo_print_paths
 
 void bli_l3_thrinfo_free_paths
      (
+       rntm_t*     rntm,
        thrinfo_t** threads
      );
 

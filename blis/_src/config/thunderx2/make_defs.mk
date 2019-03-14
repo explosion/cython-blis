@@ -1,6 +1,6 @@
 #
 #
-#  BLIS    
+#  BLIS
 #  An object-based framework for developing high-performance BLAS-like
 #  libraries.
 #
@@ -14,9 +14,9 @@
 #   - Redistributions in binary form must reproduce the above copyright
 #     notice, this list of conditions and the following disclaimer in the
 #     documentation and/or other materials provided with the distribution.
-#   - Neither the name of The University of Texas at Austin nor the names
-#     of its contributors may be used to endorse or promote products
-#     derived from this software without specific prior written permission.
+#   - Neither the name(s) of the copyright holder(s) nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
 #
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -35,7 +35,7 @@
 
 # Declare the name of the current configuration and add it to the
 # running list of configurations included by common.mk.
-THIS_CONFIG    := custom
+THIS_CONFIG    := thunderx2
 #CONFIGS_INCL   += $(THIS_CONFIG)
 
 #
@@ -45,7 +45,7 @@ THIS_CONFIG    := custom
 # NOTE: The build system will append these variables with various
 # general-purpose/configuration-agnostic flags in common.mk. You
 # may specify additional flags here as needed.
-CPPROCFLAGS    :=
+CPPROCFLAGS    := -D_GNU_SOURCE
 CMISCFLAGS     :=
 CPICFLAGS      :=
 CWARNFLAGS     :=
@@ -57,23 +57,15 @@ endif
 ifeq ($(DEBUG_TYPE),noopt)
 COPTFLAGS      := -O0
 else
-COPTFLAGS      := -O3
+COPTFLAGS      := -O3 -ftree-vectorize -mtune=thunderx2t99
 endif
 
 # Flags specific to optimized kernels.
 CKOPTFLAGS     := $(COPTFLAGS)
 ifeq ($(CC_VENDOR),gcc)
-CKVECFLAGS     := -mssse3 -mfpmath=sse -march=core2
+CKVECFLAGS     := -march=armv8.1-a+fp+simd -mcpu=thunderx2t99
 else
-ifeq ($(CC_VENDOR),icc)
-CKVECFLAGS     := -xSSE3
-else
-ifeq ($(CC_VENDOR),clang)
-CKVECFLAGS     := -mssse3 -mfpmath=sse -march=core2
-else
-$(error gcc, icc, or clang is required for this configuration.)
-endif
-endif
+$(error gcc is required for this configuration.)
 endif
 
 # Flags specific to reference kernels.

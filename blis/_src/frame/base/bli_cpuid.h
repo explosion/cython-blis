@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -50,27 +50,28 @@
 #ifndef BLIS_CPUID_H
 #define BLIS_CPUID_H
 
-arch_t   bli_cpuid_query_id( void );
+arch_t    bli_cpuid_query_id( void );
 
 // Intel
-bool_t   bli_cpuid_is_skx( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_knl( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_haswell( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_sandybridge( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_penryn( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_skx( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_knl( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_haswell( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_sandybridge( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_penryn( uint32_t family, uint32_t model, uint32_t features );
 
 // AMD
-bool_t   bli_cpuid_is_zen( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_excavator( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_steamroller( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_piledriver( uint32_t family, uint32_t model, uint32_t features );
-bool_t   bli_cpuid_is_bulldozer( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_zen( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_excavator( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_steamroller( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_piledriver( uint32_t family, uint32_t model, uint32_t features );
+bool_t    bli_cpuid_is_bulldozer( uint32_t family, uint32_t model, uint32_t features );
 
 // ARM
-bool_t   bli_cpuid_is_cortexa57( uint32_t model, uint32_t part, uint32_t features );
-bool_t   bli_cpuid_is_cortexa53( uint32_t model, uint32_t part, uint32_t features );
-bool_t   bli_cpuid_is_cortexa15( uint32_t model, uint32_t part, uint32_t features );
-bool_t   bli_cpuid_is_cortexa9( uint32_t model, uint32_t part, uint32_t features );
+bool_t    bli_cpuid_is_thunderx2( uint32_t model, uint32_t part, uint32_t features );
+bool_t    bli_cpuid_is_cortexa57( uint32_t model, uint32_t part, uint32_t features );
+bool_t    bli_cpuid_is_cortexa53( uint32_t model, uint32_t part, uint32_t features );
+bool_t    bli_cpuid_is_cortexa15( uint32_t model, uint32_t part, uint32_t features );
+bool_t    bli_cpuid_is_cortexa9( uint32_t model, uint32_t part, uint32_t features );
 
 uint32_t bli_cpuid_query( uint32_t* family, uint32_t* model, uint32_t* features );
 
@@ -95,9 +96,9 @@ uint32_t bli_cpuid_query( uint32_t* family, uint32_t* model, uint32_t* features 
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT

@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -33,18 +33,13 @@
 */
 
 
-void     bli_error_init( void );
-void     bli_error_finalize( void );
+BLIS_EXPORT_BLIS errlev_t bli_error_checking_level( void );
+BLIS_EXPORT_BLIS void     bli_error_checking_level_set( errlev_t new_level );
 
-void     bli_error_init_msgs( void );
-void     bli_print_msg( char* str, char* file, guint_t line );
-void     bli_abort( void );
+BLIS_EXPORT_BLIS bool_t    bli_error_checking_is_enabled( void );
 
-errlev_t bli_error_checking_level( void );
-void     bli_error_checking_level_set( errlev_t new_level );
+void      bli_print_msg( char* str, char* file, guint_t line );
+void      bli_abort( void );
 
-bool_t   bli_error_checking_is_enabled( void );
-
-char*    bli_error_string_for_code( gint_t code );
-
+char*     bli_error_string_for_code( gint_t code );
 

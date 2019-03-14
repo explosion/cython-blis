@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -36,6 +36,7 @@
 #ifndef BLIS_CONFIGURETIME_CPUID
   #include "blis.h"
 #else
+  #define BLIS_EXPORT_BLIS
   #include "bli_system.h"
   #include "bli_type_defs.h"
   #include "bli_arch.h"
@@ -120,6 +121,9 @@ void bli_arch_set_id( void )
 #endif
 
 	// ARM microarchitectures.
+#ifdef BLIS_FAMILY_THUNDERX2
+	id = BLIS_ARCH_THUNDERX2;
+#endif
 #ifdef BLIS_FAMILY_CORTEXA57
 	id = BLIS_ARCH_CORTEXA57;
 #endif
@@ -139,6 +143,9 @@ void bli_arch_set_id( void )
 #endif
 #ifdef BLIS_FAMILY_BGQ
 	id = BLIS_ARCH_BGQ;
+#endif
+#ifdef BLIS_FAMILY_POWER9
+        id = BLIS_ARCH_POWER9;
 #endif
 
 	// Generic microarchitecture.
@@ -171,6 +178,7 @@ static char* config_name[ BLIS_NUM_ARCHS ] =
     "piledriver",
     "bulldozer",
 
+    "thunderx2",
     "cortexa57",
     "cortexa53",
     "cortexa15",
@@ -178,6 +186,7 @@ static char* config_name[ BLIS_NUM_ARCHS ] =
 
     "power7",
     "bgq",
+    "power9",
 
     "generic"
 };

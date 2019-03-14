@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -46,6 +47,8 @@
 
 // -- Level-3 native micro-kernel prototype redefinitions ----------------------
 
+// -- prototypes for completely generic level-3 microkernels --
+
 #undef  gemm_ukr_name
 #define gemm_ukr_name       GENARNAME(gemm)
 #undef  gemmtrsm_l_ukr_name
@@ -57,7 +60,8 @@
 #undef  trsm_u_ukr_name
 #define trsm_u_ukr_name     GENARNAME(trsm_u)
 
-// Include the native micro-kernel API template.
+// Instantiate prototypes for above functions via the native micro-kernel API
+// template.
 #include "bli_l3_ukr.h"
 
 // -- Level-3 virtual micro-kernel prototype redefinitions ---------------------
@@ -116,7 +120,8 @@
 #undef  trsm1m_u_ukr_name
 #define trsm1m_u_ukr_name      GENARNAME(trsm1m_u)
 
-// Include the virtual micro-kernel API template.
+// Instantiate prototypes for above functions via the virtual micro-kernel API
+// template.
 #include "bli_l3_ind_ukr.h"
 
 // -- Level-1m (packm/unpackm) kernel prototype redefinitions ------------------
@@ -141,8 +146,6 @@
 #define packm_16xk_ker_name GENARNAME(packm_16xk)
 #undef  packm_24xk_ker_name
 #define packm_24xk_ker_name GENARNAME(packm_24xk)
-#undef  packm_30xk_ker_name
-#define packm_30xk_ker_name GENARNAME(packm_30xk)
 
 #undef  unpackm_2xk_ker_name
 #define unpackm_2xk_ker_name  GENARNAME(unpackm_2xk)
@@ -177,8 +180,6 @@
 #define packm_14xk_3mis_ker_name GENARNAME(packm_14xk_3mis)
 #undef  packm_16xk_3mis_ker_name
 #define packm_16xk_3mis_ker_name GENARNAME(packm_16xk_3mis)
-#undef  packm_30xk_3mis_ker_name
-#define packm_30xk_3mis_ker_name GENARNAME(packm_30xk_3mis)
 
 #undef  packm_2xk_4mi_ker_name
 #define packm_2xk_4mi_ker_name  GENARNAME(packm_2xk_4mi)
@@ -198,8 +199,6 @@
 #define packm_14xk_4mi_ker_name GENARNAME(packm_14xk_4mi)
 #undef  packm_16xk_4mi_ker_name
 #define packm_16xk_4mi_ker_name GENARNAME(packm_16xk_4mi)
-#undef  packm_30xk_4mi_ker_name
-#define packm_30xk_4mi_ker_name GENARNAME(packm_30xk_4mi)
 
 #undef  packm_2xk_rih_ker_name
 #define packm_2xk_rih_ker_name  GENARNAME(packm_2xk_rih)
@@ -217,8 +216,6 @@
 #define packm_14xk_rih_ker_name GENARNAME(packm_14xk_rih)
 #undef  packm_16xk_rih_ker_name
 #define packm_16xk_rih_ker_name GENARNAME(packm_16xk_rih)
-#undef  packm_30xk_rih_ker_name
-#define packm_30xk_rih_ker_name GENARNAME(packm_30xk_rih)
 
 #undef  packm_2xk_1er_ker_name
 #define packm_2xk_1er_ker_name  GENARNAME(packm_2xk_1er)
@@ -236,10 +233,9 @@
 #define packm_14xk_1er_ker_name GENARNAME(packm_14xk_1er)
 #undef  packm_16xk_1er_ker_name
 #define packm_16xk_1er_ker_name GENARNAME(packm_16xk_1er)
-#undef  packm_30xk_1er_ker_name
-#define packm_30xk_1er_ker_name GENARNAME(packm_30xk_1er)
 
-// Include the level-1m kernel API template.
+// Instantiate prototypes for above functions via the level-1m kernel API
+// template.
 #include "bli_l1m_ker.h"
 
 // -- Level-1f kernel prototype redefinitions ----------------------------------
@@ -255,10 +251,13 @@
 #undef  dotxaxpyf_ker_name
 #define dotxaxpyf_ker_name  GENARNAME(dotxaxpyf)
 
-// Include the level-1f kernel API template.
+// Instantiate prototypes for above functions via the level-1f kernel API
+// template.
 #include "bli_l1f_ker.h"
 
 // -- Level-1v kernel prototype redefinitions ----------------------------------
+
+// -- prototypes for completely generic level-1v kernels --
 
 #undef  addv_ker_name
 #define addv_ker_name      GENARNAME(addv)
@@ -289,9 +288,9 @@
 #undef  xpbyv_ker_name
 #define xpbyv_ker_name     GENARNAME(xpbyv)
 
-// Include the level-1v kernel API template.
+// Instantiate prototypes for above functions via the level-1v kernel API
+// template.
 #include "bli_l1v_ker.h"
-
 
 // -- Macros to help concisely instantiate bli_func_init() ---------------------
 
@@ -304,6 +303,7 @@
 \
 	bli_func_init( func_p, PASTEMAC(s,opname), PASTEMAC(d,opname), \
 	                       PASTEMAC(c,opname), PASTEMAC(z,opname) )
+
 
 
 // -----------------------------------------------------------------------------
@@ -328,16 +328,16 @@ void GENBARNAME(cntx_init)
 
 	//                                          s     d     c     z
 	bli_blksz_init_easy( &blkszs[ BLIS_KR ],    1,    1,    1,    1 );
-	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    8,    4,    4,    2 );
-	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    4,    4,    2,    2 );
-	bli_blksz_init_easy( &blkszs[ BLIS_MC ],  512,  256,  256,  128 );
+	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    4,    4,    4,    4 );
+	bli_blksz_init_easy( &blkszs[ BLIS_NR ],   16,    8,    8,    4 );
+	bli_blksz_init_easy( &blkszs[ BLIS_MC ],  256,  128,  128,   64 );
 	bli_blksz_init_easy( &blkszs[ BLIS_KC ],  256,  256,  256,  256 );
 	bli_blksz_init_easy( &blkszs[ BLIS_NC ], 4096, 4096, 4096, 4096 );
 	bli_blksz_init_easy( &blkszs[ BLIS_M2 ], 1000, 1000, 1000, 1000 );
 	bli_blksz_init_easy( &blkszs[ BLIS_N2 ], 1000, 1000, 1000, 1000 );
-	bli_blksz_init_easy( &blkszs[ BLIS_AF ],    8,    4,    4,    2 );
-	bli_blksz_init_easy( &blkszs[ BLIS_DF ],    8,    4,    4,    2 );
-	bli_blksz_init_easy( &blkszs[ BLIS_XF ],    8,    4,    4,    2 );
+	bli_blksz_init_easy( &blkszs[ BLIS_AF ],    8,    8,    8,    8 );
+	bli_blksz_init_easy( &blkszs[ BLIS_DF ],    6,    6,    6,    6 );
+	bli_blksz_init_easy( &blkszs[ BLIS_XF ],    4,    4,    4,    4 );
 
 	// Initialize the context with the default blocksize objects and their
 	// multiples.
@@ -381,7 +381,7 @@ void GENBARNAME(cntx_init)
 	gen_func_init( &funcs[ BLIS_TRSM_L_UKR ],     trsm_l_ukr_name     );
 	gen_func_init( &funcs[ BLIS_TRSM_U_UKR ],     trsm_u_ukr_name     );
 
-	bli_mbool_init( &mbools[ BLIS_GEMM_UKR ],       FALSE, FALSE, FALSE, FALSE );
+	bli_mbool_init( &mbools[ BLIS_GEMM_UKR ],       TRUE,  TRUE,  TRUE,  TRUE  );
 	bli_mbool_init( &mbools[ BLIS_GEMMTRSM_L_UKR ], FALSE, FALSE, FALSE, FALSE );
 	bli_mbool_init( &mbools[ BLIS_GEMMTRSM_U_UKR ], FALSE, FALSE, FALSE, FALSE );
 	bli_mbool_init( &mbools[ BLIS_TRSM_L_UKR ],     FALSE, FALSE, FALSE, FALSE );
@@ -439,7 +439,6 @@ void GENBARNAME(cntx_init)
 	gen_func_init( &funcs[ BLIS_PACKM_14XK_KER ], packm_14xk_ker_name );
 	gen_func_init( &funcs[ BLIS_PACKM_16XK_KER ], packm_16xk_ker_name );
 	gen_func_init( &funcs[ BLIS_PACKM_24XK_KER ], packm_24xk_ker_name );
-	gen_func_init( &funcs[ BLIS_PACKM_30XK_KER ], packm_30xk_ker_name );
 
 	funcs = bli_cntx_unpackm_kers_buf( cntx );
 
@@ -469,7 +468,7 @@ void GENBARNAME(cntx_init)
 
 	//bli_cntx_set_anti_pref( FALSE, cntx );
 
-	bli_cntx_set_membrk( bli_memsys_global_membrk(), cntx );
+	//bli_cntx_set_membrk( bli_membrk_query(), cntx );
 }
 
 // -----------------------------------------------------------------------------
@@ -546,8 +545,8 @@ void GENBAINAME(cntx_init)
 	}
 
 	// For 1m, we employ an optimization which requires that we copy the native
-	// real domain gemm ukernel function pointers to the corresponding slots in
-	// the virtual gemm ukernel func_t.
+	// real domain gemm ukernel function pointers to the corresponding real
+	// domain slots in the virtual gemm ukernel func_t.
 	if ( method == BLIS_1M )
 	{
 		func_t* gemm_nat_ukrs = bli_cntx_get_l3_nat_ukrs( BLIS_GEMM_UKR, cntx );
@@ -578,7 +577,6 @@ void GENBAINAME(cntx_init)
 		gen_func_init_co( &funcs[ BLIS_PACKM_12XK_KER ], packm_12xk_rih_ker_name );
 		gen_func_init_co( &funcs[ BLIS_PACKM_14XK_KER ], packm_14xk_rih_ker_name );
 		gen_func_init_co( &funcs[ BLIS_PACKM_16XK_KER ], packm_16xk_rih_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_30XK_KER ], packm_30xk_rih_ker_name );
 	}
 	else if ( method == BLIS_3M1 )
 	{
@@ -590,7 +588,6 @@ void GENBAINAME(cntx_init)
 		gen_func_init_co( &funcs[ BLIS_PACKM_12XK_KER ], packm_12xk_3mis_ker_name );
 		gen_func_init_co( &funcs[ BLIS_PACKM_14XK_KER ], packm_14xk_3mis_ker_name );
 		gen_func_init_co( &funcs[ BLIS_PACKM_16XK_KER ], packm_16xk_3mis_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_30XK_KER ], packm_30xk_3mis_ker_name );
 	}
 	else if ( method == BLIS_4M1A || method == BLIS_4M1B )
 	{
@@ -602,7 +599,6 @@ void GENBAINAME(cntx_init)
 		gen_func_init_co( &funcs[ BLIS_PACKM_12XK_KER ], packm_12xk_4mi_ker_name );
 		gen_func_init_co( &funcs[ BLIS_PACKM_14XK_KER ], packm_14xk_4mi_ker_name );
 		gen_func_init_co( &funcs[ BLIS_PACKM_16XK_KER ], packm_16xk_4mi_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_30XK_KER ], packm_30xk_4mi_ker_name );
 	}
 	else if ( method == BLIS_1M )
 	{
@@ -614,7 +610,6 @@ void GENBAINAME(cntx_init)
 		gen_func_init_co( &funcs[ BLIS_PACKM_12XK_KER ], packm_12xk_1er_ker_name );
 		gen_func_init_co( &funcs[ BLIS_PACKM_14XK_KER ], packm_14xk_1er_ker_name );
 		gen_func_init_co( &funcs[ BLIS_PACKM_16XK_KER ], packm_16xk_1er_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_30XK_KER ], packm_30xk_1er_ker_name );
 	}
 	else // if ( method == BLIS_NAT )
 	{
@@ -628,7 +623,6 @@ void GENBAINAME(cntx_init)
 		gen_func_init( &funcs[ BLIS_PACKM_14XK_KER ], packm_14xk_ker_name );
 		gen_func_init( &funcs[ BLIS_PACKM_16XK_KER ], packm_16xk_ker_name );
 		gen_func_init( &funcs[ BLIS_PACKM_24XK_KER ], packm_24xk_ker_name );
-		gen_func_init( &funcs[ BLIS_PACKM_30XK_KER ], packm_30xk_ker_name );
 	}
 
 

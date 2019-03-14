@@ -16,9 +16,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -107,12 +107,12 @@ typedef  gint_t  bool_t;
 // interoperability with BLIS.
 #ifndef _DEFINED_DIM_T
 #define _DEFINED_DIM_T
-typedef  gint_t  dim_t;      // dimension type
+typedef   gint_t dim_t;      // dimension type
 #endif
-typedef  gint_t  inc_t;      // increment/stride type
-typedef  gint_t  doff_t;     // diagonal offset type
-typedef guint_t  siz_t;      // byte size type
-typedef guint_t  objbits_t;  // object information bit field
+typedef   gint_t inc_t;      // increment/stride type
+typedef   gint_t doff_t;     // diagonal offset type
+typedef  guint_t siz_t;      // byte size type
+typedef uint32_t objbits_t;  // object information bit field
 
 // -- Real types --
 
@@ -268,12 +268,22 @@ typedef dcomplex  f77_dcomplex;
            - 1 == Hermitian
            - 2 == symmetric
            - 3 == triangular
-  31 ~ 29  Execution numerical datatype
+  31 ~ 29  Computation numerical datatype
            - 29: domain    (0 == real, 1 == complex)
            - 30: precision (0 == single, 1 == double)
            - 31: used to encode integer, constant types
+
+  info2 field description
+
+  bit(s)   purpose
+  -------  -------
+    2 ~ 0  Scalar storage numerical datatype
+           -  0: domain    (0 == real, 1 == complex)
+           -  1: precision (0 == single, 1 == double)
+           -  2: used to encode integer, constant types
 */
 
+// info
 #define BLIS_DATATYPE_SHIFT                0
 #define   BLIS_DOMAIN_SHIFT                0
 #define   BLIS_PRECISION_SHIFT             1
@@ -305,10 +315,16 @@ typedef dcomplex  f77_dcomplex;
 #define   BLIS_COMP_DOMAIN_SHIFT           29
 #define   BLIS_COMP_PREC_SHIFT             30
 
+// info2
+#define BLIS_SCALAR_DT_SHIFT                0
+#define   BLIS_SCALAR_DOMAIN_SHIFT          0
+#define   BLIS_SCALAR_PREC_SHIFT            1
+
 //
 // -- BLIS info bit field masks ------------------------------------------------
 //
 
+// info
 #define BLIS_DATATYPE_BITS                 ( 0x7  << BLIS_DATATYPE_SHIFT )
 #define   BLIS_DOMAIN_BIT                  ( 0x1  << BLIS_DOMAIN_SHIFT )
 #define   BLIS_PRECISION_BIT               ( 0x1  << BLIS_PRECISION_SHIFT )
@@ -339,6 +355,11 @@ typedef dcomplex  f77_dcomplex;
 #define BLIS_COMP_DT_BITS                  ( 0x7  << BLIS_COMP_DT_SHIFT )
 #define   BLIS_COMP_DOMAIN_BIT             ( 0x1  << BLIS_COMP_DOMAIN_SHIFT )
 #define   BLIS_COMP_PREC_BIT               ( 0x1  << BLIS_COMP_PREC_SHIFT )
+
+// info2
+#define BLIS_SCALAR_DT_BITS                ( 0x7  << BLIS_SCALAR_DT_SHIFT )
+#define   BLIS_SCALAR_DOMAIN_BIT           ( 0x1  << BLIS_SCALAR_DOMAIN_SHIFT )
+#define   BLIS_SCALAR_PREC_BIT             ( 0x1  << BLIS_SCALAR_PREC_SHIFT )
 
 
 //
@@ -573,10 +594,10 @@ typedef enum
 	BLIS_SUBPART0,
 	BLIS_SUBPART1,
 	BLIS_SUBPART2,
-	BLIS_SUBPART1T,
+	BLIS_SUBPART1AND0,
+	BLIS_SUBPART1AND2,
+	BLIS_SUBPART1A,
 	BLIS_SUBPART1B,
-	BLIS_SUBPART1L,
-	BLIS_SUBPART1R,
 	BLIS_SUBPART00,
 	BLIS_SUBPART10,
 	BLIS_SUBPART20,
@@ -879,12 +900,14 @@ typedef enum
 	BLIS_ARCH_BULLDOZER,
 
 	// ARM
+	BLIS_ARCH_THUNDERX2,
 	BLIS_ARCH_CORTEXA57,
 	BLIS_ARCH_CORTEXA53,
 	BLIS_ARCH_CORTEXA15,
 	BLIS_ARCH_CORTEXA9,
 
 	// IBM/Power
+	BLIS_ARCH_POWER9,
 	BLIS_ARCH_POWER7,
 	BLIS_ARCH_BGQ,
 
@@ -893,19 +916,25 @@ typedef enum
 
 } arch_t;
 
-#define BLIS_NUM_ARCHS 18
+#define BLIS_NUM_ARCHS 20
 
 
 //
 // -- BLIS misc. structure types -----------------------------------------------
 //
 
+// These headers must be included here (or earlier) because definitions they
+// provide are needed in the pool_t and related structs.
+#include "bli_pthread.h"
+#include "bli_malloc.h"
+
 // -- Pool block type --
 
 typedef struct
 {
-	void* buf_sys;
-	void* buf_align;
+	void*     buf;
+	siz_t     block_size;
+
 } pblk_t;
 
 
@@ -913,31 +942,57 @@ typedef struct
 
 typedef struct
 {
-	pblk_t* block_ptrs;
-	dim_t   block_ptrs_len;
+	void*     block_ptrs;
+	dim_t     block_ptrs_len;
 
-	dim_t   top_index;
-	dim_t   num_blocks;
+	dim_t     top_index;
+	dim_t     num_blocks;
 
-	siz_t   block_size;
-	siz_t   align_size;
+	siz_t     block_size;
+	siz_t     align_size;
+
+	malloc_ft malloc_fp;
+	free_ft   free_fp;
+
 } pool_t;
 
 
-// -- Memory broker object type --
+// -- Array type --
 
-// These headers must be included here (or earlier) because definitions they
-// provide are needed in the membrk_t struct.
-#include "bli_pthread.h"
-#include "bli_malloc.h"
+typedef struct
+{
+	void*     buf;
+
+	siz_t     num_elem;
+	siz_t     elem_size;
+
+} array_t;
+
+
+// -- Locked pool-of-arrays-of-pools type --
+
+typedef struct
+{
+	bli_pthread_mutex_t mutex;
+	pool_t              pool;
+
+	siz_t               def_array_len;
+
+} apool_t;
+
+
+// -- packing block allocator: Locked set of pools type --
 
 typedef struct membrk_s
 {
 	pool_t              pools[3];
 	bli_pthread_mutex_t mutex;
 
+	// These fields are used for general-purpose allocation.
+	siz_t               align_size;
 	malloc_ft           malloc_fp;
 	free_ft             free_fp;
+
 } membrk_t;
 
 
@@ -948,7 +1003,6 @@ typedef struct mem_s
 	pblk_t    pblk;
 	packbuf_t buf_type;
 	pool_t*   pool;
-	membrk_t* membrk;
 	siz_t     size;
 } mem_t;
 
@@ -961,6 +1015,7 @@ struct cntl_s
 	opid_t         family;
 	bszid_t        bszid;
 	void*          var_func;
+	struct cntl_s* sub_prenode;
 	struct cntl_s* sub_node;
 
 	// Optional fields (needed only by some operations such as packm).
@@ -1062,6 +1117,7 @@ typedef struct obj_s
 	doff_t        diag_off;
 
 	objbits_t     info;
+	objbits_t     info2;
 	siz_t         elem_size;
 
 	void*         buffer;
@@ -1096,6 +1152,7 @@ static void bli_obj_init_full_shallow_copy_of( obj_t* a, obj_t* b )
 	b->diag_off  = a->diag_off;
 
 	b->info      = a->info;
+	b->info2     = a->info2;
 	b->elem_size = a->elem_size;
 
 	b->buffer    = a->buffer;
@@ -1126,6 +1183,7 @@ static void bli_obj_init_subpart_from( obj_t* a, obj_t* b )
 	b->diag_off  = a->diag_off;
 
 	b->info      = a->info;
+	b->info2     = a->info2;
 	b->elem_size = a->elem_size;
 
 	b->buffer    = a->buffer;
@@ -1169,7 +1227,6 @@ typedef struct cntx_s
 	pack_t    schema_b_panel;
 	pack_t    schema_c_panel;
 
-	membrk_t* membrk;
 } cntx_t;
 
 
@@ -1177,8 +1234,17 @@ typedef struct cntx_s
 
 typedef struct rntm_s
 {
+	// "External" fields: these may be queried by the end-user.
 	dim_t     num_threads;
 	dim_t     thrloop[ BLIS_NUM_LOOPS ];
+
+	// "Internal" fields: these should not be exposed to the end-user.
+
+	// The small block pool, which is attached in the l3 thread decorator.
+	pool_t*   sba_pool;
+
+	// The packing block allocator, which is attached in the l3 thread decorator.
+	membrk_t* membrk;
 
 } rntm_t;
 
@@ -1266,28 +1332,31 @@ typedef enum
 	// Buffer-specific errors 
 	BLIS_EXPECTED_NONNULL_OBJECT_BUFFER        = (-110),
 
-	// Memory allocator errors
-	BLIS_INVALID_PACKBUF                       = (-120),
-	BLIS_EXHAUSTED_CONTIG_MEMORY_POOL          = (-122),
-	BLIS_INSUFFICIENT_STACK_BUF_SIZE           = (-123),
-	BLIS_ALIGNMENT_NOT_POWER_OF_TWO            = (-124),
-	BLIS_ALIGNMENT_NOT_MULT_OF_PTR_SIZE        = (-125),
+	// Memory errors
+	BLIS_MALLOC_RETURNED_NULL                  = (-120),
+
+	// Internal memory pool errors
+	BLIS_INVALID_PACKBUF                       = (-130),
+	BLIS_EXHAUSTED_CONTIG_MEMORY_POOL          = (-131),
+	BLIS_INSUFFICIENT_STACK_BUF_SIZE           = (-132),
+	BLIS_ALIGNMENT_NOT_POWER_OF_TWO            = (-133),
+	BLIS_ALIGNMENT_NOT_MULT_OF_PTR_SIZE        = (-134),
 
 	// Object-related errors
-	BLIS_EXPECTED_OBJECT_ALIAS                 = (-130),
+	BLIS_EXPECTED_OBJECT_ALIAS                 = (-140),
 
 	// Architecture-related errors
-	BLIS_INVALID_ARCH_ID                       = (-140),
+	BLIS_INVALID_ARCH_ID                       = (-150),
 
 	// Blocksize-related errors
-	BLIS_MC_DEF_NONMULTIPLE_OF_MR              = (-150),
-	BLIS_MC_MAX_NONMULTIPLE_OF_MR              = (-151),
-	BLIS_NC_DEF_NONMULTIPLE_OF_NR              = (-152),
-	BLIS_NC_MAX_NONMULTIPLE_OF_NR              = (-153),
-	BLIS_KC_DEF_NONMULTIPLE_OF_KR              = (-154),
-	BLIS_KC_MAX_NONMULTIPLE_OF_KR              = (-155),
+	BLIS_MC_DEF_NONMULTIPLE_OF_MR              = (-160),
+	BLIS_MC_MAX_NONMULTIPLE_OF_MR              = (-161),
+	BLIS_NC_DEF_NONMULTIPLE_OF_NR              = (-162),
+	BLIS_NC_MAX_NONMULTIPLE_OF_NR              = (-163),
+	BLIS_KC_DEF_NONMULTIPLE_OF_KR              = (-164),
+	BLIS_KC_MAX_NONMULTIPLE_OF_KR              = (-165),
 
-	BLIS_ERROR_CODE_MAX                        = (-160)
+	BLIS_ERROR_CODE_MAX                        = (-170)
 } err_t;
 
 #endif

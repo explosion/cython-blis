@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -34,13 +34,13 @@
 
 // -- setr ---------------------------------------------------------------------
 
-void bli_setrm
+BLIS_EXPORT_BLIS void bli_setrm
      (
        obj_t* alpha,
        obj_t* b
      );
 
-void bli_setrv
+BLIS_EXPORT_BLIS void bli_setrv
      (
        obj_t* alpha,
        obj_t* x
@@ -48,13 +48,13 @@ void bli_setrv
 
 // -- seti ---------------------------------------------------------------------
 
-void bli_setim
+BLIS_EXPORT_BLIS void bli_setim
      (
        obj_t* alpha,
        obj_t* b
      );
 
-void bli_setiv
+BLIS_EXPORT_BLIS void bli_setiv
      (
        obj_t* alpha,
        obj_t* x
