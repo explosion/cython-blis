@@ -79,4 +79,4 @@ def clean():
 def test():
     with virtualenv(VENV_DIR) as venv_local:
         with lcd(path.dirname(__file__)):
-            venv_local('pytest -x tests')
+            venv_local('PYTHONPATH=`pwd` pytest -x tests')
