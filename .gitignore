@@ -5,6 +5,7 @@ blis/blis.c
 blis/cy.c
 blis/py.c
 .env/
+env3.6
 .hypothesis/
 build/
 cache/
