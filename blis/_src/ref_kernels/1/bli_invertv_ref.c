@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -44,27 +44,23 @@ void PASTEMAC3(ch,opname,arch,suf) \
        cntx_t* restrict cntx  \
      ) \
 { \
-	ctype* restrict chi1; \
-	dim_t  i; \
-\
 	if ( bli_zero_dim1( n ) ) return; \
-\
-	chi1 = x; \
 \
 	if ( incx == 1 ) \
 	{ \
-		for ( i = 0; i < n; ++i ) \
+		PRAGMA_SIMD \
+		for ( dim_t i = 0; i < n; ++i ) \
 		{ \
-			PASTEMAC(ch,inverts)( chi1[i] ); \
+			PASTEMAC(ch,inverts)( x[i] ); \
 		} \
 	} \
 	else \
 	{ \
-		for ( i = 0; i < n; ++i ) \
+		for ( dim_t i = 0; i < n; ++i ) \
 		{ \
-			PASTEMAC(ch,inverts)( *chi1 ); \
-	\
-			chi1 += incx; \
+			PASTEMAC(ch,inverts)( *x ); \
+\
+			x += incx; \
 		} \
 	} \
 }

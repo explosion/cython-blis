@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -124,6 +124,11 @@ void bli_gks_init( void )
 #endif
 
 		// ARM architectures
+#ifdef BLIS_CONFIG_THUNDERX2
+		bli_gks_register_cntx( BLIS_ARCH_THUNDERX2,   bli_cntx_init_thunderx2,
+		                                              bli_cntx_init_thunderx2_ref,
+		                                              bli_cntx_init_thunderx2_ind );
+#endif
 #ifdef BLIS_CONFIG_CORTEXA57
 		bli_gks_register_cntx( BLIS_ARCH_CORTEXA57,   bli_cntx_init_cortexa57,
 		                                              bli_cntx_init_cortexa57_ref,
@@ -146,6 +151,11 @@ void bli_gks_init( void )
 #endif
 
 		// IBM architectures
+#ifdef BLIS_CONFIG_POWER9
+		bli_gks_register_cntx( BLIS_ARCH_POWER9,      bli_cntx_init_power9,
+		                                              bli_cntx_init_power9_ref,
+		                                              bli_cntx_init_power9_ind );
+#endif
 #ifdef BLIS_CONFIG_POWER7
 		bli_gks_register_cntx( BLIS_ARCH_POWER7,      bli_cntx_init_power7,
 		                                              bli_cntx_init_power7_ref,
@@ -196,9 +206,17 @@ void bli_gks_finalize( void )
 					// If the current context was allocated, free it.
 					if ( gks_id_ind != NULL )
 					{
+						#ifdef BLIS_ENABLE_MEM_TRACING
+						printf( "bli_gks_finalize(): cntx for ind_t %d: ", ( int )ind );
+						#endif
+
 						bli_free_intl( gks_id_ind );
 					}
 				}
+
+				#ifdef BLIS_ENABLE_MEM_TRACING
+				printf( "bli_gks_finalize(): gks for arch_t %d: ", ( int )id );
+				#endif
 
 				// Free the array of BLIS_NUM_IND_METHODS cntx* elements.
 				bli_free_intl( gks_id );
@@ -320,6 +338,10 @@ void bli_gks_register_cntx
 	// to register with an architecture id that has already been registered.
 	if ( gks[ id ] != NULL ) return;
 
+	#ifdef BLIS_ENABLE_MEM_TRACING
+	printf( "bli_gks_register_cntx(): " );
+	#endif
+
 	// At this point, we know the pointer to the array of cntx_t* is NULL and
 	// needs to be allocated. Allocate the memory and initialize it to
 	// zeros/NULL, storing the address of the alloacted memory at the element
@@ -328,6 +350,10 @@ void bli_gks_register_cntx
 
 	// Alias the allocated array for readability.
 	cntx_t** restrict gks_id = gks[ id ];
+
+	#ifdef BLIS_ENABLE_MEM_TRACING
+	printf( "bli_gks_register_cntx(): " );
+	#endif
 
 	// Allocate memory for a single context and store the address at
 	// the element in the gks[ id ] array that is reserved for native

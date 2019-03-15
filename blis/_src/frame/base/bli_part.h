@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -36,7 +36,7 @@
 
 // -- Matrix partitioning ------------------------------------------------------
 
-void bli_acquire_mpart
+BLIS_EXPORT_BLIS void bli_acquire_mpart
      (
        dim_t     i,
        dim_t     j,
@@ -49,23 +49,7 @@ void bli_acquire_mpart
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0( opname ) \
-     ( \
-       dir_t     direct, \
-       subpart_t req_part, \
-       dim_t     i, \
-       dim_t     b, \
-       obj_t*    obj, \
-       obj_t*    sub_obj \
-     );
-
-GENPROT( acquire_mpart_mdim )
-GENPROT( acquire_mpart_ndim )
-
-#undef  GENPROT
-#define GENPROT( opname ) \
-\
-void PASTEMAC0( opname ) \
+BLIS_EXPORT_BLIS void PASTEMAC0( opname ) \
      ( \
        subpart_t req_part, \
        dim_t     i, \
@@ -81,14 +65,45 @@ GENPROT( acquire_mpart_r2l )
 GENPROT( acquire_mpart_tl2br )
 GENPROT( acquire_mpart_br2tl )
 
+
+#undef  GENPROT
+#define GENPROT( opname ) \
+\
+BLIS_EXPORT_BLIS void PASTEMAC0( opname ) \
+     ( \
+       dir_t     direct, \
+       subpart_t req_part, \
+       dim_t     i, \
+       dim_t     b, \
+       obj_t*    obj, \
+       obj_t*    sub_obj \
+     );
+
+GENPROT( acquire_mpart_mdim )
+GENPROT( acquire_mpart_ndim )
+GENPROT( acquire_mpart_mndim )
+
+
 // -- Vector partitioning ------------------------------------------------------
+
+#undef  GENPROT
+#define GENPROT( opname ) \
+\
+BLIS_EXPORT_BLIS void PASTEMAC0( opname ) \
+     ( \
+       subpart_t req_part, \
+       dim_t     i, \
+       dim_t     b, \
+       obj_t*    obj, \
+       obj_t*    sub_obj \
+     );
 
 GENPROT( acquire_vpart_f2b )
 GENPROT( acquire_vpart_b2f )
 
 // -- Scalar acquisition -------------------------------------------------------
 
-void bli_acquire_mij
+BLIS_EXPORT_BLIS void bli_acquire_mij
      (
        dim_t     i,
        dim_t     j,
@@ -96,7 +111,7 @@ void bli_acquire_mij
        obj_t*    sub_obj
      );
 
-void bli_acquire_vi
+BLIS_EXPORT_BLIS void bli_acquire_vi
      (
        dim_t     i,
        obj_t*    obj,

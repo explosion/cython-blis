@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -47,15 +47,12 @@ void PASTEMAC3(ch,opname,arch,suf) \
        cntx_t* restrict cntx  \
      ) \
 { \
-	ctype* restrict chi1; \
-	ctype* restrict psi1; \
-	dim_t  i; \
-\
 	if ( bli_zero_dim1( n ) ) return; \
 \
-	/* If alpha is zero, use setv. */ \
 	if ( PASTEMAC(ch,eq0)( *alpha ) ) \
 	{ \
+		/* If alpha is zero, use setv. */ \
+\
 		ctype* zero = PASTEMAC(ch,0); \
 \
 		/* Query the context for the kernel function pointer. */ \
@@ -72,9 +69,10 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		); \
 		return; \
 	} \
-	/* If alpha is one, use copyv. */ \
 	else if ( PASTEMAC(ch,eq0)( *alpha ) ) \
 	{ \
+		/* If alpha is one, use copyv. */ \
+\
 		/* Query the context for the kernel function pointer. */ \
 		const num_t              dt      = PASTEMAC(ch,type); \
 		PASTECH(ch,copyv_ker_ft) copyv_p = bli_cntx_get_l1v_ker_dt( dt, BLIS_COPYV_KER, cntx ); \
@@ -90,26 +88,24 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		return; \
 	} \
 \
-	chi1 = x; \
-	psi1 = y; \
-\
 	if ( bli_is_conj( conjx ) ) \
 	{ \
 		if ( incx == 1 && incy == 1 ) \
 		{ \
-			for ( i = 0; i < n; ++i ) \
+			PRAGMA_SIMD \
+			for ( dim_t i = 0; i < n; ++i ) \
 			{ \
-				PASTEMAC(ch,scal2js)( *alpha, chi1[i], psi1[i] ); \
+				PASTEMAC(ch,scal2js)( *alpha, x[i], y[i] ); \
 			} \
 		} \
 		else \
 		{ \
-			for ( i = 0; i < n; ++i ) \
+			for ( dim_t i = 0; i < n; ++i ) \
 			{ \
-				PASTEMAC(ch,scal2js)( *alpha, *chi1, *psi1 ); \
+				PASTEMAC(ch,scal2js)( *alpha, *x, *y ); \
 \
-				chi1 += incx; \
-				psi1 += incy; \
+				x += incx; \
+				y += incy; \
 			} \
 		} \
 	} \
@@ -117,19 +113,20 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	{ \
 		if ( incx == 1 && incy == 1 ) \
 		{ \
-			for ( i = 0; i < n; ++i ) \
+			PRAGMA_SIMD \
+			for ( dim_t i = 0; i < n; ++i ) \
 			{ \
-				PASTEMAC(ch,scal2s)( *alpha, chi1[i], psi1[i] ); \
+				PASTEMAC(ch,scal2s)( *alpha, x[i], y[i] ); \
 			} \
 		} \
 		else \
 		{ \
-			for ( i = 0; i < n; ++i ) \
+			for ( dim_t i = 0; i < n; ++i ) \
 			{ \
-				PASTEMAC(ch,scal2s)( *alpha, *chi1, *psi1 ); \
+				PASTEMAC(ch,scal2s)( *alpha, *x, *y ); \
 \
-				chi1 += incx; \
-				psi1 += incy; \
+				x += incx; \
+				y += incy; \
 			} \
 		} \
 	} \

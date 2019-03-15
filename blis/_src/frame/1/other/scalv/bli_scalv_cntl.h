@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -41,8 +41,8 @@ typedef struct scalv_s scalv_t;
 
 #define bli_cntl_sub_scalv( cntl )  cntl->sub_scalv
 
-void     bli_scalv_cntl_init( void );
-void     bli_scalv_cntl_finalize( void );
+void      bli_scalv_cntl_init( void );
+void      bli_scalv_cntl_finalize( void );
 scalv_t* bli_scalv_cntl_obj_create( impl_t       impl_type,
                                     varnum_t     var_num );
 void bli_scalv_cntl_obj_init( scalv_t*   cntl,

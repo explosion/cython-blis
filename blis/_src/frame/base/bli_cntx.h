@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -60,7 +60,6 @@ typedef struct cntx_s
 	pack_t    schema_b;
 	pack_t    schema_c;
 
-	membrk_t* membrk;
 } cntx_t;
 */
 
@@ -122,10 +121,6 @@ static pack_t bli_cntx_schema_c_panel( cntx_t* cntx )
 {
 	return cntx->schema_c_panel;
 }
-static membrk_t* bli_cntx_get_membrk( cntx_t* cntx )
-{
-	return cntx->membrk;
-}
 
 // -----------------------------------------------------------------------------
 
@@ -153,10 +148,6 @@ static void bli_cntx_set_schema_ab_blockpanel( pack_t sa, pack_t sb, cntx_t* cnt
 {
 	bli_cntx_set_schema_a_block( sa, cntx );
 	bli_cntx_set_schema_b_panel( sb, cntx );
-}
-static void bli_cntx_set_membrk( membrk_t* membrk, cntx_t* cntx )
-{
-	cntx->membrk = membrk;
 }
 
 // -----------------------------------------------------------------------------
@@ -547,18 +538,18 @@ static void bli_cntx_set_unpackm_ker_dt( void* fp, num_t dt, l1mkr_t ker_id, cnt
 
 // Function prototypes
 
-void  bli_cntx_clear( cntx_t* cntx );
+BLIS_EXPORT_BLIS void  bli_cntx_clear( cntx_t* cntx );
 
-void  bli_cntx_set_blkszs( ind_t method, dim_t n_bs, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_blkszs( ind_t method, dim_t n_bs, ... );
 
-void  bli_cntx_set_ind_blkszs( ind_t method, dim_t n_bs, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_ind_blkszs( ind_t method, dim_t n_bs, ... );
 
-void  bli_cntx_set_l3_nat_ukrs( dim_t n_ukrs, ... );
-void  bli_cntx_set_l1f_kers( dim_t n_kers, ... );
-void  bli_cntx_set_l1v_kers( dim_t n_kers, ... );
-void  bli_cntx_set_packm_kers( dim_t n_kers, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_l3_nat_ukrs( dim_t n_ukrs, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_l1f_kers( dim_t n_kers, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_l1v_kers( dim_t n_kers, ... );
+BLIS_EXPORT_BLIS void  bli_cntx_set_packm_kers( dim_t n_kers, ... );
 
-void  bli_cntx_print( cntx_t* cntx );
+BLIS_EXPORT_BLIS void  bli_cntx_print( cntx_t* cntx );
 
 
 #endif

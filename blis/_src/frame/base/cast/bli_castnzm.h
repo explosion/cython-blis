@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -36,7 +36,7 @@
 // Prototype object-based interface.
 //
 
-void bli_castnzm
+BLIS_EXPORT_BLIS void bli_castnzm
      (
        obj_t* a,
        obj_t* b
@@ -49,7 +49,7 @@ void bli_castnzm
 #undef  GENTPROT2
 #define GENTPROT2( ctype_a, ctype_b, cha, chb, opname ) \
 \
-void PASTEMAC2(cha,chb,opname) \
+BLIS_EXPORT_BLIS void PASTEMAC2(cha,chb,opname) \
      ( \
        trans_t transa, \
        dim_t   m, \

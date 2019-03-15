@@ -4,10 +4,19 @@ set -e
 
 OS="$1"
 ARCH="$2"
+EXPORT="$3"
 
 cd flame-blis
-ls frame/base
 ./configure --disable-blas --disable-cblas --disable-shared --disable-threading --enable-verbose-make $ARCH
+echo "Compile"
 make > make.log 
-cat make.log | python ../bin/munge_make_log.py > ../blis/_src/make/$OS-$ARCH.jsonl
+echo "Preprocess make log"
+cat make.log | python ../bin/munge_make_log.py $OS $ARCH > ../blis/_src/make/$OS-$ARCH.jsonl
+mkdir -p ../blis/_src/include/$OS-$ARCH/
 cp include/$ARCH/blis.h ../blis/_src/include/$OS-$ARCH/blis.h
+
+if [[ "$EXPORT" == "--export" ]]; then
+  mkdir -p ../artifacts/
+  cp ../blis/_src/include/$OS-$ARCH/blis.h ../artifacts/blis-$OS-$ARCH.h
+  cp ../blis/_src/make/$OS-$ARCH.jsonl ../artifacts/$OS-$ARCH.jsonl;
+fi

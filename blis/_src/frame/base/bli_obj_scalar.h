@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -32,13 +32,13 @@
 
 */
 
-void bli_obj_scalar_init_detached
+BLIS_EXPORT_BLIS void bli_obj_scalar_init_detached
      (
        num_t  dt,
        obj_t* beta
      );
 
-void bli_obj_scalar_init_detached_copy_of
+BLIS_EXPORT_BLIS void bli_obj_scalar_init_detached_copy_of
      (
        num_t  dt,
        conj_t conj,
@@ -46,42 +46,42 @@ void bli_obj_scalar_init_detached_copy_of
        obj_t* beta
      );
 
-void bli_obj_scalar_detach
+BLIS_EXPORT_BLIS void bli_obj_scalar_detach
      (
        obj_t* a,
        obj_t* alpha
      );
 
-void bli_obj_scalar_attach
+BLIS_EXPORT_BLIS void bli_obj_scalar_attach
      (
        conj_t conj,
        obj_t* alpha,
        obj_t* a
      );
 
-void bli_obj_scalar_cast_to
+BLIS_EXPORT_BLIS void bli_obj_scalar_cast_to
      (
        num_t  dt,
        obj_t* a
      );
 
-void bli_obj_scalar_apply_scalar
+BLIS_EXPORT_BLIS void bli_obj_scalar_apply_scalar
      (
        obj_t* alpha,
        obj_t* a
      );
 
-void bli_obj_scalar_reset
+BLIS_EXPORT_BLIS void bli_obj_scalar_reset
      (
        obj_t* a
      );
 
-bool_t bli_obj_scalar_has_nonzero_imag
+BLIS_EXPORT_BLIS bool_t bli_obj_scalar_has_nonzero_imag
      (
        obj_t* a
      );
 
-bool_t bli_obj_scalar_equals
+BLIS_EXPORT_BLIS bool_t bli_obj_scalar_equals
      (
        obj_t* a,
        obj_t* beta

@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -40,7 +40,7 @@ typedef struct getopt_s
 	int   optopt;
 } getopt_t;
 
-void bli_getopt_init_state( int opterr, getopt_t* state );
+BLIS_EXPORT_BLIS void bli_getopt_init_state( int opterr, getopt_t* state );
 
-int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* state );
+BLIS_EXPORT_BLIS int bli_getopt( int argc, char** const argv, const char* optstring, getopt_t* state );
 

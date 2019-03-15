@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -42,6 +43,7 @@ struct cntl_s
 	opid_t         family;
 	bszid_t        bszid;
 	void*          var_func;
+	struct cntl_s* sub_prenode;
 	struct cntl_s* sub_node;
 
 	// Optional fields (needed only by some operations such as packm).
@@ -58,8 +60,9 @@ typedef struct cntl_s cntl_t;
 
 // -- Control tree prototypes --
 
-cntl_t* bli_cntl_create_node
+BLIS_EXPORT_BLIS cntl_t* bli_cntl_create_node
      (
+       rntm_t* rntm,
        opid_t  family,
        bszid_t bszid,
        void*   var_func,
@@ -67,41 +70,46 @@ cntl_t* bli_cntl_create_node
        cntl_t* sub_node
      );
 
-void bli_cntl_free_node
+BLIS_EXPORT_BLIS void bli_cntl_free_node
      (
+       rntm_t* rntm,
        cntl_t* cntl
      );
 
-void bli_cntl_clear_node
+BLIS_EXPORT_BLIS void bli_cntl_clear_node
      (
        cntl_t* cntl
      );
 
 // -----------------------------------------------------------------------------
 
-void bli_cntl_free
+BLIS_EXPORT_BLIS void bli_cntl_free
      (
-       cntl_t* cntl,
+       rntm_t*    rntm,
+       cntl_t*    cntl,
        thrinfo_t* thread
      );
 
-void bli_cntl_free_w_thrinfo
+BLIS_EXPORT_BLIS void bli_cntl_free_w_thrinfo
      (
-       cntl_t* cntl,
+       rntm_t*    rntm,
+       cntl_t*    cntl,
        thrinfo_t* thread
      );
 
-void bli_cntl_free_wo_thrinfo
+BLIS_EXPORT_BLIS void bli_cntl_free_wo_thrinfo
      (
+       rntm_t*    rntm,
+       cntl_t*    cntl
+     );
+
+BLIS_EXPORT_BLIS cntl_t* bli_cntl_copy
+     (
+       rntm_t* rntm,
        cntl_t* cntl
      );
 
-cntl_t* bli_cntl_copy
-     (
-       cntl_t* cntl
-     );
-
-void bli_cntl_mark_family
+BLIS_EXPORT_BLIS void bli_cntl_mark_family
      (
        opid_t  family,
        cntl_t* cntl
@@ -134,6 +142,11 @@ static void* bli_cntl_var_func( cntl_t* cntl )
 	return cntl->var_func;
 }
 
+static cntl_t* bli_cntl_sub_prenode( cntl_t* cntl )
+{
+	return cntl->sub_prenode;
+}
+
 static cntl_t* bli_cntl_sub_node( cntl_t* cntl )
 {
 	return cntl->sub_node;
@@ -156,6 +169,12 @@ static mem_t* bli_cntl_pack_mem( cntl_t* cntl )
 }
 
 // cntl_t query (complex)
+
+static bool_t bli_cntl_is_null( cntl_t* cntl )
+{
+	return ( bool_t )
+	       ( cntl == NULL );
+}
 
 static bool_t bli_cntl_is_leaf( cntl_t* cntl )
 {
@@ -184,6 +203,11 @@ static void bli_cntl_set_bszid( bszid_t bszid, cntl_t* cntl )
 static void bli_cntl_set_var_func( void* var_func, cntl_t* cntl )
 {
 	cntl->var_func = var_func;
+}
+
+static void bli_cntl_set_sub_prenode( cntl_t* sub_prenode, cntl_t* cntl )
+{
+	cntl->sub_prenode = sub_prenode;
 }
 
 static void bli_cntl_set_sub_node( cntl_t* sub_node, cntl_t* cntl )

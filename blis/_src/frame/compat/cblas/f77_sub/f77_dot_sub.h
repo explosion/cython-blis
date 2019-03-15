@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -39,7 +39,7 @@
 #undef  GENTPROTDOT
 #define GENTPROTDOT( ftype, ch, chc, blasname ) \
 \
-void PASTEF773(ch,blasname,chc,sub) \
+BLIS_EXPORT_BLAS void PASTEF773(ch,blasname,chc,sub) \
      ( \
        const f77_int* n, \
        const ftype*   x, const f77_int* incx, \
@@ -53,7 +53,7 @@ INSERT_GENTPROTDOT_BLAS( dot )
 
 // -- "Black sheep" dot product function prototypes --
 
-void PASTEF772(sds,dot,sub)
+BLIS_EXPORT_BLAS void PASTEF772(sds,dot,sub)
      (
        const f77_int* n,
        const float*  sb,
@@ -62,7 +62,7 @@ void PASTEF772(sds,dot,sub)
              float*   rval
      );
 
-void PASTEF772(ds,dot,sub)
+BLIS_EXPORT_BLAS void PASTEF772(ds,dot,sub)
      (
        const f77_int* n,
        const float*   x, const f77_int* incx,

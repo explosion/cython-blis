@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -128,6 +128,15 @@
 #define PASTEMAC3_(ch1,ch2,ch3,op) bli_ ## ch1 ## ch2 ## ch3 ## op
 #define PASTEMAC3(ch1,ch2,ch3,op)  PASTEMAC3_(ch1,ch2,ch3,op)
 
+#define PASTEMAC4_(ch1,ch2,ch3,ch4,op) bli_ ## ch1 ## ch2 ## ch3 ## ch4 ## op
+#define PASTEMAC4(ch1,ch2,ch3,ch4,op)  PASTEMAC4_(ch1,ch2,ch3,ch4,op)
+
+#define PASTEMAC5_(ch1,ch2,ch3,ch4,ch5,op) bli_ ## ch1 ## ch2 ## ch3 ## ch4 ## ch5 ## op
+#define PASTEMAC5(ch1,ch2,ch3,ch4,ch5,op)  PASTEMAC5_(ch1,ch2,ch3,ch4,ch5,op)
+
+#define PASTEMAC6_(ch1,ch2,ch3,ch4,ch5,ch6,op) bli_ ## ch1 ## ch2 ## ch3 ## ch4 ## ch5 ## ch6 ## op
+#define PASTEMAC6(ch1,ch2,ch3,ch4,ch5,ch6,op)  PASTEMAC6_(ch1,ch2,ch3,ch4,ch5,ch6,op)
+
 #define PASTEBLACHK_(op)           bla_ ## op ## _check
 #define PASTEBLACHK(op)            PASTEBLACHK_(op)
 
@@ -144,10 +153,10 @@
 #define STRINGIFY_INT( s )         MKSTR( s )
 
 // Fortran-77 name-mangling macros.
-#define PASTEF770(name)                            name ## _
-#define PASTEF77(ch1,name)           ch1        ## name ## _
-#define PASTEF772(ch1,ch2,name)      ch1 ## ch2 ## name ## _
-#define PASTEF773(ch1,ch2,ch3,name)  ch1 ## ch2 ## ch3 ## name ## _
+#define PASTEF770(name)                                      name ## _
+#define PASTEF77(ch1,name)                     ch1        ## name ## _
+#define PASTEF772(ch1,ch2,name)                ch1 ## ch2 ## name ## _
+#define PASTEF773(ch1,ch2,ch3,name)     ch1 ## ch2 ## ch3 ## name ## _
 
 // -- Include other groups of macros
 
@@ -163,6 +172,7 @@
 #include "bli_scalar_macro_defs.h"
 #include "bli_error_macro_defs.h"
 #include "bli_blas_macro_defs.h"
+#include "bli_builtin_macro_defs.h"
 
 #include "bli_oapi_macro_defs.h"
 #include "bli_tapi_macro_defs.h"
