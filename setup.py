@@ -184,7 +184,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 spec["source"] = os.path.join(BLIS_DIR, spec["source"])
                 if "BLIS_COMPILER" in os.environ:
                     spec["compiler"] = os.environ["BLIS_COMPILER"]
-                spec["flags"] = [f for f in spec["flags"] if 'avx512' not in f]
+                spec["flags"] = [f for f in spec["flags"] if "avx512" not in f]
                 objects.append(self.build_object(env=env, **spec))
         return objects
 
