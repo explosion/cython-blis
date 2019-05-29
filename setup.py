@@ -252,7 +252,7 @@ setup(
         "": ["*.json", "*.jsonl", "*.pyx", "*.pxd", os.path.join(INCLUDE, "*.h")]
         + c_files
     },
-    name=about["__title__"],
+    name="blis",
     packages=["blis", "blis.tests"],
     author=about["__author__"],
     author_email=about["__email__"],
