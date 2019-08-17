@@ -59,8 +59,8 @@ def make():
 def sdist():
     with virtualenv(VENV_DIR) as venv_local:
         with lcd(path.dirname(__file__)):
-            local('python -m pip install -U setuptools')
-            local('python setup.py sdist')
+            venv_local('python -m pip install -U setuptools')
+            venv_local('python setup.py sdist')
 
 def wheel():
     with virtualenv(VENV_DIR) as venv_local:
