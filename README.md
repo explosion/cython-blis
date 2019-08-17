@@ -160,12 +160,31 @@ This populates the `blis/_src` folder for the various architectures, using the
 
 ## Updating the build files
 
-In order to compile the Blis sources, we use jsonl files that provide the
-explicit compiler flags. We build these jsonl files by running Blis's build
-system, and then converting the log. This avoids us having to replicate the
-build system within Python: we just use the jsonl to make a bunch of subprocess
-calls. To support a new OS/architecture combination, we have to provide the
-jsonl file and the header.
+To update the vendored source files, we need to update the `flame-blis`
+submodule so that it has the version we want to build. Then we can run:
+
+    ./bin/update-vendored-source
+    ./bin/generate-make-jsonl <OS> <arch> --export
+
+This should generate `blis/_src/include/os-arch/blis.h` and
+`blis/_src/make/os-arch.jsonl`. These files tell the setup.py how to compile
+for that architecture on that platform. You can control the architecture by
+setting the `BLIS_ARCH` environment variable.
+
+We provide wheel files for OSX, Windows and Linux x86_64. The make files we
+ship in the library need to allow these wheels to be built correctly. This
+involves some special steps for Windows and Linux
+
+### OSX
+
+    git clone https://github.com/explosion/cython-blis
+    cd cython-blis
+    git submodule init && git submodule update && git submodule status
+    python3 -m venv env3.6
+    source env3.6/bin/activate
+    ./bin/generate-make-jsonl osx x86_64 --export
+    pip install -r requirements.txt
+    python setup.py build_ext --inplace
 
 ### Linux
 
@@ -182,13 +201,15 @@ build the jsonl files for the generic arch:
     mkdir /usr/local/repos
     cd /usr/local/repos
     git clone https://github.com/explosion/cython-blis && cd cython-blis
-    git pull && git submodule init && git submodule update && git submodule
-    status
+    git pull && git submodule init && git submodule update && git submodule status
     /opt/python/cp36-cp36m/bin/python -m venv env3.6
     source env3.6/bin/activate
     pip install -r requirements.txt
-    ./bin/generate-make-jsonl linux generic --export
-    BLIS_ARCH=generic python setup.py build_ext --inplace
+    # Need to disable the bulldozer arch as the ancient compiler in the
+    # manylinux1 container can't build it.
+    sed -i "s/piledriver bulldozer generic/piledriver generic/" flame-blis/config_registry
+    ./bin/generate-make-jsonl linux x86_64 --export
+    python setup.py build_ext --inplace
     # N.B.: don't copy to /tmp, docker cp doesn't work from there.
     cp blis/_src/include/linux-generic/blis.h /linux-generic-blis.h
     cp blis/_src/make/linux-generic.jsonl /
