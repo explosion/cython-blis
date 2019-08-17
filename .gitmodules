@@ -1,3 +1,0 @@
-[submodule "flame-blis"]
-	path = flame-blis
-	url = https://github.com/honnibal/blis
