@@ -157,3 +157,47 @@ To build the source package, you should run the following command:
 
 This populates the `blis/_src` folder for the various architectures, using the
 `flame-blis` submodule.
+
+## Updating the build files
+
+In order to compile the Blis sources, we use jsonl files that provide the
+explicit compiler flags. We build these jsonl files by running Blis's build
+system, and then converting the log. This avoids us having to replicate the
+build system within Python: we just use the jsonl to make a bunch of subprocess
+calls. To support a new OS/architecture combination, we have to provide the
+jsonl file and the header.
+
+### Linux
+
+The Linux build files need to be produced from within the manylinux1 docker
+container, so that they will be compatible with the wheel building process.
+
+First, install docker. Then do the following to start the container:
+
+    sudo docker run -it quay.io/pypa/manylinux1_x86_64:latest
+
+Once within the container, the following commands should check out the repo and
+build the jsonl files for the generic arch:
+
+    mkdir /usr/local/repos
+    cd /usr/local/repos
+    git clone https://github.com/explosion/cython-blis && cd cython-blis
+    git pull && git submodule init && git submodule update && git submodule
+    status
+    /opt/python/cp36-cp36m/bin/python -m venv env3.6
+    source env3.6/bin/activate
+    pip install -r requirements.txt
+    ./bin/generate-make-jsonl linux generic --export
+    BLIS_ARCH=generic python setup.py build_ext --inplace
+    # N.B.: don't copy to /tmp, docker cp doesn't work from there.
+    cp blis/_src/include/linux-generic/blis.h /linux-generic-blis.h
+    cp blis/_src/make/linux-generic.jsonl /
+
+Then from a new terminal, retrieve the two files we need out of the container:
+
+    sudo docker ps -l # Get the container ID
+    # When I'm in Vagrant, I need to go via cat -- but then I end up with dummy
+    # lines at the top and bottom. Sigh. If you don't have that problem and
+    # sudo docker cp just works, just copy the file.
+    sudo docker cp aa9d42588791:/linux-generic-blis.h - | cat > linux-generic-blis.h
+    sudo docker cp aa9d42588791:/linux-generic.jsonl - | cat > linux-generic.jsonl
