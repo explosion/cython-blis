@@ -13,6 +13,6 @@ __summary__ = (
 __uri__ = "https://github.com/explosion/cython-blis"
 __author__ = "Matthew Honnibal"
 __email__ = "matt@explosion.ai"
-__license__ = "MIT"
+__license__ = "BSD"
 __title__ = "blis"
 __release__ = True
