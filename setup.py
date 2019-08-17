@@ -184,7 +184,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 spec["source"] = os.path.join(BLIS_DIR, spec["source"])
                 if "BLIS_COMPILER" in os.environ:
                     spec["compiler"] = os.environ["BLIS_COMPILER"]
-                spec["flags"] = [f for f in spec["flags"] if 'avx512' not in f]
+                spec["flags"] = [f for f in spec["flags"] if "avx512" not in f]
                 objects.append(self.build_object(env=env, **spec))
         return objects
 
@@ -252,7 +252,7 @@ setup(
         "": ["*.json", "*.jsonl", "*.pyx", "*.pxd", os.path.join(INCLUDE, "*.h")]
         + c_files
     },
-    name=about["__title__"],
+    name="blis",
     packages=["blis", "blis.tests"],
     author=about["__author__"],
     author_email=about["__email__"],
