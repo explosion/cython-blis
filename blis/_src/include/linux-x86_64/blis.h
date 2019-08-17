@@ -125,26 +125,20 @@ extern "C" {
 
 
 // Enabled sub-configurations (config_list)
-#define BLIS_CONFIG_KNL
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
 #define BLIS_CONFIG_PENRYN
-#define BLIS_CONFIG_ZEN
-#define BLIS_CONFIG_EXCAVATOR
 #define BLIS_CONFIG_STEAMROLLER
 #define BLIS_CONFIG_PILEDRIVER
-#define BLIS_CONFIG_BULLDOZER
 #define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_KNL
+#define BLIS_KERNELS_ZEN
+#define BLIS_KERNELS_HASWELL
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
-#define BLIS_KERNELS_HASWELL
-#define BLIS_KERNELS_ZEN
 #define BLIS_KERNELS_PILEDRIVER
-#define BLIS_KERNELS_BULLDOZER
 #define BLIS_KERNELS_GENERIC
 
 
@@ -244,7 +238,7 @@ extern "C" {
 #define BLIS_DISABLE_MEMKIND
 #endif
 
-#if 1
+#if 0
 #define BLIS_ENABLE_PRAGMA_OMP_SIMD
 #else
 #define BLIS_DISABLE_PRAGMA_OMP_SIMD
@@ -20722,109 +20716,7 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_skx.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_KNL
-// begin bli_family_knl.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-// -- THREADING PARAMETERS -----------------------------------------------------
-
-#define BLIS_THREAD_RATIO_M     4
-#define BLIS_THREAD_RATIO_N     1
-
-#define BLIS_THREAD_MAX_IR      1
-#define BLIS_THREAD_MAX_JR      1
-
-
-// -- MEMORY ALLOCATION --------------------------------------------------------
-
-//#define BLIS_TREE_BARRIER
-//#define BLIS_TREE_BARRIER_ARITY 4
-
-#define BLIS_SIMD_ALIGN_SIZE             64
-
-#define BLIS_SIMD_SIZE                   64
-#define BLIS_SIMD_NUM_REGISTERS          32
-
-
-
-//#define BLIS_MALLOC_INTL hbw_malloc
-//#define BLIS_FREE_INTL hbw_free
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-#define BLIS_SGEMM_UKERNEL_PREFERS_CONTIG_ROWS
-#define BLIS_SGEMM_UKERNEL             bli_sgemm_opt_30x16_knc
-#define BLIS_DEFAULT_MC_S              240
-#define BLIS_DEFAULT_KC_S              240
-#define BLIS_DEFAULT_NC_S              14400
-#define BLIS_DEFAULT_MR_S              30
-#define BLIS_DEFAULT_NR_S              16
-#define BLIS_PACKDIM_MR_S              32
-#define BLIS_PACKDIM_NR_S              16
-
-#if 0
-
-#define BLIS_DGEMM_UKERNEL_PREFERS_CONTIG_ROWS
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_30x8_knc
-#define BLIS_DEFAULT_MC_D              120
-#define BLIS_DEFAULT_KC_D              240
-#define BLIS_DEFAULT_NC_D              14400
-#define BLIS_DEFAULT_MR_D              30
-#define BLIS_DEFAULT_NR_D              8
-#define BLIS_PACKDIM_MR_D              32
-#define BLIS_PACKDIM_NR_D              8
-
-#elif 0
-
-#define BLIS_DGEMM_UKERNEL_PREFERS_CONTIG_ROWS
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_30x8
-#define BLIS_DEFAULT_MC_D              120
-#define BLIS_DEFAULT_KC_D              240
-#define BLIS_DEFAULT_NC_D              14400
-#define BLIS_DEFAULT_MR_D              30
-#define BLIS_DEFAULT_NR_D              8
-#define BLIS_PACKDIM_MR_D              32
-#define BLIS_PACKDIM_NR_D              8
-
-#define BLIS_DPACKM_8XK_KERNEL         bli_dpackm_8xk_opt
-#define BLIS_DPACKM_30XK_KERNEL        bli_dpackm_30xk_opt
-
-#else
-
-#define BLIS_DGEMM_UKERNEL_PREFERS_CONTIG_ROWS
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_24x8
-#define BLIS_DEFAULT_MR_D              24
-#define BLIS_DEFAULT_NR_D              8
-#define BLIS_PACKDIM_MR_D              24
-#define BLIS_PACKDIM_NR_D              8
-#define BLIS_DEFAULT_MC_D              120
-#define BLIS_DEFAULT_KC_D              336
-#define BLIS_DEFAULT_NC_D              14400
-
-#define BLIS_DPACKM_8XK_KERNEL         bli_dpackm_8xk_opt
-#define BLIS_DPACKM_24XK_KERNEL        bli_dpackm_24xk_opt
-
-#endif
-
-#define BLIS_MAXIMUM_MC_S              (BLIS_DEFAULT_MC_S + BLIS_DEFAULT_MC_S/4)
-#define BLIS_MAXIMUM_KC_S              (BLIS_DEFAULT_KC_S + BLIS_DEFAULT_KC_S/4)
-#define BLIS_MAXIMUM_NC_S              (BLIS_DEFAULT_NC_S +                   0) 
-
-#define BLIS_MAXIMUM_MC_D              (BLIS_DEFAULT_MC_D + BLIS_DEFAULT_MC_D/4)
-#define BLIS_MAXIMUM_KC_D              (BLIS_DEFAULT_KC_D + BLIS_DEFAULT_KC_D/4)
-#define BLIS_MAXIMUM_NC_D              (BLIS_DEFAULT_NC_D +                   0)
-
-#endif
-
-
-//#endif
-
-// end bli_family_knl.h
+#include "bli_family_knl.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_KNC
 #include "bli_family_knc.h" // skipped
@@ -21063,81 +20955,10 @@ CNTX_INIT_PROTS( generic )
 // -- AMD64 architectures --
 
 #ifdef BLIS_FAMILY_ZEN
-// begin bli_family_zen.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-// By default, it is effective to parallelize the outer loops.
-// Setting these macros to 1 will force JR and IR inner loops
-// to be not paralleized.
-#define BLIS_THREAD_MAX_IR      1
-#define BLIS_THREAD_MAX_JR      1
-
-#define BLIS_ENABLE_ZEN_BLOCK_SIZES
-//#define BLIS_ENABLE_SMALL_MATRIX
-
-// This will select the threshold below which small matrix code will be called.
-#define BLIS_SMALL_MATRIX_THRES        700
-#define BLIS_SMALL_M_RECT_MATRIX_THRES 160
-#define BLIS_SMALL_K_RECT_MATRIX_THRES 128
-
-
-
-//#endif
-
-// end bli_family_zen.h
+#include "bli_family_zen.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_EXCAVATOR
-// begin bli_family_excavator.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-// -- MEMORY ALLOCATION --------------------------------------------------------
-
-#define BLIS_SIMD_ALIGN_SIZE           16
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-#define BLIS_SGEMM_UKERNEL             bli_sgemm_asm_16x3
-#define BLIS_DEFAULT_MR_S              16
-#define BLIS_DEFAULT_NR_S              3
-#define BLIS_DEFAULT_MC_S              528
-#define BLIS_DEFAULT_KC_S              256
-#define BLIS_DEFAULT_NC_S              8400
-
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_asm_8x3
-#define BLIS_DEFAULT_MR_D              8
-#define BLIS_DEFAULT_NR_D              3
-#define BLIS_DEFAULT_MC_D              264
-#define BLIS_DEFAULT_KC_D              256
-#define BLIS_DEFAULT_NC_D              8400
-
-#define BLIS_CGEMM_UKERNEL             bli_cgemm_asm_4x2
-#define BLIS_DEFAULT_MR_C              4
-#define BLIS_DEFAULT_NR_C              2
-#define BLIS_DEFAULT_MC_C              264
-#define BLIS_DEFAULT_KC_C              256
-#define BLIS_DEFAULT_NC_C              8400
-
-#define BLIS_ZGEMM_UKERNEL             bli_zgemm_asm_2x2
-#define BLIS_DEFAULT_MR_Z              2
-#define BLIS_DEFAULT_NR_Z              2
-#define BLIS_DEFAULT_MC_Z              100
-#define BLIS_DEFAULT_KC_Z              320
-#define BLIS_DEFAULT_NC_Z              8400
-#endif
-
-
-//#endif
-
-// end bli_family_excavator.h
+#include "bli_family_excavator.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_STEAMROLLER
 // begin bli_family_steamroller.h
@@ -21207,51 +21028,7 @@ CNTX_INIT_PROTS( generic )
 // end bli_family_piledriver.h
 #endif
 #ifdef BLIS_FAMILY_BULLDOZER
-// begin bli_family_bulldozer.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_8x8_fma4
-#define BLIS_DEFAULT_MC_S          128
-#define BLIS_DEFAULT_KC_S          384
-#define BLIS_DEFAULT_NC_S          4096
-#define BLIS_DEFAULT_MR_S          8
-#define BLIS_DEFAULT_NR_S          8
-
-#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_4x6_fma4
-#define BLIS_DEFAULT_MC_D          1080
-#define BLIS_DEFAULT_KC_D          120
-#define BLIS_DEFAULT_NC_D          8400
-#define BLIS_DEFAULT_MR_D          4
-#define BLIS_DEFAULT_NR_D          6
-
-#define BLIS_CGEMM_UKERNEL         bli_cgemm_asm_8x4_fma4
-#define BLIS_DEFAULT_MC_C          96
-#define BLIS_DEFAULT_KC_C          256
-#define BLIS_DEFAULT_NC_C          4096
-#define BLIS_DEFAULT_MR_C          8
-#define BLIS_DEFAULT_NR_C          4
-
-#define BLIS_ZGEMM_UKERNEL         bli_zgemm_asm_4x4_fma4
-#define BLIS_DEFAULT_MC_Z          64 
-#define BLIS_DEFAULT_KC_Z          192
-#define BLIS_DEFAULT_NC_Z          4096
-#define BLIS_DEFAULT_MR_Z          4
-#define BLIS_DEFAULT_NR_Z          4
-#endif
-
-
-
-//#endif
-
-// end bli_family_bulldozer.h
+#include "bli_family_bulldozer.h" // skipped
 #endif
 
 // -- ARM architectures --
@@ -21308,26 +21085,7 @@ CNTX_INIT_PROTS( generic )
 #include "bli_kernels_skx.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_KNL
-// begin bli_kernels_knl.h
-
-
-GEMM_UKR_PROT( double,   s, gemm_knl_asm_24x16 )
-GEMM_UKR_PROT( double,   d, gemm_knl_asm_24x8 )
-
-PACKM_KER_PROT( double,   s, packm_knl_asm_24xk )
-PACKM_KER_PROT( double,   s, packm_knl_asm_16xk )
-
-PACKM_KER_PROT( double,   d, packm_knl_asm_24xk )
-PACKM_KER_PROT( double,   d, packm_knl_asm_8xk )
-
-// unused:
-GEMM_UKR_PROT( double,   d, gemm_knl_asm_12x16 )
-GEMM_UKR_PROT( double,   d, gemm_knl_asm_30x8 )
-GEMM_UKR_PROT( double,   d, gemm_knl_asm_8x24 )
-
-PACKM_KER_PROT( double,   d, packm_knl_asm_30xk )
-
-// end bli_kernels_knl.h
+#include "bli_kernels_knl.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_KNC
 #include "bli_kernels_knc.h" // skipped
@@ -21472,15 +21230,7 @@ GEMM_UKR_PROT( dcomplex, z, gemm_piledriver_asm_2x2 )
 // end bli_kernels_piledriver.h
 #endif
 #ifdef BLIS_KERNELS_BULLDOZER
-// begin bli_kernels_bulldozer.h
-
-
-GEMM_UKR_PROT( float,    s, gemm_bulldozer_asm_8x8_fma4 )
-GEMM_UKR_PROT( double,   d, gemm_bulldozer_asm_4x6_fma4 )
-GEMM_UKR_PROT( scomplex, c, gemm_bulldozer_asm_8x4_fma4 )
-GEMM_UKR_PROT( dcomplex, z, gemm_bulldozer_asm_4x4_fma4 )
-
-// end bli_kernels_bulldozer.h
+#include "bli_kernels_bulldozer.h" // skipped
 #endif
 
 // -- ARM architectures --
@@ -39222,26 +38972,20 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 
 
 // Enabled sub-configurations (config_list)
-#define BLIS_CONFIG_KNL
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
 #define BLIS_CONFIG_PENRYN
-#define BLIS_CONFIG_ZEN
-#define BLIS_CONFIG_EXCAVATOR
 #define BLIS_CONFIG_STEAMROLLER
 #define BLIS_CONFIG_PILEDRIVER
-#define BLIS_CONFIG_BULLDOZER
 #define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_KNL
+#define BLIS_KERNELS_ZEN
+#define BLIS_KERNELS_HASWELL
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
-#define BLIS_KERNELS_HASWELL
-#define BLIS_KERNELS_ZEN
 #define BLIS_KERNELS_PILEDRIVER
-#define BLIS_KERNELS_BULLDOZER
 #define BLIS_KERNELS_GENERIC
 
 
@@ -39341,7 +39085,7 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_DISABLE_MEMKIND
 #endif
 
-#if 1
+#if 0
 #define BLIS_ENABLE_PRAGMA_OMP_SIMD
 #else
 #define BLIS_DISABLE_PRAGMA_OMP_SIMD
