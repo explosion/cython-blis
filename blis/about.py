@@ -1,3 +1,4 @@
+# Copyright ExplosionAI GmbH, released under BSD
 # inspired from:
 
 # https://python-packaging-user-guide.readthedocs.org/en/latest/single_source_version/

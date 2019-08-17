@@ -1,3 +1,4 @@
+# Copyright ExplsionAI GmbH, released under BSD.
 from __future__ import division
 from hypothesis import given, assume
 from math import sqrt, floor

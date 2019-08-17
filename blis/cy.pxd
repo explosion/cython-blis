@@ -1,3 +1,4 @@
+# Copyright ExplsionAI GmbH, released under BSD.
 from cython cimport view
 from libc.stdint cimport int64_t
 

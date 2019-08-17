@@ -1,3 +1,4 @@
+# Copyright ExplsionAI GmbH, released under BSD.
 import numpy
 import numpy.random
 from .py import gemm, einsum
