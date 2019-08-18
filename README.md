@@ -13,7 +13,7 @@ Currently, we only supports single-threaded execution, as this is actually best 
 [![conda](https://img.shields.io/conda/vn/conda-forge/cython-blis.svg?style=flat-square)](https://anaconda.org/conda-forge/cython-blis)
 [![Python wheels](https://img.shields.io/badge/wheels-%E2%9C%93-4c1.svg?longCache=true&style=flat-square&logo=python&logoColor=white)](https://github.com/explosion/wheelwright/releases)
 
-## Overview
+## Installation
 
 You can install the package via pip:
 
@@ -22,6 +22,41 @@ pip install blis
 ```
 
 Wheels should be available, so installation should be fast. If you want to install from source and you're on Windows, you'll need to install LLVM.
+
+### Building BLIS for alternative architectures
+
+#### a) Installing with generic arch support
+
+```bash
+BLIS_ARCH="generic" pip install spacy --no-binary blis
+```
+
+#### b) Building specific support
+
+[See here](https://github.com/flame/blis/blob/0.5.1/config_registry) for list of
+architectures. For example, here's how to build support for `cortex57`:
+
+```bash
+git clone https://github.com/explosion/cython-blis && cd cython-blis
+git pull && git submodule init && git submodule update && git submodule status
+python3 -m venv env3.6
+source env3.6/bin/activate
+pip install -r requirements.txt
+./bin/generate-make-jsonl linux cortex57
+BLIS_ARCH="coretex57" python setup.py build_ext --inplace
+BLIS_ARCH="cortex57" python setup.py bdist_wheel
+```
+
+Fingers crossed, this will build you a wheel that supports your platform. You
+could then [submit a PR](https://github.com/explosion/cython-blis/pulls) with
+the `blis/_src/make/linux-cortex57.jsonl` and
+`blis/_src/include/linux-cortex57/blis.h` files so that you can run:
+
+```bash
+BLIS_ARCH=cortex57 pip install spacy --no-binary=blis
+```
+
+### Running the benchmark
 
 After installation, run a small matrix multiplication benchmark:
 
