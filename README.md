@@ -25,6 +25,8 @@ Wheels should be available, so installation should be fast. If you want to insta
 
 ### Building BLIS for alternative architectures
 
+The provided wheels should work on x86_86 architectures. Unfortunately we do not currently know a way to provide different wheels for alternative architectures, and we cannot provide a single binary that works everywhere. So if the wheel doesn't work for your CPU, you'll need to specify source distribution, and tell Blis your CPU architecture using the `BLIS_ARCH` environment variable.
+
 #### a) Installing with generic arch support
 
 ```bash
@@ -32,6 +34,8 @@ BLIS_ARCH="generic" pip install spacy --no-binary blis
 ```
 
 #### b) Building specific support
+
+In order to compile Blis, `cython-blis` bundles makefile scripts for specific architectures, that are compiled by running the Blis build system and logging the commands. We do not yet have logs for every architecture, as there are some architectures we have not had access to.
 
 [See here](https://github.com/flame/blis/blob/0.5.1/config_registry) for list of
 architectures. For example, here's how to build support for `cortex57`:
@@ -49,11 +53,11 @@ BLIS_ARCH="cortex57" python setup.py bdist_wheel
 
 Fingers crossed, this will build you a wheel that supports your platform. You
 could then [submit a PR](https://github.com/explosion/cython-blis/pulls) with
-the `blis/_src/make/linux-cortex57.jsonl` and
-`blis/_src/include/linux-cortex57/blis.h` files so that you can run:
+the `blis/_src/make/linux-cortexa57.jsonl` and
+`blis/_src/include/linux-cortexa57/blis.h` files so that you can run:
 
 ```bash
-BLIS_ARCH=cortex57 pip install spacy --no-binary=blis
+BLIS_ARCH=cortexa57 pip install spacy --no-binary=blis
 ```
 
 ### Running the benchmark
