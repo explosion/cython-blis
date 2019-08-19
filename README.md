@@ -38,7 +38,7 @@ BLIS_ARCH="generic" pip install spacy --no-binary blis
 In order to compile Blis, `cython-blis` bundles makefile scripts for specific architectures, that are compiled by running the Blis build system and logging the commands. We do not yet have logs for every architecture, as there are some architectures we have not had access to.
 
 [See here](https://github.com/flame/blis/blob/0.5.1/config_registry) for list of
-architectures. For example, here's how to build support for `cortex57`:
+architectures. For example, here's how to build support for the ARM architecture `cortexa57`:
 
 ```bash
 git clone https://github.com/explosion/cython-blis && cd cython-blis
@@ -46,9 +46,9 @@ git pull && git submodule init && git submodule update && git submodule status
 python3 -m venv env3.6
 source env3.6/bin/activate
 pip install -r requirements.txt
-./bin/generate-make-jsonl linux cortex57
-BLIS_ARCH="coretex57" python setup.py build_ext --inplace
-BLIS_ARCH="cortex57" python setup.py bdist_wheel
+./bin/generate-make-jsonl linux cortexa57
+BLIS_ARCH="coretexa57" python setup.py build_ext --inplace
+BLIS_ARCH="cortexa57" python setup.py bdist_wheel
 ```
 
 Fingers crossed, this will build you a wheel that supports your platform. You
