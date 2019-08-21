@@ -10,9 +10,10 @@ Currently, we only supports single-threaded execution, as this is actually best 
 [![Travis](https://img.shields.io/travis/explosion/cython-blis/master.svg?style=flat-square&logo=travis)](https://travis-ci.org/explosion/cython-blis)
 [![Appveyor](https://img.shields.io/appveyor/ci/explosion/cython-blis/master.svg?style=flat-square&logo=appveyor)](https://ci.appveyor.com/project/explosion/cython-blis)
 [![pypi Version](https://img.shields.io/pypi/v/blis.svg?style=flat-square)](https://pypi.python.org/pypi/blis)
+[![conda](https://img.shields.io/conda/vn/conda-forge/cython-blis.svg?style=flat-square)](https://anaconda.org/conda-forge/cython-blis)
 [![Python wheels](https://img.shields.io/badge/wheels-%E2%9C%93-4c1.svg?longCache=true&style=flat-square&logo=python&logoColor=white)](https://github.com/explosion/wheelwright/releases)
 
-## Overview
+## Installation
 
 You can install the package via pip:
 
@@ -21,6 +22,45 @@ pip install blis
 ```
 
 Wheels should be available, so installation should be fast. If you want to install from source and you're on Windows, you'll need to install LLVM.
+
+### Building BLIS for alternative architectures
+
+The provided wheels should work on x86_86 architectures. Unfortunately we do not currently know a way to provide different wheels for alternative architectures, and we cannot provide a single binary that works everywhere. So if the wheel doesn't work for your CPU, you'll need to specify source distribution, and tell Blis your CPU architecture using the `BLIS_ARCH` environment variable.
+
+#### a) Installing with generic arch support
+
+```bash
+BLIS_ARCH="generic" pip install spacy --no-binary blis
+```
+
+#### b) Building specific support
+
+In order to compile Blis, `cython-blis` bundles makefile scripts for specific architectures, that are compiled by running the Blis build system and logging the commands. We do not yet have logs for every architecture, as there are some architectures we have not had access to.
+
+[See here](https://github.com/flame/blis/blob/0.5.1/config_registry) for list of
+architectures. For example, here's how to build support for the ARM architecture `cortexa57`:
+
+```bash
+git clone https://github.com/explosion/cython-blis && cd cython-blis
+git pull && git submodule init && git submodule update && git submodule status
+python3 -m venv env3.6
+source env3.6/bin/activate
+pip install -r requirements.txt
+./bin/generate-make-jsonl linux cortexa57
+BLIS_ARCH="coretexa57" python setup.py build_ext --inplace
+BLIS_ARCH="cortexa57" python setup.py bdist_wheel
+```
+
+Fingers crossed, this will build you a wheel that supports your platform. You
+could then [submit a PR](https://github.com/explosion/cython-blis/pulls) with
+the `blis/_src/make/linux-cortexa57.jsonl` and
+`blis/_src/include/linux-cortexa57/blis.h` files so that you can run:
+
+```bash
+BLIS_ARCH=cortexa57 pip install spacy --no-binary=blis
+```
+
+### Running the benchmark
 
 After installation, run a small matrix multiplication benchmark:
 
