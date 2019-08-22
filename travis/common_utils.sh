@@ -247,6 +247,8 @@ function bdist_wheel_cmd {
     # fixed with bdist_wheel:
     # https://github.com/warner/python-versioneer/issues/121
     local abs_wheelhouse=$1
+    # This is necessary for OSX on travis
+    export MACOSX_DEPLOYMENT_TARGET="10.7"
     python setup.py bdist_wheel
     cp dist/*.whl $abs_wheelhouse
 }
