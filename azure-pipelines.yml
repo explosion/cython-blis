@@ -59,8 +59,8 @@ jobs:
     displayName: 'Preinstall (Linux)'
 
   - script: |
-      source ./travis/before_install_osx.sh
-      before_install
+      #source ./travis/before_install_osx.sh
+      #before_install
     condition: eq( variables['Agent.OS'], 'Darwin')
     displayName: 'Preinstall (Mac)'
 
