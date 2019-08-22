@@ -236,6 +236,7 @@ function build_wheel_cmd {
 
 function pip_wheel_cmd {
     local abs_wheelhouse=$1
+    export MACOSX_DEPLOYMENT_TARGET="10.7"
     pip wheel $(pip_opts) -w $abs_wheelhouse --no-deps .
 }
 
