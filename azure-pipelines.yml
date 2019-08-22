@@ -73,6 +73,7 @@ jobs:
     displayName: 'Build wheel'
 
   - script: |
+      choco install llvm
       cd ..
       bash -c "cp -r $(Agent.BuildDirectory) /c/build"
       bash -lc "python -m pip install /c/build/dist/*.whl"
