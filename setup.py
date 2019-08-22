@@ -6,8 +6,8 @@ import os
 # but we need to tell OSX to build for 10.7.
 # Otherwise, wheels don't work. We can't use 10.6,
 # it doesn't compile.
-if "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
-    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.7"
+#if "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
+#    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.7"
 
 import contextlib
 import io
@@ -51,7 +51,7 @@ def locate_windows_llvm():
         home = os.environ["LLVM_HOME"]
         return os.path.join(home, "bin", "clang.exe")
     else:
-        # otherwise, search the PATH for NVCC
+        # otherwise, search the PATH for clang.exe
         clang = find_in_path("clang.exe", os.environ["PATH"])
         if clang is None:
             clang = r"C:\Program Files\LLVM\bin\clang.exe"
