@@ -9,6 +9,13 @@ ctypedef float[:, ::1] float2d_t
 ctypedef double[:, ::1] double2d_t
 ctypedef float* floats_t
 ctypedef double* doubles_t
+ctypedef const float[::1] const_float1d_t
+ctypedef const double[::1] const_double1d_t
+ctypedef const float[:, ::1] const_float2d_t
+ctypedef const double[:, ::1] const_double2d_t
+ctypedef const float* const_floats_t
+ctypedef const double* const_doubles_t
+
 
 
 cdef fused reals_ft:
@@ -17,15 +24,30 @@ cdef fused reals_ft:
     float1d_t
     double1d_t
 
+cdef fused const_reals_ft:
+    const_floats_t
+    const_doubles_t
+    const_float1d_t
+    const_double1d_t
+
 
 cdef fused reals1d_ft:
     float1d_t
     double1d_t
 
+cdef fused const_reals1d_ft:
+    const_float1d_t
+    const_double1d_t
+
 
 cdef fused reals2d_ft:
     float2d_t
     double2d_t
+
+
+cdef fused const_reals2d_ft:
+    const_float2d_t
+    const_double2d_t
 
 
 cdef fused real_ft:

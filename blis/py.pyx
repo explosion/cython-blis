@@ -3,18 +3,19 @@
 cimport numpy as np
 from . cimport cy
 from .cy cimport reals1d_ft, reals2d_ft, float1d_t, float2d_t
-from .cy cimport double1d_t, double2d_t
+from .cy cimport const_reals1d_ft, const_reals2d_ft, const_float1d_t, const_float2d_t
+from .cy cimport const_double1d_t, const_double2d_t
 
 import numpy
 
 
-def axpy(reals1d_ft A, double scale=1., np.ndarray out=None):
-    if reals1d_ft is float1d_t:
+def axpy(const_reals1d_ft A, double scale=1., np.ndarray out=None):
+    if const_reals1d_ft is const_float1d_t:
         if out is None:
             out = numpy.zeros((A.shape[0],), dtype='f')
         B = <float*>out.data
         return out
-    elif reals1d_ft is double1d_t:
+    elif const_reals1d_ft is const_double1d_t:
         if out is None:
             out = numpy.zeros((A.shape[0],), dtype='d')
         B = <double*>out.data
@@ -30,8 +31,8 @@ def batch_axpy(reals2d_ft A, reals1d_ft B, np.ndarray out=None):
     pass
 
 
-def ger(reals2d_ft A, reals1d_ft B, double scale=1., np.ndarray out=None):
-    if reals2d_ft is float2d_t and reals1d_ft is float1d_t:
+def ger(const_reals2d_ft A, const_reals1d_ft B, double scale=1., np.ndarray out=None):
+    if const_reals2d_ft is const_float2d_t and const_reals1d_ft is const_float1d_t:
         if out is None:
             out = numpy.zeros((A.shape[0], B.shape[0]), dtype='f')
         with nogil:
@@ -43,7 +44,7 @@ def ger(reals2d_ft A, reals1d_ft B, double scale=1., np.ndarray out=None):
                 &B[0], 1,
                 <float*>out.data, out.shape[1], 1)
         return out
-    elif reals2d_ft is double2d_t and reals1d_ft is double1d_t:
+    elif const_reals2d_ft is const_double2d_t and const_reals1d_ft is const_double1d_t:
         if out is None:
             out = numpy.zeros((A.shape[0], B.shape[0]), dtype='d')
         with nogil:
@@ -60,13 +61,13 @@ def ger(reals2d_ft A, reals1d_ft B, double scale=1., np.ndarray out=None):
         raise TypeError("Unhandled fused type")
 
 
-def gemm(reals2d_ft A, reals2d_ft B,
+def gemm(const_reals2d_ft A, const_reals2d_ft B,
          np.ndarray out=None, bint trans1=False, bint trans2=False,
          double alpha=1., double beta=1.):
     cdef cy.dim_t nM = A.shape[0] if not trans1 else A.shape[1]
     cdef cy.dim_t nK = A.shape[1] if not trans1 else A.shape[0]
     cdef cy.dim_t nN = B.shape[1] if not trans2 else B.shape[0]
-    if reals2d_ft is float2d_t:
+    if const_reals2d_ft is const_float2d_t:
         if out is None:
             out = numpy.zeros((nM, nN), dtype='f')
         C = <float*>out.data
@@ -81,7 +82,7 @@ def gemm(reals2d_ft A, reals2d_ft B,
                 beta,
                 C, out.shape[1], 1)
         return out
-    elif reals2d_ft is double2d_t:
+    elif const_reals2d_ft is const_double2d_t:
         if out is None:
             out = numpy.zeros((A.shape[0], B.shape[1]), dtype='d')
         C = <double*>out.data
@@ -100,10 +101,10 @@ def gemm(reals2d_ft A, reals2d_ft B,
         C = NULL
         raise TypeError("Unhandled fused type")
 
-def gemv(reals2d_ft A, reals1d_ft B,
+def gemv(const_reals2d_ft A, const_reals1d_ft B,
         bint trans1=False, double alpha=1., double beta=1.,
         np.ndarray out=None):
-    if reals1d_ft is float1d_t and reals2d_ft is float2d_t:
+    if const_reals1d_ft is const_float1d_t and const_reals2d_ft is const_float2d_t:
         if out is None:
             out = numpy.zeros((A.shape[0],), dtype='f')
         with nogil:
@@ -117,7 +118,7 @@ def gemv(reals2d_ft A, reals1d_ft B,
                 beta,
                 <float*>out.data, 1)
         return out
-    elif reals1d_ft is double1d_t and reals2d_ft is double2d_t:
+    elif const_reals1d_ft is const_double1d_t and const_reals2d_ft is const_double2d_t:
         if out is None:
             out = numpy.zeros((A.shape[0],), dtype='d')
         with nogil:
@@ -135,7 +136,7 @@ def gemv(reals2d_ft A, reals1d_ft B,
         raise TypeError("Unhandled fused type")
 
 
-def dotv(reals1d_ft X, reals1d_ft Y, bint conjX=False, bint conjY=False):
+def dotv(const_reals1d_ft X, const_reals1d_ft Y, bint conjX=False, bint conjY=False):
     if X.shape[0] != Y.shape[0]:
         msg = "Shape mismatch for blis.dotv: (%d,), (%d,)"
         raise ValueError(msg % (X.shape[0], Y.shape[0]))
