@@ -47,7 +47,7 @@ python3 -m venv env3.6
 source env3.6/bin/activate
 pip install -r requirements.txt
 ./bin/generate-make-jsonl linux cortexa57
-BLIS_ARCH="coretexa57" python setup.py build_ext --inplace
+BLIS_ARCH="cortexa57" python setup.py build_ext --inplace
 BLIS_ARCH="cortexa57" python setup.py bdist_wheel
 ```
 
