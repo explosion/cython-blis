@@ -48,7 +48,7 @@ def test_memoryview_double_notrans(A, B, a_rows, a_cols, out_cols):
     assume(C.size >= 1)
     gemm(A, B, out=C)
     numpy_result = A.dot(B)
-    assert_allclose(numpy_result, C, atol=1e-4, rtol=1e-4)
+    assert_allclose(numpy_result, C, atol=1e-3, rtol=1e-3)
 
 
 @given(
