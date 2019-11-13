@@ -27,12 +27,11 @@ jobs:
       echo %PATH%
       git submodule update --init --recursive
       call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
-      cd flame-blis
-      cd $(Build.SourcesDirectory)
-      cd flame-blis
       bash -lc "mkdir $BUILD_SOURCESDIRECTORY/output"
+      cd $(Build.SourcesDirectory)/flame-blis
       bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=$BUILD_SOURCESDIRECTORY/output x86_64"
       echo Configured
+      cd $(Build.SourcesDirectory)/flame-blis
       bash -lc "mingw32-make -j4 > make.log"
       echo Finished make.log
       cd ..
