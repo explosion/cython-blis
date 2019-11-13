@@ -11,7 +11,7 @@ jobs:
       Windows:
           imageName: 'windows-2019'
   steps:
-  - powershell: |
+  - script: |
       git submodule update --init --recursive
       cd flame-blis
       set "CC=clang"
