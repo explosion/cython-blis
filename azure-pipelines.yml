@@ -5,47 +5,12 @@ trigger:
     - '*'
 
 jobs:
-
-- job: 'Test'
+- job: 'JSONL'
   strategy:
     matrix:
-      # Python27Linux:
-      #   imageName: 'ubuntu-16.04'
-      #   python.version: '2.7'
-      # Python27Mac:
-      #   imageName: 'macos-10.13'
-      #   python.version: '2.7'
-      # Python35Linux:
-      #   imageName: 'ubuntu-16.04'
-      #   python.version: '3.5'
-      # Python35Mac:
-      #   imageName: 'macos-10.13'
-      #   python.version: '3.5'
-      # Python36Linux:
-      #   imageName: 'ubuntu-16.04'
-      #   python.version: '3.6'
-      # Python36Mac:
-      #   imageName: 'macos-10.13'
-      #   python.version: '3.6'
-      # Python37Linux:
-      #   imageName: 'ubuntu-16.04'
-      #   python.version: '3.7'
-      # Python37Mac:
-      #   imageName: 'macos-10.13'
-      #   python.version: '3.7'
-      # Python38Linux:
-      #   imageName: 'ubuntu-16.04'
-      #   python.version: '3.8'
       Python38Windows:
-        imageName: 'vs2017-win2016'
-        python.version: '3.8'
-      # Python38Mac:
-      #   imageName: 'macos-10.13'
-      #   python.version: '3.8'
-    maxParallel: 4
-  pool:
-    vmImage: $(imageName)
-
+          imageName: 'windows-2019'
+          python.version: '3.8'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -53,33 +18,124 @@ jobs:
       architecture: 'x64'
 
   - script: |
-      source ./travis/before_install_linux.sh
-      before_install
-    condition: eq( variables['Agent.OS'], 'Linux')
-    displayName: 'Preinstall (Linux)'
+      git submodule update --init --recursive
+      cd flame-blis
+      set "CC=clang"
+      set "PATH=C:\msys64\mingw64\bin;C:\msys64\bin;%PATH%"
+      set "PATH=C:\Program Files\LLVM\bin;%PATH%"
+      set "AR=llvm-ar"
+      set "AS=llvm-as"
+      call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\vcvarsall.bat" amd64
+    displayName: 'Install'
 
   - script: |
-      python -m pip install --upgrade pip wheel
-      pip install -r requirements.txt
-    displayName: 'Install dependencies'
+      set RANLIB=echo
+      set LIBPTHREAD=
+      set "PATH=%PATH%;C:\blis\lib"
+      set "CFLAGS=-Wno-macro-redefined"
+      cd $(Build.SourcesDirectory)
+      cd flame-blis
+      bash -lc "ln -s $(Build.SourcesDirectory) /c/projects/cython-blis"
+      bash -lc "cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
+      bash -lc "cd /c/projects/cython-blis/flame-blis && mingw32-make -j4 > make.log"
+      bash -lc "mkdir -p /c/projects/cython-blis/blis/_src/include/windows-x86_64"
+      bash -lc "cd /c/projects/cython-blis && cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
+    displayName: 'Build'
 
-  - script: python setup.py bdist_wheel
-    displayName: 'Build wheel'
+  - task: CopyFiles@2
+    inputs:
+      contents: /c/projects/cython-blis/blis/_src/make/windows-x86_64.jsonl
+      targetFolder: $(Build.ArtifactStagingDirectory)
+      flattenFolders: true
+    displayName: 'Copy JSONL'
 
-  - script: |
-      choco install llvm
-      cd ..
-      bash -c "cp -r $(Agent.BuildDirectory) /c/build"
-      bash -lc "python -m pip install /c/build/dist/*.whl"
-    condition: eq( variables['Agent.OS'], 'Windows_NT')
-    displayName: 'Install wheel (Windows)'
+  - task: CopyFiles@2
+    inputs:
+      contents: /c/projects/cython-blis/flame-blis/include/x86_64/blis.h
+      targetFolder: $(Build.ArtifactStagingDirectory)
+      flattenFolders: true
+    displayName: 'Copy header'
 
-  - script: |
-      rm -rf blis*
-      python -m pip install dist/*.whl
-    condition: in( variables['Agent.OS'], 'Linux', 'Darwin')
-    displayName: 'Install wheel (Linux, Mac)'
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: $(Build.ArtifactStagingDirectory)
+      artifactName: data
+    displayName: 'Publish JSONL'
 
-  - script: |
-      python -m pytest --pyargs blis
-    displayName: 'Run tests'
+# - job: 'Test'
+#   strategy:
+#     matrix:
+#       # Python27Linux:
+#       #   imageName: 'ubuntu-16.04'
+#       #   python.version: '2.7'
+#       # Python27Mac:
+#       #   imageName: 'macos-10.13'
+#       #   python.version: '2.7'
+#       # Python35Linux:
+#       #   imageName: 'ubuntu-16.04'
+#       #   python.version: '3.5'
+#       # Python35Mac:
+#       #   imageName: 'macos-10.13'
+#       #   python.version: '3.5'
+#       # Python36Linux:
+#       #   imageName: 'ubuntu-16.04'
+#       #   python.version: '3.6'
+#       # Python36Mac:
+#       #   imageName: 'macos-10.13'
+#       #   python.version: '3.6'
+#       # Python37Linux:
+#       #   imageName: 'ubuntu-16.04'
+#       #   python.version: '3.7'
+#       # Python37Mac:
+#       #   imageName: 'macos-10.13'
+#       #   python.version: '3.7'
+#       # Python38Linux:
+#       #   imageName: 'ubuntu-16.04'
+#       #   python.version: '3.8'
+#       Python38Windows:
+#         imageName: 'vs2017-win2016'
+#         python.version: '3.8'
+#       # Python38Mac:
+#       #   imageName: 'macos-10.13'
+#       #   python.version: '3.8'
+#     maxParallel: 4
+#   pool:
+#     vmImage: $(imageName)
+
+#   steps:
+#   - task: UsePythonVersion@0
+#     inputs:
+#       versionSpec: '$(python.version)'
+#       architecture: 'x64'
+
+#   - script: |
+#       source ./travis/before_install_linux.sh
+#       before_install
+#     condition: eq( variables['Agent.OS'], 'Linux')
+#     displayName: 'Preinstall (Linux)'
+
+#   - script: |
+#       python -m pip install --upgrade pip wheel
+#       pip install -r requirements.txt
+#     displayName: 'Install dependencies'
+
+#   - script: python setup.py bdist_wheel
+#     displayName: 'Build wheel'
+
+#   - script: |
+#       choco install llvm
+#       cd ..
+#       bash -c "cp -r $(Agent.BuildDirectory) /c/build"
+#       bash -lc "python -m pip install /c/build/dist/*.whl"
+#     condition: eq( variables['Agent.OS'], 'Windows_NT')
+#     displayName: 'Install wheel (Windows)'
+
+#   - script: |
+#       rm -rf blis*
+#       python -m pip install dist/*.whl
+#     condition: in( variables['Agent.OS'], 'Linux', 'Darwin')
+#     displayName: 'Install wheel (Linux, Mac)'
+
+#   - script: |
+#       python -m pytest --pyargs blis
+#     displayName: 'Run tests'
