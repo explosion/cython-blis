@@ -33,6 +33,7 @@ jobs:
       set "AR=llvm-ar"
       set "AS=llvm-as"
       git submodule update --init --recursive
+      call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
       bash -lc "mkdir -p /output/lib"
       cd $(Build.SourcesDirectory)/flame-blis
       bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --prefix=/output x86_64 && make"
