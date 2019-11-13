@@ -14,52 +14,49 @@ jobs:
   pool:
     vmImage: 'vs2017-win2016'
   steps:
-  - script: git submodule update --init --recursive
-    displayName: 'Install'
-
-  - task: CopyFiles@2
-    inputs:
-      targetFolder: /output
-    displayName: 'Copy files to root'
-
   - script: |
       set RANLIB=echo
       set LIBPTHREAD=
-      set "PATH=%PATH%;C:\blis\lib"
+      set "PATH=%PATH%;$(Build.SourcesDirectory)\blis\lib"
       set "CFLAGS=-Wno-macro-redefined"
       set "CC=clang"
       set "PATH=C:\msys64\mingw64\bin;C:\msys64\bin;%PATH%"
       set "PATH=C:\Program Files\LLVM\bin;%PATH%"
       set "AR=llvm-ar"
       set "AS=llvm-as"
+      git submodule update --init --recursive
       call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
-      cd /output/flame-blis
-      bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/output/blis x86_64"
+      cd flame-blis
+      cd $(Build.SourcesDirectory)
+      cd flame-blis
+      bash -lc "mkdir $(Build.SourcesDirectory)/output"
+      bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=$(Build.SourcesDirectory)/output x86_64"
       echo Configured
       bash -lc "mingw32-make -j4 > make.log"
       echo Finished make.log
       cd ..
       bash -lc "cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
       echo Done
+      ls $(Build.SourcesDirectory)/flame-blis/include/x86_64
     displayName: 'Build'
 
   - task: CopyFiles@2
     inputs:
-      contents: /output/blis/_src/make/windows-x86_64.jsonl
+      contents: $(Build.SourcesDirectory)/blis/_src/make/windows-x86_64.jsonl
       targetFolder: $(Build.ArtifactStagingDirectory)
       flattenFolders: true
     displayName: 'Copy JSONL'
 
   - task: CopyFiles@2
     inputs:
-      contents: /output/flame-blis/make.log
+      contents: $(Build.SourcesDirectory)/flame-blis/make.log
       targetFolder: $(Build.ArtifactStagingDirectory)
       flattenFolders: true
     displayName: 'Copy make.log'
 
   - task: CopyFiles@2
     inputs:
-      contents: /output/flame-blis/include/x86_64/blis.h
+      contents: $(Build.SourcesDirectory)/flame-blis/include/x86_64/blis.h
       targetFolder: $(Build.ArtifactStagingDirectory)
       flattenFolders: true
     displayName: 'Copy header'
