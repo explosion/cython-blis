@@ -9,9 +9,9 @@ jobs:
   strategy:
     matrix:
       Windows:
-          imageName: 'vs2017-win2016'
+          imageName: 'windows-2019'
   steps:
-  - script: |
+  - powershell: |
       git submodule update --init --recursive
       cd flame-blis
       set "CC=clang"
@@ -19,14 +19,8 @@ jobs:
       set "PATH=C:\Program Files\LLVM\bin;%PATH%"
       set "AR=llvm-ar"
       set "AS=llvm-as"
+      call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
     displayName: 'Install'
-
-  - task: BatchScript@1
-    inputs:
-      filename: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
-      arguments: amd64
-      failOnStandardError: true
-    displayName: vcvarsall.bat
 
   - script: |
       set RANLIB=echo
