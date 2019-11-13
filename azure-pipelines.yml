@@ -24,6 +24,7 @@ jobs:
       set "PATH=C:\Program Files\LLVM\bin;%PATH%"
       set "AR=llvm-ar"
       set "AS=llvm-as"
+      echo %PATH%
       git submodule update --init --recursive
       call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
       cd flame-blis
