@@ -8,15 +8,9 @@ jobs:
 - job: 'JSONL'
   strategy:
     matrix:
-      Python38Windows:
-          imageName: 'windows-2019'
-          python.version: '3.8'
+      Windows:
+          imageName: 'vs2017-win2016'
   steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '$(python.version)'
-      architecture: 'x64'
-
   - script: |
       git submodule update --init --recursive
       cd flame-blis
