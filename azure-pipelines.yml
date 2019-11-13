@@ -28,14 +28,9 @@ jobs:
       git submodule update --init --recursive
       call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
       bash -lc "mkdir $BUILD_SOURCESDIRECTORY/output"
-      cd $(Build.SourcesDirectory)/flame-blis
-      bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=$BUILD_SOURCESDIRECTORY/output x86_64"
-      echo Configured
-      make > make.log
-      echo Finished make.log
-      cd ..
-      bash -lc "cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
-      echo Done
+      bash -lc "cd $BUILD_SOURCESDIRECTORY/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=$BUILD_SOURCESDIRECTORY/output x86_64"
+      bash -lc "cd $BUILD_SOURCESDIRECTORY/flame-blis && mingw32-make -j4 > make.log"
+      bash -lc "cd $BUILD_SOURCESDIRECTORY && cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
       ls $(Build.SourcesDirectory)/flame-blis/include/x86_64
     displayName: 'Build'
 
