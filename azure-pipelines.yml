@@ -38,9 +38,8 @@ jobs:
       echo Finished make.log
       cd ..
       bash -lc "cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
-      ls flame-blis
       echo Done
-      ls $(Build.SourcesDirectory)/flame-blis/include/x86_64/
+      ls $(Build.SourcesDirectory)/flame-blis/include
     displayName: 'Build'
 
   - task: CopyFiles@2
@@ -49,6 +48,13 @@ jobs:
       targetFolder: $(Build.ArtifactStagingDirectory)
       flattenFolders: true
     displayName: 'Copy JSONL'
+
+  - task: CopyFiles@2
+    inputs:
+      contents: $(Build.SourcesDirectory)/flame-blis/make.log
+      targetFolder: $(Build.ArtifactStagingDirectory)
+      flattenFolders: true
+    displayName: 'Copy make.log'
 
   - task: CopyFiles@2
     inputs:
