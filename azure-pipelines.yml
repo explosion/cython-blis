@@ -37,7 +37,8 @@ jobs:
       bash -lc "mingw32-make -j4 > make.log"
       echo Finished make.log
       cd ..
-      cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
+      ls
+      bash -lc "cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
       echo Done
     displayName: 'Build'
 
