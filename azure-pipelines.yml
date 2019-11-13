@@ -18,6 +18,7 @@ jobs:
     # set LIBPTHREAD=
     # set "PATH=C:\msys64\mingw64\bin;C:\msys64\bin;%PATH%"
     # set "PATH=C:\Program Files\LLVM\bin;%PATH%"
+    # set "CC=clang"
     # set "AR=llvm-ar"
     # set "AS=llvm-as"
     # call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
@@ -29,9 +30,6 @@ jobs:
       set "PATH=C:\Program Files\LLVM\bin;%PATH%"
       set "PATH=%PATH%;\output\lib"
       set "CFLAGS=-Wno-macro-redefined"
-      set "CC=clang"
-      set "AR=llvm-ar"
-      set "AS=llvm-as"
       git submodule update --init --recursive
       call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
       bash -lc "mkdir -p /output/lib"
