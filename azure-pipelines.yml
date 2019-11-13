@@ -4,8 +4,13 @@ trigger:
     include:
     - '*'
 
+variables:
+  # Change this to generate JSONL / headers instead of running a normal build
+  generate_jsonl: true
+
 jobs:
 - job: 'JSONL'
+  condition: eq(variables['generate_jsonl'], 'true')
   pool:
     vmImage: 'vs2017-win2016'
   steps:
@@ -42,7 +47,7 @@ jobs:
 
   - task: CopyFiles@2
     inputs:
-      contents: $(Build.SourcesDirectory)/blis/flame-blis/include/x86_64/blis.h
+      contents: $(Build.SourcesDirectory)/flame-blis/include/x86_64/blis.h
       targetFolder: $(Build.ArtifactStagingDirectory)
       flattenFolders: true
     displayName: 'Copy header'
@@ -53,80 +58,81 @@ jobs:
       artifactName: data
     displayName: 'Publish JSONL'
 
-# - job: 'Test'
-#   strategy:
-#     matrix:
-#       # Python27Linux:
-#       #   imageName: 'ubuntu-16.04'
-#       #   python.version: '2.7'
-#       # Python27Mac:
-#       #   imageName: 'macos-10.13'
-#       #   python.version: '2.7'
-#       # Python35Linux:
-#       #   imageName: 'ubuntu-16.04'
-#       #   python.version: '3.5'
-#       # Python35Mac:
-#       #   imageName: 'macos-10.13'
-#       #   python.version: '3.5'
-#       # Python36Linux:
-#       #   imageName: 'ubuntu-16.04'
-#       #   python.version: '3.6'
-#       # Python36Mac:
-#       #   imageName: 'macos-10.13'
-#       #   python.version: '3.6'
-#       # Python37Linux:
-#       #   imageName: 'ubuntu-16.04'
-#       #   python.version: '3.7'
-#       # Python37Mac:
-#       #   imageName: 'macos-10.13'
-#       #   python.version: '3.7'
-#       # Python38Linux:
-#       #   imageName: 'ubuntu-16.04'
-#       #   python.version: '3.8'
-#       Python38Windows:
-#         imageName: 'vs2017-win2016'
-#         python.version: '3.8'
-#       # Python38Mac:
-#       #   imageName: 'macos-10.13'
-#       #   python.version: '3.8'
-#     maxParallel: 4
-#   pool:
-#     vmImage: $(imageName)
+- job: 'Test'
+  condition: neq(variables['generate_jsonl'], 'true')
+  strategy:
+    matrix:
+      # Python27Linux:
+      #   imageName: 'ubuntu-16.04'
+      #   python.version: '2.7'
+      # Python27Mac:
+      #   imageName: 'macos-10.13'
+      #   python.version: '2.7'
+      # Python35Linux:
+      #   imageName: 'ubuntu-16.04'
+      #   python.version: '3.5'
+      # Python35Mac:
+      #   imageName: 'macos-10.13'
+      #   python.version: '3.5'
+      # Python36Linux:
+      #   imageName: 'ubuntu-16.04'
+      #   python.version: '3.6'
+      # Python36Mac:
+      #   imageName: 'macos-10.13'
+      #   python.version: '3.6'
+      # Python37Linux:
+      #   imageName: 'ubuntu-16.04'
+      #   python.version: '3.7'
+      # Python37Mac:
+      #   imageName: 'macos-10.13'
+      #   python.version: '3.7'
+      # Python38Linux:
+      #   imageName: 'ubuntu-16.04'
+      #   python.version: '3.8'
+      Python38Windows:
+        imageName: 'vs2017-win2016'
+        python.version: '3.8'
+      # Python38Mac:
+      #   imageName: 'macos-10.13'
+      #   python.version: '3.8'
+    maxParallel: 4
+  pool:
+    vmImage: $(imageName)
 
-#   steps:
-#   - task: UsePythonVersion@0
-#     inputs:
-#       versionSpec: '$(python.version)'
-#       architecture: 'x64'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+      architecture: 'x64'
 
-#   - script: |
-#       source ./travis/before_install_linux.sh
-#       before_install
-#     condition: eq( variables['Agent.OS'], 'Linux')
-#     displayName: 'Preinstall (Linux)'
+  - script: |
+      source ./travis/before_install_linux.sh
+      before_install
+    condition: eq( variables['Agent.OS'], 'Linux')
+    displayName: 'Preinstall (Linux)'
 
-#   - script: |
-#       python -m pip install --upgrade pip wheel
-#       pip install -r requirements.txt
-#     displayName: 'Install dependencies'
+  - script: |
+      python -m pip install --upgrade pip wheel
+      pip install -r requirements.txt
+    displayName: 'Install dependencies'
 
-#   - script: python setup.py bdist_wheel
-#     displayName: 'Build wheel'
+  - script: python setup.py bdist_wheel
+    displayName: 'Build wheel'
 
-#   - script: |
-#       choco install llvm
-#       cd ..
-#       bash -c "cp -r $(Agent.BuildDirectory) /c/build"
-#       bash -lc "python -m pip install /c/build/dist/*.whl"
-#     condition: eq( variables['Agent.OS'], 'Windows_NT')
-#     displayName: 'Install wheel (Windows)'
+  - script: |
+      choco install llvm
+      cd ..
+      bash -c "cp -r $(Agent.BuildDirectory) /c/build"
+      bash -lc "python -m pip install /c/build/dist/*.whl"
+    condition: eq( variables['Agent.OS'], 'Windows_NT')
+    displayName: 'Install wheel (Windows)'
 
-#   - script: |
-#       rm -rf blis*
-#       python -m pip install dist/*.whl
-#     condition: in( variables['Agent.OS'], 'Linux', 'Darwin')
-#     displayName: 'Install wheel (Linux, Mac)'
+  - script: |
+      rm -rf blis*
+      python -m pip install dist/*.whl
+    condition: in( variables['Agent.OS'], 'Linux', 'Darwin')
+    displayName: 'Install wheel (Linux, Mac)'
 
-#   - script: |
-#       python -m pytest --pyargs blis
-#     displayName: 'Run tests'
+  - script: |
+      python -m pytest --pyargs blis
+    displayName: 'Run tests'
