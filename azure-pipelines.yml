@@ -23,9 +23,15 @@ jobs:
     # call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
     # bash -lc "cd $BUILD_SOURCESDIRECTORY/flame-blis && make"
   - script: |
+      set RANLIB=echo
+      set LIBPTHREAD=
+      set "PATH=C:\msys64\mingw64\bin;C:\msys64\bin;%PATH%"
+      set "PATH=C:\Program Files\LLVM\bin;%PATH%"
       set "PATH=%PATH%;\output\lib"
       set "CFLAGS=-Wno-macro-redefined"
       set "CC=clang"
+      set "AR=llvm-ar"
+      set "AS=llvm-as"
       echo %PATH%
       git submodule update --init --recursive
       bash -lc "mkdir /output"
