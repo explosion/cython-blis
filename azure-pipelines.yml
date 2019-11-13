@@ -37,9 +37,10 @@ jobs:
       bash -lc "mingw32-make -j4 > make.log"
       echo Finished make.log
       cd ..
-      ls
       bash -lc "cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
+      ls flame-blis
       echo Done
+      ls $(Build.SourcesDirectory)/flame-blis/include/x86_64/
     displayName: 'Build'
 
   - task: CopyFiles@2
