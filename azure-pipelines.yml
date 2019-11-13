@@ -17,7 +17,7 @@ jobs:
   - script: |
       set RANLIB=echo
       set LIBPTHREAD=
-      set "PATH=%PATH%;%BUILD_SOURCESDIRECTORY%\blis\lib"
+      set "PATH=%PATH%;%BUILD_SOURCESDIRECTORY%\output\blis\lib"
       set "CFLAGS=-Wno-macro-redefined"
       set "CC=clang"
       set "PATH=C:\msys64\mingw64\bin;C:\msys64\bin;%PATH%"
@@ -27,8 +27,8 @@ jobs:
       echo %PATH%
       git submodule update --init --recursive
       call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
-      bash -lc "cd $BUILD_SOURCESDIRECTORY/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack x86_64"
-      bash -lc "cd $BUILD_SOURCESDIRECTORY/flame-blis && chmod a+rx *"
+      bash -lc "mkdir $BUILD_SOURCESDIRECTORY/output"
+      bash -lc "cd $BUILD_SOURCESDIRECTORY/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=$BUILD_SOURCESDIRECTORY/output x86_64"
       bash -lc "cd $BUILD_SOURCESDIRECTORY/flame-blis && mingw32-make -j4 > make.log"
       bash -lc "cd $BUILD_SOURCESDIRECTORY && cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
       ls $(Build.SourcesDirectory)/flame-blis/include/x86_64
