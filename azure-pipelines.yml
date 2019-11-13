@@ -25,8 +25,14 @@ jobs:
       set "PATH=C:\Program Files\LLVM\bin;%PATH%"
       set "AR=llvm-ar"
       set "AS=llvm-as"
-      "%ProgramFiles(x86)%\Microsoft Visual Studio\2017\Enterprise\VC\vcvarsall.bat" amd64
     displayName: 'Install'
+
+  - task: BatchScript@1
+    inputs:
+      filename: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
+      arguments: amd64
+      failOnStandardError: true
+    displayName: vcvarsall.bat
 
   - script: |
       set RANLIB=echo
