@@ -7,7 +7,6 @@ routines as a self-contained Python C-extension.
 
 Currently, we only supports single-threaded execution, as this is actually best for our workloads (ML inference).
 
-[![Travis](https://img.shields.io/travis/explosion/cython-blis/master.svg?style=flat-square&logo=travis)](https://travis-ci.org/explosion/cython-blis)
 [![Appveyor](https://img.shields.io/appveyor/ci/explosion/cython-blis/master.svg?style=flat-square&logo=appveyor)](https://ci.appveyor.com/project/explosion/cython-blis)
 [![pypi Version](https://img.shields.io/pypi/v/blis.svg?style=flat-square)](https://pypi.python.org/pypi/blis)
 [![conda](https://img.shields.io/conda/vn/conda-forge/cython-blis.svg?style=flat-square)](https://anaconda.org/conda-forge/cython-blis)
