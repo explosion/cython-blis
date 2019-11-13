@@ -59,7 +59,7 @@ jobs:
     displayName: 'Publish JSONL'
 
 - job: 'Test'
-  condition: neq(variables['generate_jsonl'], 'true')
+  condition: eq(variables['generate_jsonl'], 'false')
   strategy:
     matrix:
       # Python27Linux:
