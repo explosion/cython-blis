@@ -17,7 +17,7 @@ jobs:
   - script: |
       set RANLIB=echo
       set LIBPTHREAD=
-      set "PATH=%PATH%;$(Build.SourcesDirectory)\blis\lib"
+      set "PATH=%PATH%;%BUILD_SOURCESDIRECTORY%\blis\lib"
       set "CFLAGS=-Wno-macro-redefined"
       set "CC=clang"
       set "PATH=C:\msys64\mingw64\bin;C:\msys64\bin;%PATH%"
@@ -29,8 +29,8 @@ jobs:
       cd flame-blis
       cd $(Build.SourcesDirectory)
       cd flame-blis
-      bash -lc "mkdir $(Build.SourcesDirectory)/output"
-      bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=$(Build.SourcesDirectory)/output x86_64"
+      bash -lc "mkdir %BUILD_SOURCESDIRECTORY%/output"
+      bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=%BUILD_SOURCESDIRECTORY%/output x86_64"
       echo Configured
       bash -lc "mingw32-make -j4 > make.log"
       echo Finished make.log
