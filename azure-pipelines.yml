@@ -36,6 +36,7 @@ jobs:
       set "AS=llvm-as"
       git submodule update --init --recursive
       cd flame-blis
+      choco install llvm
       call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
       bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/output x86_64 && mingw32-make -j4"
       :: bash -lc "cd $BUILD_SOURCESDIRECTORY && cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
