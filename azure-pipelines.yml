@@ -29,7 +29,8 @@ jobs:
       echo %PATH%
       git submodule update --init --recursive
       bash -lc "mkdir $BUILD_SOURCESDIRECTORY/output"
-      bash -lc "cd $BUILD_SOURCESDIRECTORY/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=$BUILD_SOURCESDIRECTORY/output x86_64 && make"
+      cd $(Build.SourcesDirectory)/flame-blis
+      bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --prefix=$BUILD_SOURCESDIRECTORY/output x86_64 && make"
       :: bash -lc "cd $BUILD_SOURCESDIRECTORY && cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
       :: ls $(Build.SourcesDirectory)/flame-blis/include/x86_64
     displayName: 'Build'
