@@ -27,8 +27,8 @@ jobs:
       set "CFLAGS=-Wno-macro-redefined"
       cd $(Build.SourcesDirectory)
       cd flame-blis
-      ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64
-      mingw32-make -j4 > make.log
+      bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
+      bash -lc "mingw32-make -j4 > make.log"
       cd ..
       cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
     displayName: 'Build'
