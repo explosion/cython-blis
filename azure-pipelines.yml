@@ -31,8 +31,8 @@ jobs:
       cd $(Build.SourcesDirectory)/flame-blis
       bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=$BUILD_SOURCESDIRECTORY/output x86_64"
       echo Configured
-      ls
       cd $(Build.SourcesDirectory)/flame-blis
+      ls
       mingw32-make -j4 > make.log
       echo Finished make.log
       cd ..
