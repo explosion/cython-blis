@@ -140,10 +140,10 @@ disappointing that it's so much slower than equivalent calls to `tensordot`
 in numpy. The `blis.einsum` function gives up the numpy version's generality,
 so that calls can be easily mapped to Blis:
 
--   Only two input tensors
--   Maximum two dimensions
--   Dimensions must be labelled `a`, `b` and `c`
--   The first argument's dimensions must be `'a'` (for 1d inputs) or `'ab'` (for 2d inputs).
+- Only two input tensors
+- Maximum two dimensions
+- Dimensions must be labelled `a`, `b` and `c`
+- The first argument's dimensions must be `'a'` (for 1d inputs) or `'ab'` (for 2d inputs).
 
 With these restrictions, there are ony 15 valid combinations – which
 correspond to all the things you would otherwise do with the `gemm`, `gemv`,
