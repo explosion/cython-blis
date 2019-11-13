@@ -34,8 +34,8 @@ jobs:
       cd flame-blis
       bash -lc "./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
       echo Configured
-      bash -lc "eval $(mingw32-make -j4) > make.log"
-      echo Finished make
+      make
+      echo Finished make.log
       cd ..
       bash -lc "cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
       echo Done
