@@ -17,7 +17,7 @@ jobs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
 
-  - script: |
+  - powershell: |
       git submodule update --init --recursive
       cd flame-blis
       set "CC=clang"
