@@ -45,7 +45,7 @@ jobs:
       bash -lc "mkdir -p /d/projects"
       bash -lc "ln -s $BUILD_SOURCESDIRECTORY /d/projects/cython-blis"
       bash -lc "cd /d/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/d/blis x86_64"
-      bash -lc "cd /d/projects/cython-blis/flame-blis && mingw32-make -j4 > make.log"
+      bash -lc "cd /d/projects/cython-blis/flame-blis && mingw32-make -j4"
       bash -lc "mkdir -p /d/projects/cython-blis/blis/_src/include/windows-x86_64"
       bash -lc "cd /d/projects/cython-blis && cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
       bash -lc "cp /d/projects/cython-blis/flame-blis/include/x86_64/blis.h /d/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h"
