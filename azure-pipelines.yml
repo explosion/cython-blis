@@ -20,8 +20,8 @@ jobs:
     # https://github.com/conda-forge/blis-feedstock/blob/master/recipe/build.sh
     - bash: |
         set -e
-        ls "/c/Program Files"
-        ls "/c/Program Files/LLVM/bin"
+        ls "/c/Program Files (x86)"
+        ls "/c/Program Files (x86)/LLVM/bin"
         git submodule update --init --recursive
         cd flame-blis
         export MSYSTEM=MINGW$(arch)
