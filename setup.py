@@ -198,13 +198,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         command.extend(macros)
         command.extend(include)
         print("[COMMAND]", " ".join(command))
-        try:
-            kwargs = {"cwd": BLIS_DIR, "check": True}
-            if sys.version_info[0] == 3 and sys.version_info[1] > 6:
-                kwargs["capture_output"] = True
-            subprocess.run(command, **kwargs)
-        except Exception as err:
-            raise ValueError(getattr(err, "stderr", err))
+        # TODO: change this to subprocess.run etc. once we drop 2.7
+        subprocess.check_call(command, cwd=BLIS_DIR)
         return target
 
 
