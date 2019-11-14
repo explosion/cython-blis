@@ -129,6 +129,10 @@ jobs:
     condition: eq( variables['Agent.OS'], 'Linux')
     displayName: 'Preinstall (Linux)'
 
+  - script: choco install llvm
+    condition: eq( variables['Agent.OS'], 'Windows_NT')
+    displayName: 'Preinstall (Windows)'
+
   - script: |
       python -m pip install --upgrade pip wheel
       pip install -r requirements.txt
@@ -137,19 +141,10 @@ jobs:
   - script: python setup.py bdist_wheel
     displayName: 'Build wheel'
 
-  - script: |
-      choco install llvm
-      cd ..
-      bash -c "cp -r $(Agent.BuildDirectory) /c/build"
-      bash -lc "python -m pip install /c/build/dist/*.whl"
-    condition: eq( variables['Agent.OS'], 'Windows_NT')
-    displayName: 'Install wheel (Windows)'
-
-  - script: |
+  - bash: |
       rm -rf blis*
       python -m pip install dist/*.whl
-    condition: in( variables['Agent.OS'], 'Linux', 'Darwin')
-    displayName: 'Install wheel (Linux, Mac)'
+    displayName: 'Install wheel'
 
   - script: |
       python -m pytest --pyargs blis
