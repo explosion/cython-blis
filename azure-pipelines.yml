@@ -26,6 +26,7 @@ jobs:
   #   AR: llvm-ar
   steps:
     - script: |
+        ls $(conda)\Library\bin
         $(conda)\Scripts\conda.exe install -c conda-forge clangdev llvmdev posix m2-sed perl
         ls $(conda)\Library\bin
         git submodule update --init --recursive
