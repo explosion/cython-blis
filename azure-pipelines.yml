@@ -26,6 +26,7 @@ jobs:
     AR: llvm-ar.exe
   steps:
     - bash: |
+        # choco install llvm
         git submodule update --init --recursive
       displayName: 'Install'
 
@@ -39,7 +40,8 @@ jobs:
     - bash: |
         set -e
         cd flame-blis
-        ls "/c/Program Files/LLVM/bin"
+        ls "/c/Program Files"
+        ls "/c/Program Files (x86)"
         export PATH="/c/Program Files/LLVM/bin:$PATH"
         clang.exe --version
         llvm-ar.exe --version
