@@ -14,18 +14,17 @@ jobs:
   pool:
     vmImage: 'vs2017-win2016'
   steps:
-  - script: |
-    git submodule update --init --recursive
-    cp azure_files/build.sh flame-blis
-    cd flame-blis
-    set MSYSTEM=MINGW%ARCH%
-    set MSYS2_PATH_TYPE=inherit
-    set CHERE_INVOKING=1
-    FOR /F "delims=" %%i in ('cygpath.exe -u "%PREFIX%"') DO set "PREFIX=%%i"
-    FOR /F "delims=" %%i in ('cygpath.exe -u "%BUILD_PREFIX%"') DO set "BUILD_PREFIX=%%i"
-    bash -lce "./build.sh"
-    if errorlevel 1 exit 1
-  displayName: 'Build'
+    - script: |
+        git submodule update --init --recursive
+        cp azure_files/build.sh flame-blis
+        cd flame-blis
+        set MSYSTEM=MINGW%ARCH%
+        set MSYS2_PATH_TYPE=inherit
+        set CHERE_INVOKING=1
+        FOR /F "delims=" %%i in ('cygpath.exe -u "%PREFIX%"') DO set "PREFIX=%%i"
+        FOR /F "delims=" %%i in ('cygpath.exe -u "%BUILD_PREFIX%"') DO set "BUILD_PREFIX=%%i"
+        bash -lce "./build.sh"
+      displayName: 'Build'
 
   - task: CopyFiles@2
     inputs:
