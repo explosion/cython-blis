@@ -6,7 +6,7 @@ trigger:
 
 variables:
   # Change this to generate JSONL / headers instead of running a normal build
-  generate_jsonl: true
+  generate_jsonl: false
 
 jobs:
 - job: 'JSONL'
