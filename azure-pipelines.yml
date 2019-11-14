@@ -23,9 +23,12 @@ jobs:
         git submodule update --init --recursive
         cd flame-blis
         export MSYSTEM=MINGW$(arch)
-        echo $MSYSTEM
         export MSYS2_PATH_TYPE=inherit
         export CHERE_INVOKING=1
+        echo Prefix
+        echo $PREFIX
+        echo Build Prefix
+        echo $BUILD_PREFIX
         export PREFIX=/
         export BUILD_PREFIX=/
         export PATH="$PREFIX/Library/bin:$BUILD_PREFIX/Library/bin:$PATH"
