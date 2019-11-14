@@ -19,7 +19,8 @@ jobs:
     # Script based on:
     # https://github.com/conda-forge/blis-feedstock/blob/master/recipe/build.sh
     - bash: |
-        conda install clangdev llvmdev posix m2-sed perl
+        ls $CONDA
+        $CONDA/bin/conda install clangdev llvmdev posix m2-sed perl
         git submodule update --init --recursive
       displayName: 'Install'
     - bash: |
