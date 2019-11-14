@@ -67,8 +67,13 @@ jobs:
     displayName: 'Install dependencies'
 
   - script: |
+      # Set the correct paths and includes. Only the env variables set here are
+      # used, not the ones defined in the .jsonl.
       set "PATH=C:\Program Files\LLVM\bin;%PATH%"
       set "INCLUDE=C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.16.27023\include"
+      set "INCLUDE=%INCLUDE%;C:\Program Files (x86)\Windows Kits\10\include\14.16.27023\ucrt"
+      ls "C:\Program Files (x86)\Windows Kits"
+      ls "C:\Program Files (x86)\Windows Kits\10\include"
       clang --version
       python setup.py bdist_wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
