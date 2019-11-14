@@ -2,8 +2,6 @@
 set -e
 
 # https://github.com/conda-forge/blis-feedstock/blob/master/recipe/build.sh
-export PREFIX=$BUILD_SOURCESDIRECTORY/flame-blis
-export BUILD_PREFIX=$BUILD_SOURCESDIRECTORY/flame-blis
 export PATH="$PREFIX/Library/bin:$BUILD_PREFIX/Library/bin:$PATH"
 export CC=clang
 export RANLIB=echo
