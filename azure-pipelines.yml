@@ -70,10 +70,8 @@ jobs:
   # used, not the ones defined in the .jsonl.
   - script: |
       set "PATH=C:\Program Files\LLVM\bin;%PATH%"
-      set "INCLUDE=C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.16.27023\include"
-      set "INCLUDE=%INCLUDE%;C:\Program Files (x86)\Windows Kits\10\include\10.0.17763.0\ucrt"
-      set "INCLUDE=%INCLUDE%;C:\Program Files (x86)\Windows Kits\10\include\10.0.17763.0\shared"
-      set "INCLUDE=%INCLUDE%;C:\Program Files (x86)\Windows Kits\10\include\10.0.17763.0\winrt"
+      set "INCLUDE=%$VC_INCLUDEPATH%"
+      echo %$VC_INCLUDEPATH%
       clang --version
       python setup.py bdist_wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
