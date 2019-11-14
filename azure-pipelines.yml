@@ -138,7 +138,7 @@ jobs:
       pip install -r requirements.txt
     displayName: 'Install dependencies'
 
-  - script: python setup.py bdist_wheel
+  - bash: python setup.py bdist_wheel
     displayName: 'Build wheel'
 
   - bash: |
