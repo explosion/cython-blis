@@ -23,8 +23,8 @@ jobs:
         export MSYSTEM=MINGW$(arch)
         export MSYS2_PATH_TYPE=inherit
         export CHERE_INVOKING=1
-        export PREFIX=$(Build.SourcesDirectory)/flame-blis
-        export BUILD_PREFIX=$(Build.SourcesDirectory)/flame-blis
+        export PREFIX=$BUILD_SOURCESDIRECTORY/flame-blis
+        export BUILD_PREFIX=$BUILD_SOURCESDIRECTORY/flame-blis
         echo $PREFIX
         ./build.sh
       displayName: 'Build'
