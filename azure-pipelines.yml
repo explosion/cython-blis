@@ -5,21 +5,17 @@ trigger:
     - '*'
 
 jobs:
-
 - job: 'Test'
   strategy:
     matrix:
-      Python27Linux:
-        imageName: 'ubuntu-16.04'
-        python.version: '2.7'
-      Python27Mac:
-        imageName: 'macos-10.13'
-        python.version: '2.7'
       Python35Linux:
         imageName: 'ubuntu-16.04'
         python.version: '3.5'
       Python35Mac:
         imageName: 'macos-10.13'
+        python.version: '3.5'
+      Python35Windows:
+        imageName: 'vs2017-win2016'
         python.version: '3.5'
       Python36Linux:
         imageName: 'ubuntu-16.04'
@@ -27,20 +23,26 @@ jobs:
       Python36Mac:
         imageName: 'macos-10.13'
         python.version: '3.6'
+      Python36Windows:
+        imageName: 'vs2017-win2016'
+        python.version: '3.6'
       Python37Linux:
         imageName: 'ubuntu-16.04'
         python.version: '3.7'
       Python37Mac:
         imageName: 'macos-10.13'
         python.version: '3.7'
+      Python37Windows:
+        imageName: 'vs2017-win2016'
+        python.version: '3.7'
       Python38Linux:
         imageName: 'ubuntu-16.04'
         python.version: '3.8'
-      # Python38Windows:
-      #   imageName: 'vs2017-win2016'
-      #   python.version: '3.8'
       Python38Mac:
         imageName: 'macos-10.13'
+        python.version: '3.8'
+      Python38Windows:
+        imageName: 'vs2017-win2016'
         python.version: '3.8'
     maxParallel: 4
   pool:
@@ -52,33 +54,47 @@ jobs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
 
-  - script: |
-      source ./travis/before_install_linux.sh
-      before_install
-    condition: eq( variables['Agent.OS'], 'Linux')
-    displayName: 'Preinstall (Linux)'
+  - script: choco install llvm
+    condition: eq( variables['Agent.OS'], 'Windows_NT')
+    displayName: 'Preinstall (Windows)'
 
   - script: |
       python -m pip install --upgrade pip wheel
       pip install -r requirements.txt
     displayName: 'Install dependencies'
 
-  - script: python setup.py bdist_wheel
-    displayName: 'Build wheel'
-
+  # Set the correct paths and includes. Only the env variables set here are
+  # used, not the ones defined in the .jsonl.
   - script: |
-      choco install llvm
-      cd ..
-      bash -c "cp -r $(Agent.BuildDirectory) /c/build"
-      bash -lc "python -m pip install /c/build/dist/*.whl"
+      set "PATH=C:\Program Files\LLVM\bin;%PATH%"
+      set "INCLUDE=%$VC_INCLUDEPATH%"
+      clang --version
+      python setup.py bdist_wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
-    displayName: 'Install wheel (Windows)'
+    displayName: 'Build wheel (Windows)'
 
-  - script: |
+  - script: python setup.py bdist_wheel
+    condition: or(eq(variables['Agent.OS'], 'Linux'), eq(variables['Agent.OS'], 'Darwin'))
+    displayName: 'Build wheel (Linux / Mac)'
+
+  - task: PythonScript@0
+    inputs:
+      scriptSource: inline
+      script: |
+        # https://github.com/pypa/pip/issues/6951
+        import os
+        wheel_file = os.listdir('./dist')[0]
+        wheel_path = os.path.join('./dist', wheel_file)
+        os.rename(wheel_path, wheel_path.replace("cp38m-win", "cp38-win"))
+        print(os.listdir('./dist'))
+      failOnStderr: true
+    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['python.version'], '3.8'))
+    displayName: Fix wheel name (Windows, Python 3.8)
+
+  - bash: |
       rm -rf blis*
       python -m pip install dist/*.whl
-    condition: in( variables['Agent.OS'], 'Linux', 'Darwin')
-    displayName: 'Install wheel (Linux, Mac)'
+    displayName: 'Install wheel'
 
   - script: |
       python -m pytest --pyargs blis

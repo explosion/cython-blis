@@ -7,7 +7,7 @@ routines as a self-contained Python C-extension.
 
 Currently, we only supports single-threaded execution, as this is actually best for our workloads (ML inference).
 
-[![Appveyor](https://img.shields.io/appveyor/ci/explosion/cython-blis/master.svg?style=flat-square&logo=appveyor)](https://ci.appveyor.com/project/explosion/cython-blis)
+[![Azure Pipelines](https://img.shields.io/azure-devops/build/explosion-ai/public/6/master.svg?logo=azure-pipelines&style=flat-square)](https://dev.azure.com/explosion-ai/public/_build?definitionId=6)
 [![pypi Version](https://img.shields.io/pypi/v/blis.svg?style=flat-square)](https://pypi.python.org/pypi/blis)
 [![conda](https://img.shields.io/conda/vn/conda-forge/cython-blis.svg?style=flat-square)](https://anaconda.org/conda-forge/cython-blis)
 [![Python wheels](https://img.shields.io/badge/wheels-%E2%9C%93-4c1.svg?longCache=true&style=flat-square&logo=python&logoColor=white)](https://github.com/explosion/wheelwright/releases)
