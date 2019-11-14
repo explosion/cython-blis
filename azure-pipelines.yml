@@ -16,17 +16,38 @@ jobs:
   steps:
     # FOR /F "delims=" %%i in ('cygpath.exe -u "%PREFIX%"') DO set "PREFIX=%%i"
     # FOR /F "delims=" %%i in ('cygpath.exe -u "%BUILD_PREFIX%"') DO set "BUILD_PREFIX=%%i"
+    # Script based on:
+    # https://github.com/conda-forge/blis-feedstock/blob/master/recipe/build.sh
     - bash: |
         git submodule update --init --recursive
-        cp azure_files/build.sh flame-blis
         cd flame-blis
         export MSYSTEM=MINGW$(arch)
         export MSYS2_PATH_TYPE=inherit
         export CHERE_INVOKING=1
-        export PREFIX=$BUILD_SOURCESDIRECTORY/flame-blis
-        export BUILD_PREFIX=$BUILD_SOURCESDIRECTORY/flame-blis
-        echo $PREFIX
-        ./build.sh
+        export PREFIX=/
+        export BUILD_PREFIX=/
+        export PATH="$PREFIX/Library/bin:$BUILD_PREFIX/Library/bin:$PATH"
+        export CC=clang
+        export RANLIB=echo
+        export LIBPTHREAD=
+        export AS=llvm-as
+        export AR=llvm-ar
+        export CFLAGS="-MD -I$PREFIX/Library/include"
+        export LDFLAGS="$LDFLAGS -L$PREFIX/Library/lib"
+        clang --version
+        llvm-as --version
+        llvm-ar --version
+        ./configure --disable-shared --enable-static --prefix=$PREFIX/Library --enable-cblas --enable-threading=pthreads --enable-arg-max-hack x86_64
+        make -j${CPU_COUNT}
+        make install
+        make check -j${CPU_COUNT}
+
+        ./configure --enable-shared --disable-static --prefix=$PREFIX/Library --enable-cblas --enable-threading=pthreads --enable-arg-max-hack x86_64
+        make -j${CPU_COUNT}
+        make install
+        mv $PREFIX/Library/lib/libblis.lib $PREFIX/Library/lib/blis.lib
+        mv $PREFIX/Library/lib/libblis.a $PREFIX/Library/lib/libblis.lib
+        mv $PREFIX/Library/lib/libblis.*.dll $PREFIX/Library/bin/
       displayName: 'Build'
 
     - task: CopyFiles@2
