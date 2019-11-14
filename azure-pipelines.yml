@@ -74,7 +74,6 @@ jobs:
   - script: |
       set "PATH=C:\Program Files\LLVM\bin;%PATH%"
       set "INCLUDE=%$VC_INCLUDEPATH%"
-      echo %$VC_INCLUDEPATH%
       clang --version
       python setup.py bdist_wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
