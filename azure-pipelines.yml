@@ -19,11 +19,11 @@ jobs:
     CHERE_INVOKING: 1
     PREFIX: /
     BUILD_PREFIX: /
-    CC: clang
+    CC: clang.exe
     RANLIB: echo
     LIBPTHREAD: ''
-    AS: llvm-as
-    AR: llvm-ar
+    AS: llvm-as.exe
+    AR: llvm-ar.exe
   steps:
     - bash: |
         git submodule update --init --recursive
