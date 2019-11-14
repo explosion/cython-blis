@@ -41,6 +41,9 @@ jobs:
         set -e
         cd flame-blis
         export PATH="/c/Program Files/LLVM/bin:$PATH"
+        export CFLAGS="-MD -I$PREFIX/Library/include"
+        export LDFLAGS="$LDFLAGS -L$PREFIX/Library/lib"
+        export PATH="$PREFIX/Library/bin:$BUILD_PREFIX/Library/bin:$PATH"
         clang.exe --version
         llvm-ar.exe --version
         # llvm-as.exe --version
