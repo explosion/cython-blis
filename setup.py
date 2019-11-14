@@ -198,7 +198,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         command.extend(macros)
         command.extend(include)
         print("[COMMAND]", " ".join(command))
-        subprocess.check_call(command, cwd=BLIS_DIR, env=env)
+        subprocess.check_call(command, cwd=BLIS_DIR, env=env, shell=True)
         return target
 
 
