@@ -139,9 +139,15 @@ jobs:
     displayName: 'Install dependencies'
 
   - script: |
+      set "PATH=C:\Program Files\LLVM\bin;%PATH%"
       clang --version
       python setup.py bdist_wheel
-    displayName: 'Build wheel'
+    condition: eq( variables['Agent.OS'], 'Windows_NT')
+    displayName: 'Build wheel (Windows)'
+
+  - script: python setup.py bdist_wheel
+    condition: or(eq(variables['Agent.OS'], 'Linux'), eq(variables['Agent.OS'], 'Darwin'))
+    displayName: 'Build wheel (Linux / Mac)'
 
   - bash: |
       rm -rf blis*
