@@ -26,7 +26,7 @@ jobs:
     AR: llvm-ar.exe
   steps:
     - bash: |
-        # choco install llvm
+        choco install llvm
         git submodule update --init --recursive
       displayName: 'Install'
 
