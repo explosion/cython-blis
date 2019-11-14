@@ -199,9 +199,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         command.extend(include)
         print("[COMMAND]", " ".join(command))
         try:
-            subprocess.run(
-                command, cwd=BLIS_DIR, env=env, check=True, capture_output=True
-            )
+            subprocess.run(command, cwd=BLIS_DIR, check=True, capture_output=True)
         except Exception as err:
             raise ValueError(err.stderr)
         return target
