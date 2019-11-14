@@ -16,13 +16,15 @@ jobs:
   steps:
     # FOR /F "delims=" %%i in ('cygpath.exe -u "%PREFIX%"') DO set "PREFIX=%%i"
     # FOR /F "delims=" %%i in ('cygpath.exe -u "%BUILD_PREFIX%"') DO set "BUILD_PREFIX=%%i"
-    # Script based on:
-    # https://github.com/conda-forge/blis-feedstock/blob/master/recipe/build.sh
+
     - script: |
         ls $(conda)\Scripts
-        $(conda)\Scripts\conda.exe install clangdev llvmdev posix m2-sed perl
+        $(conda)\Scripts\conda.exe install -c conda-forge clangdev llvmdev posix m2-sed perl
         git submodule update --init --recursive
       displayName: 'Install'
+
+    # Script based on:
+    # https://github.com/conda-forge/blis-feedstock/blob/master/recipe/build.sh
     - bash: |
         set -e
         cd flame-blis
