@@ -17,8 +17,8 @@ jobs:
     MSYSTEM: MINGW$(arch)
     MSYS2_PATH_TYPE: inherit
     CHERE_INVOKING: '1'
-    PREFIX: /
-    BUILD_PREFIX: /
+    PREFIX: '/output'
+    BUILD_PREFIX: '/output'
     CC: clang
     RANLIB: echo
     LIBPTHREAD: ''
@@ -41,13 +41,11 @@ jobs:
         set -e
         cd flame-blis
         export PATH="/c/Program Files/LLVM/bin:$PATH"
-        export CFLAGS="-MD -I$PREFIX/Library/include"
-        export LDFLAGS="$LDFLAGS -L$PREFIX/Library/lib"
-        export PATH="$PREFIX/Library/bin:$BUILD_PREFIX/Library/bin:$PATH"
+        export CFLAGS="-MD -I'/c/Program Files/LLVM/include'"
+        export LDFLAGS="$LDFLAGS -L'/c/Program Files/LLVM/lib'"
         clang --version
         llvm-ar --version
-        # llvm-as.exe --version
-        ./configure --enable-shared --enable-static --prefix=$PREFIX/Library --enable-cblas --enable-threading=pthreads --enable-arg-max-hack x86_64
+        ./configure --enable-shared --enable-static --prefix=$PREFIX --enable-cblas --enable-threading=pthreads --enable-arg-max-hack x86_64
         make V=1
       displayName: 'Build'
 
