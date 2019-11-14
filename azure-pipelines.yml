@@ -18,9 +18,9 @@ jobs:
     # FOR /F "delims=" %%i in ('cygpath.exe -u "%BUILD_PREFIX%"') DO set "BUILD_PREFIX=%%i"
     # Script based on:
     # https://github.com/conda-forge/blis-feedstock/blob/master/recipe/build.sh
-    - bash: |
-        ls $CONDA
-        $CONDA/bin/conda install clangdev llvmdev posix m2-sed perl
+    - script: |
+        ls $(conda)\Scripts
+        $(conda)\Scripts\conda.exe install clangdev llvmdev posix m2-sed perl
         git submodule update --init --recursive
       displayName: 'Install'
     - bash: |
