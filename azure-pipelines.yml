@@ -13,13 +13,21 @@ jobs:
   condition: eq(variables['generate_jsonl'], 'true')
   pool:
     vmImage: 'vs2017-win2016'
+  # variables:
+  #   MSYSTEM: MINGW$(arch)
+  #   MSYS2_PATH_TYPE: inherit
+  #   CHERE_INVOKING: 1
+  #   PREFIX: $(conda)
+  #   BUILD_PREFIX: $(conda)
+  #   CC: clang
+  #   RANLIB: echo
+  #   LIBPTHREAD: ''
+  #   AS: llvm-as
+  #   AR: llvm-ar
   steps:
-    # FOR /F "delims=" %%i in ('cygpath.exe -u "%PREFIX%"') DO set "PREFIX=%%i"
-    # FOR /F "delims=" %%i in ('cygpath.exe -u "%BUILD_PREFIX%"') DO set "BUILD_PREFIX=%%i"
-
     - script: |
-        ls $(conda)\Scripts
         $(conda)\Scripts\conda.exe install -c conda-forge clangdev llvmdev posix m2-sed perl
+        ls $(conda)\Library\bin
         git submodule update --init --recursive
       displayName: 'Install'
 
