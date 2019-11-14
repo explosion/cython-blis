@@ -22,8 +22,8 @@ jobs:
     # CC: clang
     RANLIB: echo
     LIBPTHREAD: ''
-    # AS: llvm-as
-    # AR: llvm-ar
+    AS: gcc-as
+    AR: gcc-ar
   steps:
     - bash: |
         git submodule update --init --recursive
