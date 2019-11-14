@@ -26,32 +26,32 @@ jobs:
         bash -lce "./build.sh"
       displayName: 'Build'
 
-  - task: CopyFiles@2
-    inputs:
-      contents: $(Build.SourcesDirectory)/blis/_src/make/windows-x86_64.jsonl
-      targetFolder: $(Build.ArtifactStagingDirectory)
-      flattenFolders: true
-    displayName: 'Copy JSONL'
+    - task: CopyFiles@2
+      inputs:
+        contents: $(Build.SourcesDirectory)/blis/_src/make/windows-x86_64.jsonl
+        targetFolder: $(Build.ArtifactStagingDirectory)
+        flattenFolders: true
+      displayName: 'Copy JSONL'
 
-  - task: CopyFiles@2
-    inputs:
-      contents: $(Build.SourcesDirectory)/flame-blis/make.log
-      targetFolder: $(Build.ArtifactStagingDirectory)
-      flattenFolders: true
-    displayName: 'Copy make.log'
+    - task: CopyFiles@2
+      inputs:
+        contents: $(Build.SourcesDirectory)/flame-blis/make.log
+        targetFolder: $(Build.ArtifactStagingDirectory)
+        flattenFolders: true
+      displayName: 'Copy make.log'
 
-  - task: CopyFiles@2
-    inputs:
-      contents: $(Build.SourcesDirectory)/flame-blis/include/x86_64/blis.h
-      targetFolder: $(Build.ArtifactStagingDirectory)
-      flattenFolders: true
-    displayName: 'Copy header'
+    - task: CopyFiles@2
+      inputs:
+        contents: $(Build.SourcesDirectory)/flame-blis/include/x86_64/blis.h
+        targetFolder: $(Build.ArtifactStagingDirectory)
+        flattenFolders: true
+      displayName: 'Copy header'
 
-  - task: PublishBuildArtifacts@1
-    inputs:
-      pathtoPublish: $(Build.ArtifactStagingDirectory)
-      artifactName: data
-    displayName: 'Publish JSONL'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: $(Build.ArtifactStagingDirectory)
+        artifactName: data
+      displayName: 'Publish JSONL'
 
 - job: 'Test'
   condition: eq(variables['generate_jsonl'], 'false')
