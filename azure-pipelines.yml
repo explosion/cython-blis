@@ -17,16 +17,16 @@ jobs:
   #   MSYSTEM: MINGW$(arch)
   #   MSYS2_PATH_TYPE: inherit
   #   CHERE_INVOKING: 1
-  #   PREFIX: $(conda)
-  #   BUILD_PREFIX: $(conda)
+  #   PREFIX: /
+  #   BUILD_PREFIX: /
   #   CC: clang
   #   RANLIB: echo
   #   LIBPTHREAD: ''
   #   AS: llvm-as
   #   AR: llvm-ar
   steps:
-    - script: |
-        choco install llvm
+    - bash: |
+        conda install -c conda-forge clangdev llvmdev posix m2-sed perl
         git submodule update --init --recursive
       displayName: 'Install'
 
