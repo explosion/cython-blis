@@ -38,7 +38,7 @@ jobs:
     # mv $PREFIX/Library/lib/libblis.*.dll $PREFIX/Library/bin/
     - script: |
         cd flame-blis
-        bash -lce "./configure --disable-shared --enable-static --prefix=$PREFIX/Library --enable-cblas --enable-threading=pthreads --enable-arg-max-hack x86_64"
+        bash -lce "CC=clang ./configure --disable-shared --enable-static --prefix=$PREFIX/Library --enable-cblas --enable-threading=pthreads --enable-arg-max-hack x86_64"
         set "PATH=C:\Program Files\LLVM\bin;%PATH%"
         mingw32-make V=1
       displayName: 'Build'
