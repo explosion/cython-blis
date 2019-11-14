@@ -51,12 +51,6 @@ jobs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
 
-  - script: |
-      source ./travis/before_install_linux.sh
-      before_install
-    condition: eq( variables['Agent.OS'], 'Linux')
-    displayName: 'Preinstall (Linux)'
-
   - script: choco install llvm
     condition: eq( variables['Agent.OS'], 'Windows_NT')
     displayName: 'Preinstall (Windows)'
