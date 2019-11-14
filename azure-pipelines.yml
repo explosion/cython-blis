@@ -16,17 +16,17 @@ jobs:
   steps:
     # FOR /F "delims=" %%i in ('cygpath.exe -u "%PREFIX%"') DO set "PREFIX=%%i"
     # FOR /F "delims=" %%i in ('cygpath.exe -u "%BUILD_PREFIX%"') DO set "BUILD_PREFIX=%%i"
-    - script: |
+    - bash: |
         git submodule update --init --recursive
         cp azure_files/build.sh flame-blis
         cd flame-blis
-        set MSYSTEM=MINGW%ARCH%
-        set MSYS2_PATH_TYPE=inherit
-        set CHERE_INVOKING=1
+        export MSYSTEM=MINGW$(arch)
+        export MSYS2_PATH_TYPE=inherit
+        export CHERE_INVOKING=1
         export PREFIX=$(Build.SourcesDirectory)/flame-blis
         export BUILD_PREFIX=$(Build.SourcesDirectory)/flame-blis
         echo $PREFIX
-        bash -lce "./build.sh"
+        ./build.sh
       displayName: 'Build'
 
     - task: CopyFiles@2
