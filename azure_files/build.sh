@@ -1,3 +1,5 @@
+export PREFIX=$BUILD_SOURCESDIRECTORY/flame-blis
+export BUILD_PREFIX=$BUILD_SOURCESDIRECTORY/flame-blis
 export PATH="$PREFIX/Library/bin:$BUILD_PREFIX/Library/bin:$PATH"
 export CC=clang
 export RANLIB=echo
@@ -13,7 +15,7 @@ llvm-ar --version
 make -j${CPU_COUNT}
 make install
 make check -j${CPU_COUNT}
- 
+
 ./configure --enable-shared --disable-static --prefix=$PREFIX/Library --enable-cblas --enable-threading=pthreads --enable-arg-max-hack x86_64
 make -j${CPU_COUNT}
 make install
