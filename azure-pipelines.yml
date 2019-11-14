@@ -68,6 +68,7 @@ jobs:
 
   - script: |
       set "PATH=C:\Program Files\LLVM\bin;%PATH%"
+      ls "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC"
       clang --version
       python setup.py bdist_wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
