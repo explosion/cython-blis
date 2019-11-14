@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import shutil
 import os
-import shlex
 
 # This is maybe not the best place to put this,
 # but we need to tell OSX to build for 10.7.
@@ -199,7 +198,10 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         command.extend(macros)
         command.extend(include)
         print("[COMMAND]", " ".join(command))
-        subprocess.check_call(shlex.join(command), cwd=BLIS_DIR, env=env, shell=True)
+        try:
+            subprocess.run(command, cwd=BLIS_DIR, env=env, check=True)
+        except Exception as err:
+            raise ValueError(e.stderr)
         return target
 
 
