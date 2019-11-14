@@ -19,7 +19,7 @@ jobs:
     CHERE_INVOKING: 1
     PREFIX: /
     BUILD_PREFIX: /
-    CC: clang.exe
+    CC: clang
     RANLIB: echo
     LIBPTHREAD: ''
     AS: llvm-as.exe
@@ -37,7 +37,9 @@ jobs:
     # mv $PREFIX/Library/lib/libblis.a $PREFIX/Library/lib/libblis.lib
     # mv $PREFIX/Library/lib/libblis.*.dll $PREFIX/Library/bin/
     - bash: |
+        set -e
         cd flame-blis
+        ls "/c/Program Files/LLVM/bin"
         export PATH="/c/Program Files/LLVM/bin:$PATH"
         clang.exe --version
         llvm-ar.exe --version
