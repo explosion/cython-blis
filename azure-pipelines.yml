@@ -48,6 +48,10 @@ jobs:
       bash -lc "cd /d/projects/cython-blis/flame-blis && mingw32-make -j4 > make.log"
       bash -lc "mkdir -p /d/projects/cython-blis/blis/_src/include/windows-x86_64"
       bash -lc "cd /d/projects/cython-blis && cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
+      bash -lc "cp /d/projects/cython-blis/flame-blis/include/x86_64/blis.h /d/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h"
+      bash -lc "cp /d/projects/cython-blis/blis/_src/make/windows-x86_64.jsonl $BUILD_SOURCESDIRECTORY/blis/_src/make/windows-x86_64.jsonl"
+      bash -lc "mkdir -p $BUILD_SOURCESDIRECTORY/blis/_src/include/windows-x86_64"
+      bash -lc "cp /d/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h $BUILD_SOURCESDIRECTORY/blis/_src/include/windows-x86_64/blis.h"
     displayName: 'Build'
 
   - task: CopyFiles@2
