@@ -16,14 +16,14 @@ jobs:
   variables:
     MSYSTEM: MINGW$(arch)
     MSYS2_PATH_TYPE: inherit
-    CHERE_INVOKING: 1
+    CHERE_INVOKING: '1'
     PREFIX: /
     BUILD_PREFIX: /
     CC: clang
     RANLIB: echo
     LIBPTHREAD: ''
     # AS: llvm-as.exe
-    AR: llvm-ar.exe
+    AR: llvm-ar
   steps:
     - bash: |
         choco install llvm
@@ -44,8 +44,11 @@ jobs:
         export CFLAGS="-MD -I$PREFIX/Library/include"
         export LDFLAGS="$LDFLAGS -L$PREFIX/Library/lib"
         export PATH="$PREFIX/Library/bin:$BUILD_PREFIX/Library/bin:$PATH"
-        clang.exe --version
-        llvm-ar.exe --version
+        ln -s "/c/Program Files/LLVM/bin/clang.exe" "/c/Program Files/LLVM/bin/clang"
+        ln -s "/c/Program Files/LLVM/bin/llvm.exe" "/c/Program Files/LLVM/bin/llvm"
+        ln -s "/c/Program Files/LLVM/bin/llvm-ar.exe" "/c/Program Files/LLVM/bin/llvm-ar"
+        clang --version
+        llvm-ar --version
         # llvm-as.exe --version
         ls "/c/Program Files/LLVM/bin"
         ./configure --disable-shared --enable-static --prefix=$PREFIX/Library --enable-cblas --enable-threading=pthreads --enable-arg-max-hack x86_64
