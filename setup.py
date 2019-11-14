@@ -201,7 +201,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         try:
             subprocess.run(command, cwd=BLIS_DIR, env=env, check=True)
         except Exception as err:
-            raise ValueError(e.stderr)
+            raise ValueError(err.stderr)
         return target
 
 
