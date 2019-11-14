@@ -14,48 +14,18 @@ jobs:
   pool:
     vmImage: 'vs2017-win2016'
   steps:
-    # choco install llvm
-    # set RANLIB=echo
-    # set LIBPTHREAD=
-    # set "PATH=C:\msys64\mingw64\bin;C:\msys64\bin;%PATH%"
-    # set "PATH=C:\Program Files\LLVM\bin;%PATH%"
-    # set "CC=clang"
-    # set "AR=llvm-ar"
-    # set "AS=llvm-as"
-    # call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
-    # bash -lc "cd $BUILD_SOURCESDIRECTORY/flame-blis && make"
   - script: |
-      choco install llvm
-      refreshenv
-    displayName: 'Install LLVM'
-
-  - script: |
-      set RANLIB=echo
-      set LIBPTHREAD=
-      set "PATH=C:\msys64\mingw64\bin;C:\msys64\bin;%PATH%"
-      set "PATH=C:\Program Files\LLVM\bin;%PATH%"
-      set "PATH=%PATH%;d:\projects\output"
-      set "CFLAGS=-Wno-macro-redefined"
-      set "CC=clang"
-      set "AR=llvm-ar"
-      set "AS=llvm-as"
-      git submodule update --init --recursive
-      cd flame-blis
-      call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat" amd64
-      bash -lc "mkdir -p /d/projects"
-      bash -lc "ln -s $BUILD_SOURCESDIRECTORY /d/projects/cython-blis"
-      bash -lc "cd /d/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/d/projects/output x86_64"
-      bash -lc "cd /d/projects/cython-blis/flame-blis && ls -lah"
-      bash -lc "cd /d/projects/cython-blis/flame-blis && ls -lah build/"
-      bash -lc "cd /d/projects/cython-blis/flame-blis && mingw32-make clean"
-      bash -lc "cd /d/projects/cython-blis/flame-blis && mingw32-make"
-      bash -lc "mkdir -p /d/projects/cython-blis/blis/_src/include/windows-x86_64"
-      bash -lc "cd /d/projects/cython-blis && cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
-      bash -lc "cp /d/projects/cython-blis/flame-blis/include/x86_64/blis.h /d/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h"
-      bash -lc "cp /d/projects/cython-blis/blis/_src/make/windows-x86_64.jsonl $BUILD_SOURCESDIRECTORY/blis/_src/make/windows-x86_64.jsonl"
-      bash -lc "mkdir -p $BUILD_SOURCESDIRECTORY/blis/_src/include/windows-x86_64"
-      bash -lc "cp /d/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h $BUILD_SOURCESDIRECTORY/blis/_src/include/windows-x86_64/blis.h"
-    displayName: 'Build'
+    git submodule update --init --recursive
+    cp azure_files/build.sh flame-blis
+    cd flame-blis
+    set MSYSTEM=MINGW%ARCH%
+    set MSYS2_PATH_TYPE=inherit
+    set CHERE_INVOKING=1
+    FOR /F "delims=" %%i in ('cygpath.exe -u "%PREFIX%"') DO set "PREFIX=%%i"
+    FOR /F "delims=" %%i in ('cygpath.exe -u "%BUILD_PREFIX%"') DO set "BUILD_PREFIX=%%i"
+    bash -lce "./build.sh"
+    if errorlevel 1 exit 1
+  displayName: 'Build'
 
   - task: CopyFiles@2
     inputs:
