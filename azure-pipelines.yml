@@ -19,18 +19,18 @@ jobs:
     # Script based on:
     # https://github.com/conda-forge/blis-feedstock/blob/master/recipe/build.sh
     - bash: |
-        set -e
-        ls "/c/Program Files (x86)"
-        ls "/c/Program Files (x86)/LLVM/bin"
+        conda install clangdev llvmdev posix m2-sed perl
         git submodule update --init --recursive
+      displayName: 'Install'
+    - bash: |
+        set -e
         cd flame-blis
         export MSYSTEM=MINGW$(arch)
         export MSYS2_PATH_TYPE=inherit
         export CHERE_INVOKING=1
-        export PREFIX=/
-        export BUILD_PREFIX=/
-        # export PATH="$PREFIX/Library/bin:$BUILD_PREFIX/Library/bin:$PATH"
-        export PATH="/c/Program Files/LLVM/bin:$PATH"
+        export PREFIX=$CONDA
+        export BUILD_PREFIX=$CONDA
+        export PATH="$PREFIX/Library/bin:$BUILD_PREFIX/Library/bin:$PATH"
         export CC=clang
         export RANLIB=echo
         export LIBPTHREAD=
