@@ -44,9 +44,9 @@ jobs:
         export CFLAGS="-MD -I$PREFIX/Library/include"
         export LDFLAGS="$LDFLAGS -L$PREFIX/Library/lib"
         export PATH="$PREFIX/Library/bin:$BUILD_PREFIX/Library/bin:$PATH"
-        ln -s "/c/Program Files/LLVM/bin/clang.exe" "/c/Program Files/LLVM/bin/clang"
-        ln -s "/c/Program Files/LLVM/bin/llvm.exe" "/c/Program Files/LLVM/bin/llvm"
-        ln -s "/c/Program Files/LLVM/bin/llvm-ar.exe" "/c/Program Files/LLVM/bin/llvm-ar"
+        # ln -s "/c/Program Files/LLVM/bin/clang.exe" "/c/Program Files/LLVM/bin/clang"
+        # ln -s "/c/Program Files/LLVM/bin/llvm.exe" "/c/Program Files/LLVM/bin/llvm"
+        # ln -s "/c/Program Files/LLVM/bin/llvm-ar.exe" "/c/Program Files/LLVM/bin/llvm-ar"
         clang --version
         llvm-ar --version
         # llvm-as.exe --version
