@@ -56,7 +56,7 @@ the `blis/_src/make/linux-cortexa57.jsonl` and
 `blis/_src/include/linux-cortexa57/blis.h` files so that you can run:
 
 ```bash
-BLIS_ARCH=cortexa57 pip install spacy --no-binary=blis
+BLIS_ARCH=cortexa57 pip install --no-binary=blis
 ```
 
 ### Running the benchmark
