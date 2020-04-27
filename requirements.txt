@@ -2,5 +2,5 @@
 numpy
 pytest
 cython
-hypothesis
+hypothesis>=4.0.0,<5.0.0
 wheel==0.31.1
