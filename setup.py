@@ -9,6 +9,7 @@ import os
 # if "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
 #    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.7"
 
+from setuptools import Extension, setup
 import contextlib
 import io
 import os.path
@@ -19,7 +20,6 @@ import distutils.command.build_ext
 from distutils.ccompiler import new_compiler
 import subprocess
 import sys
-from setuptools import Extension, setup
 import platform
 
 try:
