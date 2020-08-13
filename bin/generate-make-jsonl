@@ -7,7 +7,7 @@ ARCH="$2"
 EXPORT="$3"
 
 cd flame-blis
-./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size 64 --enable-verbose-make $ARCH
+./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make $ARCH
 echo "Compile"
 make > make.log 
 echo "Preprocess make log"
