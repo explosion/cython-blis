@@ -134,18 +134,9 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
     def get_arch_name(self):
         if "BLIS_ARCH" in os.environ:
             return os.environ["BLIS_ARCH"]
-        machine = platform.uname()[4]
-        if machine == "aarch64":
-            # Check if this is a LITTLE core.
-            LITTLE_core = os.system("test 'Cortex-A53' = $(lscpu | grep 'Model name' | awk '{print $3}')")
-            if LITTLE_core == 0:
-                return "cortexa53"
-            else:
-                # Optimize for big cores.
-                return "cortexa57"
         else:
             return "x86_64"
-
+    
     def get_compiler_name(self):
         if "BLIS_COMPILER" in os.environ:
             return os.environ["BLIS_COMPILER"]
