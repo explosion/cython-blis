@@ -140,6 +140,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
     def get_compiler_name(self):
         if "BLIS_COMPILER" in os.environ:
             return os.environ["BLIS_COMPILER"]
+        elif "CC" in os.environ:
+            return os.environ["CC"]
         elif os.environ.get("TRAVIS_OS_NAME") == "linux":
             return "gcc-6"
         name = self.compiler.compiler_type
