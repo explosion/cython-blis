@@ -46,6 +46,6 @@ build_script:
 
 artifacts:
   - path: blis/_src/make
-    name: windows-x86_64.jsonl
-  - path: blis/_src/include/windows-x86_64
+    name: windows-x86_64_no_skx.jsonl
+  - path: blis/_src/include/windows-x86_64_no_skx
     name: blis.h
