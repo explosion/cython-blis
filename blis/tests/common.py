@@ -20,7 +20,12 @@ def shapes(min_rows=1, max_rows=100, min_cols=1, max_cols=100):
 
 
 def ndarrays_of_shape(shape, lo=-1000.0, hi=1000.0, dtype="float64"):
-    return arrays(dtype, shape=shape, elements=floats(min_value=lo, max_value=hi))
+    width = 64 if dtype == "float64" else 32
+    return arrays(
+        dtype,
+        shape=shape,
+        elements=floats(min_value=lo, max_value=hi, width=width)
+    )
 
 
 def ndarrays(
