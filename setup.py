@@ -144,6 +144,9 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             return os.environ["CC"]
         elif os.environ.get("TRAVIS_OS_NAME") == "linux":
             return "gcc-6"
+        else:
+            # TODO: Unhack
+            return "gcc-9"
         name = self.compiler.compiler_type
         print(name)
         if name.startswith("msvc"):
