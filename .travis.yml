@@ -26,10 +26,6 @@ install:
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/generate-make-jsonl linux x86_64 --export;
   fi
 - python setup.py bdist_wheel
-- rm -rf blis*
-- python -m pip install dist/*.whl
-script:
-- python -m pytest tests/
 notifications:
   email: false
   slack:
