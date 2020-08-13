@@ -86,7 +86,7 @@ void bli_arch_set_id( void )
     defined BLIS_FAMILY_X86_64  || \
     defined BLIS_FAMILY_ARM64   || \
     defined BLIS_FAMILY_ARM32   || \
-    defined BLIS_FAMILY_X86_64
+    defined BLIS_FAMILY_X86_64_NO_SKX
 	id = bli_cpuid_query_id();
 #endif
 
