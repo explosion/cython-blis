@@ -135,7 +135,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         if "BLIS_ARCH" in os.environ:
             return os.environ["BLIS_ARCH"]
         else:
-            return "x86_64"
+            return "x86_64_no_skx"
     
     def get_compiler_name(self):
         if "BLIS_COMPILER" in os.environ:
