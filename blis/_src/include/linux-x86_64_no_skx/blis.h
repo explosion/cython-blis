@@ -1,5 +1,3 @@
-
-
 #ifndef BLIS_H
 #define BLIS_H
 
@@ -136,6 +134,7 @@ extern "C" {
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
 #define BLIS_CONFIG_PENRYN
+#define BLIS_CONFIG_ZEN2
 #define BLIS_CONFIG_ZEN
 #define BLIS_CONFIG_EXCAVATOR
 #define BLIS_CONFIG_STEAMROLLER
@@ -147,6 +146,7 @@ extern "C" {
 // Enabled kernel sets (kernel_list)
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
+#define BLIS_KERNELS_ZEN2
 #define BLIS_KERNELS_HASWELL
 #define BLIS_KERNELS_ZEN
 #define BLIS_KERNELS_PILEDRIVER
@@ -22019,7 +22019,49 @@ CNTX_INIT_PROTS( generic )
 // -- AMD64 architectures --
 
 #ifdef BLIS_FAMILY_ZEN2
-#include "bli_family_zen2.h" // skipped
+// begin bli_family_zen2.h
+
+
+#ifndef BLI_FAMILY_ZEN2_
+#define BLI_FAMILY_ZEN2_
+
+// By default, it is effective to parallelize the outer loops.
+// Setting these macros to 1 will force JR and IR inner loops
+// to be not paralleized.
+#define BLIS_THREAD_MAX_IR      1
+#define BLIS_THREAD_MAX_JR      1
+
+
+#define BLIS_ENABLE_SMALL_MATRIX
+#define BLIS_ENABLE_SMALL_MATRIX_TRSM
+
+
+// This will select the threshold below which small matrix code will be called.
+#define BLIS_SMALL_MATRIX_THRES        700
+#define BLIS_SMALL_M_RECT_MATRIX_THRES 160
+#define BLIS_SMALL_K_RECT_MATRIX_THRES 128
+
+#define BLIS_SMALL_MATRIX_THRES_TRSM   32768 //128(128+128) => m*(m+n)
+#define BLIS_SMALL_MATRIX_A_THRES_TRSM	128
+#define BLIS_SMALL_MATRIX_A_THRES_M_SYRK	96
+#define BLIS_SMALL_MATRIX_A_THRES_N_SYRK	128
+
+#define BLIS_ENABLE_SMALL_MATRIX_ROME
+#define BLIS_SMALL_MATRIX_THRES_ROME       400
+
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_ROME 120
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_ALXB_ROME 60
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_XAUB_ROME 150
+
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_DIM_RATIO 22
+
+// When running HPL with pure MPI without DGEMM threading (Single-threaded
+// BLIS), defining this macro as 1 yields better performance.
+#define AOCL_BLIS_MULTIINSTANCE   0
+
+#endif
+
+// end bli_family_zen2.h
 #endif
 #ifdef BLIS_FAMILY_ZEN
 // begin bli_family_zen.h
@@ -41401,6 +41443,7 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
 #define BLIS_CONFIG_PENRYN
+#define BLIS_CONFIG_ZEN2
 #define BLIS_CONFIG_ZEN
 #define BLIS_CONFIG_EXCAVATOR
 #define BLIS_CONFIG_STEAMROLLER
@@ -41412,6 +41455,7 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 // Enabled kernel sets (kernel_list)
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
+#define BLIS_KERNELS_ZEN2
 #define BLIS_KERNELS_HASWELL
 #define BLIS_KERNELS_ZEN
 #define BLIS_KERNELS_PILEDRIVER
@@ -44085,4 +44129,3 @@ BLIS_EXPORT_BLIS void bli_sleep( unsigned int secs );
 #endif
 
 #endif
-
