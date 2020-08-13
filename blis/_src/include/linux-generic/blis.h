@@ -1,3 +1,5 @@
+
+
 #ifndef BLIS_H
 #define BLIS_H
 
@@ -172,9 +174,9 @@ extern "C" {
 #define BLIS_DISABLE_MEM_TRACING
 #endif
 
-#if 0 == 64
+#if 64 == 64
 #define BLIS_INT_TYPE_SIZE 64
-#elif 0 == 32
+#elif 64 == 32
 #define BLIS_INT_TYPE_SIZE 32
 #else
 // determine automatically
@@ -21760,6 +21762,10 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_x86_64.h" // skipped
 #endif
 
+#ifdef BLIS_FAMILY_X86_64_NO_SKX
+#include "bli_family_x86_64_no_skx.h" // skipped
+#endif
+
 // -- Intel64 architectures --
 #ifdef BLIS_FAMILY_SKX
 #include "bli_family_skx.h" // skipped
@@ -40806,9 +40812,9 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_DISABLE_MEM_TRACING
 #endif
 
-#if 0 == 64
+#if 64 == 64
 #define BLIS_INT_TYPE_SIZE 64
-#elif 0 == 32
+#elif 64 == 32
 #define BLIS_INT_TYPE_SIZE 32
 #else
 // determine automatically
@@ -43438,3 +43444,4 @@ BLIS_EXPORT_BLIS void bli_sleep( unsigned int secs );
 #endif
 
 #endif
+
