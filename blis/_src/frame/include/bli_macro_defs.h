@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2017, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -139,6 +139,9 @@
 
 #define PASTEBLACHK_(op)           bla_ ## op ## _check
 #define PASTEBLACHK(op)            PASTEBLACHK_(op)
+
+#define PASTECH0_(op)              op
+#define PASTECH0(op)               PASTECH0_(op)
 
 #define PASTECH_(ch,op)            ch ## op
 #define PASTECH(ch,op)             PASTECH_(ch,op)

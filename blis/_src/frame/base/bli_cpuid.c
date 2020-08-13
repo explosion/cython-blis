@@ -5,7 +5,8 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018-2019, Advanced Micro Devices, Inc.
+   Copyright (C) 2019, Dave Love, University of Manchester
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -52,6 +53,7 @@
   #include "bli_system.h"
   #include "bli_type_defs.h"
   #include "bli_cpuid.h"
+  #include "bli_arch.h"
 #endif
 
 // -----------------------------------------------------------------------------
@@ -66,6 +68,14 @@ arch_t bli_cpuid_query_id( void )
 	// model id, and a feature bit field. The return value encodes the
 	// vendor.
 	vendor = bli_cpuid_query( &family, &model, &features );
+
+#if 0
+	printf( "vendor   = %s\n", vendor==1 ? "AMD": "INTEL" );
+	printf("family    = %x\n", family );
+	printf( "model    = %x\n", model );
+	
+	printf( "features = %x\n", features );
+#endif
 
 	if ( vendor == VENDOR_INTEL )
 	{
@@ -100,6 +110,10 @@ arch_t bli_cpuid_query_id( void )
 
 		// Check for each AMD configuration that is enabled, check for that
 		// microarchitecture. We check from most recent to most dated.
+#ifdef BLIS_CONFIG_ZEN2
+		if ( bli_cpuid_is_zen2( family, model, features ) )
+			return BLIS_ARCH_ZEN2;
+#endif
 #ifdef BLIS_CONFIG_ZEN
 		if ( bli_cpuid_is_zen( family, model, features ) )
 			return BLIS_ARCH_ZEN;
@@ -153,7 +167,22 @@ bool_t bli_cpuid_is_skx
 
 	int nvpu = vpu_count();
 
-	if ( !bli_cpuid_has_features( features, expected ) || nvpu != 2 )
+	if ( bli_cpuid_has_features( features, expected ) )
+	{
+		switch ( nvpu )
+		{
+		case 1:
+			bli_arch_log( "Hardware has 1 FMA unit; using 'haswell' (not 'skx') sub-config.\n" );
+			return FALSE;
+		case 2:
+			bli_arch_log( "Hardware has 2 FMA units; using 'skx' sub-config.\n" );
+			return TRUE;
+		default:
+			bli_arch_log( "Number of FMA units unknown; using 'haswell' (not 'skx') config.\n" );
+			return FALSE;
+		}
+	}
+	else
 		return FALSE;
 
 	return TRUE;
@@ -227,6 +256,34 @@ bool_t bli_cpuid_is_penryn
 }
 
 // -----------------------------------------------------------------------------
+
+bool_t bli_cpuid_is_zen2
+     (
+       uint32_t family,
+       uint32_t model,
+       uint32_t features
+     )
+{
+	// Check for expected CPU features.
+	const uint32_t expected = FEATURE_AVX  |
+	                          FEATURE_FMA3 |
+	                          FEATURE_AVX2;
+
+	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
+
+	// All Zen2 cores have a family of 0x17.
+	if ( family != 0x17 ) return FALSE;
+
+	// Finally, check for specific models:
+	// - 0x30-0xff (THIS NEEDS UPDATING)
+	const bool_t is_arch
+	=
+	( 0x30 <= model && model <= 0xff );
+
+	if ( !is_arch ) return FALSE;
+
+	return TRUE;
+}
 
 bool_t bli_cpuid_is_zen
      (
@@ -380,10 +437,14 @@ arch_t bli_cpuid_query_id( void )
 	// vendor.
 	vendor = bli_cpuid_query( &model, &part, &features );
 
-	//printf( "vendor   = %u\n", vendor );
-	//printf( "model    = %u\n", model );
-	//printf( "part     = 0x%x\n", part );
-	//printf( "features = %u\n", features );
+#if 0
+	printf( "vendor   = %u\n", vendor );
+	printf( "model    = %u\n", model );
+	printf( "part     = 0x%x\n", part );
+	printf( "features = %u\n", features );
+#endif
+
+
 
 	if ( vendor == VENDOR_ARM )
 	{
@@ -517,7 +578,7 @@ bool_t bli_cpuid_is_cortexa9
 
    Copyright (C) 2017, The University of Texas at Austin
    Copyright (C) 2017, Devin Matthews
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -847,6 +908,10 @@ void get_cpu_name( char *cpu_name )
 	*( uint32_t* )&cpu_name[32+12] = edx;
 }
 
+// Return the number of FMA units _assuming avx512 is supported_.
+// This needs updating for new processor types, sigh.
+// See https://ark.intel.com/content/www/us/en/ark.html#@Processors
+// and also https://github.com/jeffhammond/vpu-count
 int vpu_count( void )
 {
 	char  cpu_name[48] = {};
@@ -858,49 +923,59 @@ int vpu_count( void )
 
 	if ( strstr( cpu_name, "Intel(R) Xeon(R)" ) != NULL )
 	{
-		loc = strstr( cpu_name, "Platinum" );
+		if (( loc = strstr( cpu_name, "Platinum" ) ))
+			return 2;
 		if ( loc == NULL )
-			loc = strstr( cpu_name, "Gold" );
+			loc = strstr( cpu_name, "Gold" ); // 1 or 2, tested below
 		if ( loc == NULL )
-			loc = strstr( cpu_name, "Silver" );
+			if (( loc = strstr( cpu_name, "Silver" ) ))
+				return 1;
 		if ( loc == NULL )
-			loc = strstr( cpu_name, "Bronze" );
+			if (( loc = strstr( cpu_name, "Bronze" ) ))
+				return 1;
 		if ( loc == NULL )
 			loc = strstr( cpu_name, "W" );
 		if ( loc == NULL )
+			if (( loc = strstr( cpu_name, "D" ) ))
+				// Fixme:  May be wrong
+				// <https://github.com/jeffhammond/vpu-count/issues/3#issuecomment-542044651>
+				return 1;
+		if ( loc == NULL )
 			return -1;
 
-		loc = strstr( loc+1, " " );
+		// We may have W-nnnn rather than, say, Gold nnnn
+		if ( 'W' == *loc && '-' == *(loc+1) )
+			loc++;
+		else
+			loc = strstr( loc+1, " " );
 		if ( loc == NULL )
 			return -1;
 
 		strncpy( model_num, loc+1, 4 );
-		model_num[4] = '\0';
+		model_num[4] = '\0'; // Things like i9-10900X matched above
 
 		sku = atoi( model_num );
 
+		// These were derived from ARK listings as of 2019-10-09, but
+		// may not be complete, especially as the ARK Skylake listing
+		// seems to be limited.
 		if      ( 8199 >= sku && sku >= 8100 ) return 2;
 		else if ( 6199 >= sku && sku >= 6100 ) return 2;
 		else if (                sku == 5122 ) return 2;
+		else if ( 6299 >= sku && sku >= 6200 ) return 2; // Cascade Lake Gold
+		else if ( 5299 >= sku && sku >= 5200 ) return 1; // Cascade Lake Gold
 		else if ( 5199 >= sku && sku >= 5100 ) return 1;
 		else if ( 4199 >= sku && sku >= 4100 ) return 1;
 		else if ( 3199 >= sku && sku >= 3100 ) return 1;
+		else if ( 3299 >= sku && sku >= 3200 ) return 2; // Cascade Lake W
+		else if ( 2299 >= sku && sku >= 2200 ) return 2; // Cascade Lake W
 		else if ( 2199 >= sku && sku >= 2120 ) return 2;
+		else if ( 2102 == sku || sku == 2104 ) return 2; // Gold exceptions
 		else if ( 2119 >= sku && sku >= 2100 ) return 1;
 		else return -1;
 	}
-	else if ( strstr( cpu_name, "Intel(R) Core(TM) i9" ) != NULL )
-	{
-		return 1;
-	}
-	else if ( strstr( cpu_name, "Intel(R) Core(TM) i7" ) != NULL )
-	{
-		if ( strstr( cpu_name, "7800X" ) != NULL ||
-		     strstr( cpu_name, "7820X" ) != NULL )
-			return 1;
-		else
-			return -1;
-	}
+	else if ( strstr( cpu_name, "Intel(R) Core(TM)" ) != NULL )
+		return 2; // All i7/i9 with avx512?
 	else
 	{
 		return -1;
@@ -908,6 +983,8 @@ int vpu_count( void )
 }
 
 #elif defined(__aarch64__) || defined(__arm__) || defined(_M_ARM)
+
+#define TEMP_BUFFER_SIZE 200
 
 uint32_t bli_cpuid_query
      (
@@ -919,96 +996,40 @@ uint32_t bli_cpuid_query
 	*model    = MODEL_UNKNOWN;
     *part     = 0;
 	*features = 0;
-    
-#if 1
-	const char* grep_str1 = "grep -m 1 Processor /proc/cpuinfo";
-	const char* grep_str2 = "grep -m 1 'CPU part' /proc/cpuinfo";
-	const char* grep_str3 = "grep -m 1 Features /proc/cpuinfo";
-#else
-	const char* grep_str1 = "grep -m 1 Processor ./proc_cpuinfo";
-	const char* grep_str2 = "grep -m 1 'CPU part' ./proc_cpuinfo";
-	const char* grep_str3 = "grep -m 1 Features ./proc_cpuinfo";
-#endif
 
-	FILE *fd1 = popen( grep_str1, "r");
-	if ( !fd1 )
-	{
-        //printf("popen 1 failed\n");
-		return VENDOR_ARM;
-	}
-	FILE *fd2 = popen( grep_str2, "r");
-	if (!fd2)
-	{
-        //printf("popen 2 failed\n");
-		pclose(fd1);
-		return VENDOR_ARM;
-	}
-	FILE *fd3 = popen( grep_str3, "r");
-	if (!fd3)
-	{
-        //printf("popen 3 failed\n");
-		pclose(fd1);
-		pclose(fd2);
-		return VENDOR_ARM;
-	}
+	char* pci_str = "/proc/cpuinfo";
 
-	uint32_t n1, n2, n3;
-	int      c;
-
-	// First, discover how many chars are in each stream.
-	for ( n1 = 0; (c = fgetc(fd1)) != EOF; ++n1 ) continue;
-	for ( n2 = 0; (c = fgetc(fd2)) != EOF; ++n2 ) continue;
-	for ( n3 = 0; (c = fgetc(fd3)) != EOF; ++n3 ) continue;
-
-	//printf( "n1, n2, n3 = %u %u %u\n", n1, n2, n3 );
-
-	// Close the streams.
-	pclose( fd1 );
-	pclose( fd2 );
-	pclose( fd3 );
-
-	// Allocate the correct amount of memory for each stream.
-	char* proc_str = malloc( ( size_t )( n1 + 1 ) );
-	char* ptno_str = malloc( ( size_t )( n2 + 1 ) );
-	char* feat_str = malloc( ( size_t )( n3 + 1 ) );
-    *proc_str = 0;
-    *ptno_str = 0;
-    *feat_str = 0;
-
-	// Re-open the streams. Note that there is no need to check for errors
-	// this time since we're assumign that the contents of /proc/cpuinfo
-	// will be the same as before.
-	fd1 = popen( grep_str1, "r");
-	fd2 = popen( grep_str2, "r");
-	fd3 = popen( grep_str3, "r");
-
+	char  proc_str[ TEMP_BUFFER_SIZE ];
+	char  ptno_str[ TEMP_BUFFER_SIZE ];
+	char  feat_str[ TEMP_BUFFER_SIZE ];
 	char* r_val;
 
-	// Now read each stream in its entirety. Nothing should go wrong, but
-	// if it does, bail out.
-	r_val = fgets( proc_str, n1, fd1 );
-	if ( n1 && r_val == NULL ) bli_abort();
+	//printf( "bli_cpuid_query(): beginning search\n" );
 
-	r_val = fgets( ptno_str, n2, fd2 );
-	if ( n2 && r_val == NULL ) bli_abort();
+	// Search /proc/cpuinfo for the 'Processor' entry.
+	r_val = find_string_in( "Processor", proc_str, TEMP_BUFFER_SIZE, pci_str );
+	if ( r_val == NULL ) return VENDOR_ARM;
 
-	r_val = fgets( feat_str, n3, fd3 );
-	if ( n3 && r_val == NULL ) bli_abort();
+	// Search /proc/cpuinfo for the 'CPU part' entry.
+	r_val = find_string_in( "CPU part",  ptno_str, TEMP_BUFFER_SIZE, pci_str );
+	if ( r_val == NULL ) return VENDOR_ARM;
 
-    //printf( "proc_str: %s\n", proc_str );
-	//printf( "ptno_str: %s\n", ptno_str );
-	//printf( "feat_str: %s\n", feat_str );
+	// Search /proc/cpuinfo for the 'Features' entry.
+	r_val = find_string_in( "Features",  feat_str, TEMP_BUFFER_SIZE, pci_str );
+	if ( r_val == NULL ) return VENDOR_ARM;
 
-	// Close the streams.
-	pclose( fd1 );
-	pclose( fd2 );
-	pclose( fd3 );
+#if 0
+	printf( "bli_cpuid_query(): full processor string: %s\n", proc_str );
+	printf( "bli_cpuid_query(): full part num  string: %s\n", ptno_str );
+	printf( "bli_cpuid_query(): full features  string: %s\n", feat_str );
+#endif
 
 	// Parse the feature string to check for SIMD features.
 	if ( strstr( feat_str, "neon"  ) != NULL ||
 	     strstr( feat_str, "asimd" ) != NULL )
 		*features |= FEATURE_NEON;
-	//printf( "features var: %u\n", *features );
+
+	//printf( "bli_cpuid_query(): features var: %u\n", *features );
 
 	// Parse the processor string to uncover the model.
 	if      ( strstr( proc_str, "ARMv7"   ) != NULL )
@@ -1016,7 +1037,8 @@ uint32_t bli_cpuid_query
 	else if ( strstr( proc_str, "AArch64" ) != NULL ||
               strstr( proc_str, "ARMv8"   ) )
 		*model = MODEL_ARMV8;
-	//printf( "model: %u\n", *model );
+
+	//printf( "bli_cpuid_query(): model: %u\n", *model );
 
 	// Parse the part number string.
 	r_val = strstr( ptno_str, "0x" );
@@ -1024,9 +1046,69 @@ uint32_t bli_cpuid_query
     {
 	    *part = strtol( r_val, NULL, 16 );
     }
-	//printf( "part#: %x\n", *part );
+	//printf( "bli_cpuid_query(): part#: %x\n", *part );
 
 	return VENDOR_ARM;
 }
 
+char* find_string_in( char* target, char* buffer, size_t buf_len, char* filepath )
+{
+	// This function searches for the first line of the file located at
+	// 'filepath' that contains the string 'target' and then copies that
+	// line (actually, the substring of the line starting with 'target')
+	// to 'buffer', which is 'buf_len' bytes long.
+
+	char* r_val = NULL;
+
+	// Allocate a temporary local buffer equal to the size of buffer.
+	char* buf_local = malloc( buf_len * sizeof( char ) );
+
+	// Open the file stream.
+	FILE* stream = fopen( filepath, "r" );
+
+	// Repeatedly read in a line from the stream, storing the contents of
+	// the stream into buf_local.
+	while ( !feof( stream ) )
+	{
+		// Read in the current line, up to buf_len-1 bytes.
+		r_val = fgets( buf_local, buf_len-1, stream );
+
+		//printf( "read line: %s", buf_local );
+
+		// fgets() returns the pointer specified by the first argument (in
+		// this case, buf_local) on success and NULL on error.
+		if ( r_val == NULL ) break;
+
+		// Since fgets() was successful, we can search for the target string
+		// within the current line, as captured in buf_local.
+		r_val = strstr( buf_local, target );
+
+		// If the target string was found in buf_local, we save it to buffer.
+		if ( r_val != NULL )
+		{
+			//printf( "  found match to '%s'\n", target );
+
+			// Copy the string read by fgets() to the caller's buffer.
+			strncpy( buffer, buf_local, buf_len );
+
+			// Make sure that we have a terminating null character by the
+			// end of the buffer.
+			if ( buf_len > 0 ) buffer[ buf_len - 1 ] = '\0';
+
+			// Leave the loop since we found the target string.
+			break;
+		}
+	}
+
+	// Close the file stream.
+	fclose( stream );
+
+	// Free the temporary local buffer.
+	free( buf_local );
+
+	// Return r_val so the caller knows if we failed.
+	return r_val;
+}
+
 #endif
+
