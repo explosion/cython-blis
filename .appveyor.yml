@@ -33,6 +33,10 @@ build_script:
 
 artifacts:
   - path: blis/_src/make
-    name: windows-$BLIS_ARCH.jsonl
-  - path: blis/_src/include/windows-$BLIS_ARCH
+    name: windows-generic.jsonl
+  - path: blis/_src/make
+    name: windows-x86_64.jsonl
+  - path: blis/_src/include/windows-generic
+    name: blis.h
+  - path: blis/_src/include/windows-x86_64
     name: blis.h
