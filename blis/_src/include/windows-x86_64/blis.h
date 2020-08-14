@@ -23,6 +23,12 @@ extern "C" {
 #ifndef BLIS_SYSTEM_H
 #define BLIS_SYSTEM_H
 
+// NOTE: If not yet defined, we define _POSIX_C_SOURCE to make sure that
+// various parts of POSIX are defined and made available.
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <stdio.h> // skipped
 #include <stdlib.h> // skipped
 #include <math.h> // skipped
@@ -66,7 +72,8 @@ extern "C" {
 #elif defined(__bg__)
   #define BLIS_OS_BGP 1
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
-      defined(__bsdi__) || defined(__DragonFly__) || defined(__FreeBSD_kernel__)
+      defined(__bsdi__) || defined(__DragonFly__) || \
+      defined(__FreeBSD_kernel__) || defined(__HAIKU__)
   #define BLIS_OS_BSD 1
 #elif defined(EMSCRIPTEN)
   #define BLIS_OS_EMSCRIPTEN
@@ -98,7 +105,8 @@ extern "C" {
 #elif BLIS_OS_OSX
 #include <mach/mach_time.h> // skipped
 #else
-#include <sys/time.h> // skipped
+  //#include <sys/time.h>
+
 #include <time.h> // skipped
 #endif
 
@@ -130,6 +138,7 @@ extern "C" {
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
 #define BLIS_CONFIG_PENRYN
+#define BLIS_CONFIG_ZEN2
 #define BLIS_CONFIG_ZEN
 #define BLIS_CONFIG_EXCAVATOR
 #define BLIS_CONFIG_STEAMROLLER
@@ -143,6 +152,7 @@ extern "C" {
 #define BLIS_KERNELS_KNL
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
+#define BLIS_KERNELS_ZEN2
 #define BLIS_KERNELS_HASWELL
 #define BLIS_KERNELS_ZEN
 #define BLIS_KERNELS_PILEDRIVER
@@ -240,6 +250,12 @@ extern "C" {
 #endif
 #endif
 
+#if 1
+#define BLIS_ENABLE_SUP_HANDLING
+#else
+#define BLIS_DISABLE_SUP_HANDLING
+#endif
+
 #if 0
 #define BLIS_ENABLE_MEMKIND
 #else
@@ -264,24 +280,6 @@ extern "C" {
 #define BLIS_DISABLE_SHARED
 #endif
 
-#if !defined(BLIS_ENABLE_SHARED)
-    #define BLIS_EXPORT
-#else
-    #if defined(_WIN32) || defined(__CYGWIN__)
-        #ifdef BLIS_IS_BUILDING_LIBRARY
-            #define BLIS_EXPORT __declspec(dllexport)
-        #else
-            #define BLIS_EXPORT __declspec(dllimport)
-        #endif
-    #elif defined(__GNUC__) && __GNUC__ >= 4
-        #define BLIS_EXPORT __attribute__ ((visibility ("default")))
-    #else
-        #define BLIS_EXPORT
-    #endif
-#endif
-
-#define BLIS_EXPORT_BLIS BLIS_EXPORT
-#define BLIS_EXPORT_BLAS BLIS_EXPORT
 
 #endif
 // end bli_config.h
@@ -301,11 +299,11 @@ extern "C" {
 // internally within BLIS as well as those exposed in the native BLAS-like BLIS
 // interface.
 #ifndef BLIS_INT_TYPE_SIZE
-#ifdef BLIS_ARCH_64
-#define BLIS_INT_TYPE_SIZE               64
-#else
-#define BLIS_INT_TYPE_SIZE               32
-#endif
+  #ifdef BLIS_ARCH_64
+    #define BLIS_INT_TYPE_SIZE 64
+  #else
+    #define BLIS_INT_TYPE_SIZE 32
+  #endif
 #endif
 
 
@@ -413,7 +411,19 @@ extern "C" {
 // C99 type "long int". Note that this ONLY affects integers used within the
 // BLAS compatibility layer.
 #ifndef BLIS_BLAS_INT_TYPE_SIZE
-#define BLIS_BLAS_INT_TYPE_SIZE     32
+  #define BLIS_BLAS_INT_TYPE_SIZE 32
+#endif
+
+// By default, the level-3 BLAS routines are implemented by directly calling
+// the BLIS object API. Alternatively, they may first call the typed BLIS
+// API, which will then call the object API.
+//#define BLIS_BLAS3_CALLS_TAPI
+#ifdef BLIS_BLAS3_CALLS_TAPI
+  #undef  BLIS_BLAS3_CALLS_OAPI
+#else
+  // Default behavior is to call object API directly.
+  #undef  BLIS_BLAS3_CALLS_OAPI // In case user explicitly enabled.
+  #define BLIS_BLAS3_CALLS_OAPI
 #endif
 
 
@@ -430,6 +440,42 @@ extern "C" {
 #else
   // Default behavior is disabled.
 #endif
+
+
+// -- SHARED LIBRARY SYMBOL EXPORT ---------------------------------------------
+
+// When building shared libraries, we can control which symbols are exported for
+// linking by external applications. BLIS annotates all function prototypes that
+// are meant to be "public" with BLIS_EXPORT_BLIS (with BLIS_EXPORT_BLAS playing
+// a similar role for BLAS compatibility routines). Which symbols are exported
+// is controlled by the default symbol visibility, as specifed by the gcc option
+// -fvisibility=[default|hidden]. The default for this option is 'default', or,
+// "public", which, if allowed to stand, causes all symbols in BLIS to be
+// linkable from the outside. But when compiling with -fvisibility=hidden, all
+// symbols start out hidden (that is, restricted only for internal use by BLIS),
+// with that setting overridden only for function prototypes or variable
+// declarations that are annotated with BLIS_EXPORT_BLIS.
+
+#ifndef BLIS_EXPORT
+  #if !defined(BLIS_ENABLE_SHARED)
+    #define BLIS_EXPORT
+  #else
+    #if defined(_WIN32) || defined(__CYGWIN__)
+      #ifdef BLIS_IS_BUILDING_LIBRARY
+        #define BLIS_EXPORT __declspec(dllexport)
+      #else
+        #define BLIS_EXPORT __declspec(dllimport)
+      #endif
+    #elif defined(__GNUC__) && __GNUC__ >= 4
+      #define BLIS_EXPORT __attribute__ ((visibility ("default")))
+    #else
+      #define BLIS_EXPORT
+    #endif
+  #endif
+#endif
+
+#define BLIS_EXPORT_BLIS BLIS_EXPORT
+#define BLIS_EXPORT_BLAS BLIS_EXPORT
 
 
 #endif
@@ -604,6 +650,16 @@ typedef float     f77_float;
 typedef double    f77_double;
 typedef scomplex  f77_scomplex;
 typedef dcomplex  f77_dcomplex;
+
+// -- Void function pointer types --
+
+// Note: This type should be used in any situation where the address of a
+// *function* will be conveyed or stored prior to it being typecast back
+// to the correct function type. It does not need to be used when conveying
+// or storing the address of *data* (such as an array of float or double).
+
+//typedef void (*void_fp)( void );
+typedef void* void_fp;
 
 
 //
@@ -1133,6 +1189,80 @@ typedef enum
 #if 0
 typedef enum
 {
+	// RV = row-stored, contiguous vector-loading
+	// RG = row-stored, non-contiguous gather-loading
+	// CV = column-stored, contiguous vector-loading
+	// CG = column-stored, non-contiguous gather-loading
+
+	// RD = row-stored, dot-based
+	// CD = col-stored, dot-based
+
+	// RC = row-stored, column-times-column
+	// CR = column-stored, row-times-row
+
+	// GX = general-stored generic implementation
+
+	BLIS_GEMMSUP_RV_UKR = 0,
+	BLIS_GEMMSUP_RG_UKR,
+	BLIS_GEMMSUP_CV_UKR,
+	BLIS_GEMMSUP_CG_UKR,
+
+	BLIS_GEMMSUP_RD_UKR,
+	BLIS_GEMMSUP_CD_UKR,
+
+	BLIS_GEMMSUP_RC_UKR,
+	BLIS_GEMMSUP_CR_UKR,
+
+	BLIS_GEMMSUP_GX_UKR,
+} l3sup_t;
+
+#define BLIS_NUM_LEVEL3_SUP_UKRS 9
+#endif
+
+
+typedef enum
+{
+	// 3-operand storage combinations
+	BLIS_RRR = 0,
+	BLIS_RRC, // 1
+	BLIS_RCR, // 2
+	BLIS_RCC, // 3
+	BLIS_CRR, // 4
+	BLIS_CRC, // 5
+	BLIS_CCR, // 6
+	BLIS_CCC, // 7
+	BLIS_XXX, // 8
+
+#if 0
+	BLIS_RRG,
+	BLIS_RCG,
+	BLIS_RGR,
+	BLIS_RGC,
+	BLIS_RGG,
+	BLIS_CRG,
+	BLIS_CCG,
+	BLIS_CGR,
+	BLIS_CGC,
+	BLIS_CGG,
+	BLIS_GRR,
+	BLIS_GRC,
+	BLIS_GRG,
+	BLIS_GCR,
+	BLIS_GCC,
+	BLIS_GCG,
+	BLIS_GGR,
+	BLIS_GGC,
+	BLIS_GGG,
+#endif
+} stor3_t;
+
+#define BLIS_NUM_3OP_RC_COMBOS 9
+//#define BLIS_NUM_3OP_RCG_COMBOS 27
+
+
+#if 0
+typedef enum
+{
 	BLIS_JC_IDX = 0,
 	BLIS_PC_IDX,
 	BLIS_IC_IDX,
@@ -1192,8 +1322,10 @@ typedef enum
 	BLIS_MC,
 	BLIS_KC,
 	BLIS_NC,
+
 	BLIS_M2, // level-2 blocksize in m dimension
 	BLIS_N2, // level-2 blocksize in n dimension
+
 	BLIS_AF, // level-1f axpyf fusing factor
 	BLIS_DF, // level-1f dotxf fusing factor
 	BLIS_XF, // level-1f dotxaxpyf fusing factor
@@ -1202,6 +1334,19 @@ typedef enum
 } bszid_t;
 
 #define BLIS_NUM_BLKSZS 11
+
+
+// -- Threshold ID type --
+
+typedef enum
+{
+	BLIS_MT = 0, // level-3 small/unpacked matrix threshold in m dimension
+	BLIS_NT,     // level-3 small/unpacked matrix threshold in n dimension
+	BLIS_KT      // level-3 small/unpacked matrix threshold in k dimension
+
+} threshid_t;
+
+#define BLIS_NUM_THRESH 3
 
 
 // -- Architecture ID type --
@@ -1222,6 +1367,7 @@ typedef enum
 	BLIS_ARCH_PENRYN,
 
 	// AMD
+	BLIS_ARCH_ZEN2,
 	BLIS_ARCH_ZEN,
 	BLIS_ARCH_EXCAVATOR,
 	BLIS_ARCH_STEAMROLLER,
@@ -1245,7 +1391,9 @@ typedef enum
 
 } arch_t;
 
-#define BLIS_NUM_ARCHS 20
+// NOTE: This value must be updated to reflect the number of enum values
+// listed above for arch_t!
+#define BLIS_NUM_ARCHS 21
 
 
 //
@@ -1596,6 +1744,7 @@ typedef struct
 
 	siz_t     block_size;
 	siz_t     align_size;
+	siz_t     offset_size;
 
 	malloc_ft malloc_fp;
 	free_ft   free_fp;
@@ -1660,7 +1809,7 @@ struct cntl_s
 	// Basic fields (usually required).
 	opid_t         family;
 	bszid_t        bszid;
-	void*          var_func;
+	void_fp        var_func;
 	struct cntl_s* sub_prenode;
 	struct cntl_s* sub_node;
 
@@ -1693,7 +1842,7 @@ typedef struct blksz_s
 typedef struct func_s
 {
 	// Kernel function address.
-	void*  ptr[BLIS_NUM_FP_TYPES];
+	void_fp ptr[BLIS_NUM_FP_TYPES];
 
 } func_t;
 
@@ -1727,6 +1876,13 @@ typedef struct
 	// The imaginary strides of A and B.
 	inc_t  is_a;
 	inc_t  is_b;
+
+	// The panel strides of A and B.
+	// NOTE: These are only used in situations where iteration over the
+	// micropanels takes place in part within the kernel code (e.g. sup
+	// millikernels).
+	inc_t  ps_a;
+	inc_t  ps_b;
 
 	// The type to convert to on output.
 	//num_t  dt_on_output;
@@ -1783,6 +1939,71 @@ typedef struct obj_s
 	dim_t         m_panel;  // m dimension of a "full" panel
 	dim_t         n_panel;  // n dimension of a "full" panel
 } obj_t;
+
+// Pre-initializors. Things that must be set afterwards:
+// - root object pointer
+// - info bitfields: dt, target_dt, exec_dt, comp_dt
+// - info2 bitfields: scalar_dt
+// - elem_size
+// - dims, strides
+// - buffer
+// - internal scalar buffer (must always set imaginary component)
+
+#define BLIS_OBJECT_INITIALIZER \
+{ \
+	.root      = NULL, \
+\
+	.off       = { 0, 0 }, \
+	.dim       = { 0, 0 }, \
+	.diag_off  = 0, \
+\
+	.info      = 0x0 | BLIS_BITVAL_DENSE      | \
+	                   BLIS_BITVAL_GENERAL, \
+	.info2     = 0x0, \
+	.elem_size = sizeof( float ),  \
+\
+	.buffer    = NULL, \
+	.rs        = 0, \
+	.cs        = 0, \
+	.is        = 1,  \
+\
+	.scalar    = { 0.0, 0.0 }, \
+\
+	.m_padded  = 0, \
+	.n_padded  = 0, \
+	.ps        = 0, \
+	.pd        = 0, \
+	.m_panel   = 0, \
+	.n_panel   = 0  \
+}
+
+#define BLIS_OBJECT_INITIALIZER_1X1 \
+{ \
+	.root      = NULL, \
+\
+	.off       = { 0, 0 }, \
+	.dim       = { 1, 1 }, \
+	.diag_off  = 0, \
+\
+	.info      = 0x0 | BLIS_BITVAL_DENSE      | \
+	                   BLIS_BITVAL_GENERAL, \
+	.info2     = 0x0, \
+	.elem_size = sizeof( float ),  \
+\
+	.buffer    = NULL, \
+	.rs        = 0, \
+	.cs        = 0, \
+	.is        = 1,  \
+\
+	.scalar    = { 0.0, 0.0 }, \
+\
+	.m_padded  = 0, \
+	.n_padded  = 0, \
+	.ps        = 0, \
+	.pd        = 0, \
+	.m_panel   = 0, \
+	.n_panel   = 0  \
+}
 
 // Define these macros here since they must be updated if contents of
 // obj_t changes.
@@ -1850,6 +2071,39 @@ static void bli_obj_init_subpart_from( obj_t* a, obj_t* b )
 	b->n_panel   = a->n_panel;
 }
 
+// Initializors for global scalar constants.
+// NOTE: These must remain cpp macros since they are initializor
+// expressions, not functions.
+
+#define bli_obj_init_const( buffer0 ) \
+{ \
+	.root      = NULL, \
+\
+	.off       = { 0, 0 }, \
+	.dim       = { 1, 1 }, \
+	.diag_off  = 0, \
+\
+	.info      = 0x0 | BLIS_BITVAL_CONST_TYPE | \
+	                   BLIS_BITVAL_DENSE      | \
+	                   BLIS_BITVAL_GENERAL, \
+	.info2     = 0x0, \
+	.elem_size = sizeof( constdata_t ), \
+\
+	.buffer    = buffer0, \
+	.rs        = 1, \
+	.cs        = 1, \
+	.is        = 1  \
+}
+
+#define bli_obj_init_constdata( val ) \
+{ \
+	.s =           ( float  )val, \
+	.d =           ( double )val, \
+	.c = { .real = ( float  )val, .imag = 0.0f }, \
+	.z = { .real = ( double )val, .imag = 0.0 }, \
+	.i =           ( gint_t )val, \
+}
+
 
 // -- Context type --
 
@@ -1861,6 +2115,12 @@ typedef struct cntx_s
 	func_t    l3_vir_ukrs[ BLIS_NUM_LEVEL3_UKRS ];
 	func_t    l3_nat_ukrs[ BLIS_NUM_LEVEL3_UKRS ];
 	mbool_t   l3_nat_ukrs_prefs[ BLIS_NUM_LEVEL3_UKRS ];
+
+	blksz_t   l3_sup_thresh[ BLIS_NUM_THRESH ];
+	void*     l3_sup_handlers[ BLIS_NUM_LEVEL3_OPS ];
+	blksz_t   l3_sup_blkszs[ BLIS_NUM_BLKSZS ];
+	func_t    l3_sup_kers[ BLIS_NUM_3OP_RC_COMBOS ];
+	mbool_t   l3_sup_kers_prefs[ BLIS_NUM_3OP_RC_COMBOS ];
 
 	func_t    l1f_kers[ BLIS_NUM_LEVEL1F_KERS ];
 	func_t    l1v_kers[ BLIS_NUM_LEVEL1V_KERS ];
@@ -1878,11 +2138,19 @@ typedef struct cntx_s
 
 // -- Runtime type --
 
+// NOTE: The order of these fields must be kept consistent with the definition
+// of the BLIS_RNTM_INITIALIZER macro in bli_rntm.h.
+
 typedef struct rntm_s
 {
 	// "External" fields: these may be queried by the end-user.
+	bool_t    auto_factor;
+
 	dim_t     num_threads;
 	dim_t     thrloop[ BLIS_NUM_LOOPS ];
+	bool_t    pack_a; // enable/disable packing of left-hand matrix A.
+	bool_t    pack_b; // enable/disable packing of right-hand matrix B.
+	bool_t    l3_sup; // enable/disable small matrix handling in level-3 ops.
 
 	// "Internal" fields: these should not be exposed to the end-user.
 
@@ -2116,6 +2384,9 @@ typedef enum
 
 #define PASTEBLACHK_(op)           bla_ ## op ## _check
 #define PASTEBLACHK(op)            PASTEBLACHK_(op)
+
+#define PASTECH0_(op)              op
+#define PASTECH0(op)               PASTECH0_(op)
 
 #define PASTECH_(ch,op)            ch ## op
 #define PASTECH(ch,op)             PASTECH_(ch,op)
@@ -2589,6 +2860,24 @@ GENTFUNCR( float,    float,  s, s, tfuncname, varname1, varname2, varname3, varn
 GENTFUNCR( double,   double, d, d, tfuncname, varname1, varname2, varname3, varname4 ) \
 GENTFUNCR( scomplex, float,  c, s, tfuncname, varname1, varname2, varname3, varname4 ) \
 GENTFUNCR( dcomplex, double, z, d, tfuncname, varname1, varname2, varname3, varname4 )
+
+
+
+// -- Basic one-operand macro with real domain only --
+
+// -- (no auxiliary arguments) --
+
+#define INSERT_GENTFUNCRO_BASIC0( tfuncname ) \
+\
+GENTFUNCRO( float,  s, tfuncname ) \
+GENTFUNCRO( double, d, tfuncname ) \
+
+// -- (one auxiliary argument) --
+
+#define INSERT_GENTFUNCRO_BASIC( tfuncname, varname ) \
+\
+GENTFUNCRO( float,  s, tfuncname, varname ) \
+GENTFUNCRO( double, d, tfuncname, varname ) \
 
 
 
@@ -4520,10 +4809,34 @@ static dom_t bli_dt_domain( num_t dt )
 	       ( dt & BLIS_DOMAIN_BIT );
 }
 
+static bool_t bli_dt_dom_is_real( num_t dt )
+{
+	return ( bool_t )
+	       ( ( dt & BLIS_DOMAIN_BIT ) == BLIS_REAL );
+}
+
+static bool_t bli_dt_dom_is_complex( num_t dt )
+{
+	return ( bool_t )
+	       ( ( dt & BLIS_DOMAIN_BIT ) == BLIS_COMPLEX );
+}
+
 static prec_t bli_dt_prec( num_t dt )
 {
 	return ( prec_t )
 	       ( dt & BLIS_PRECISION_BIT );
+}
+
+static bool_t bli_dt_prec_is_single( num_t dt )
+{
+	return ( bool_t )
+	       ( ( dt & BLIS_PRECISION_BIT ) == BLIS_SINGLE_PREC );
+}
+
+static bool_t bli_dt_prec_is_double( num_t dt )
+{
+	return ( bool_t )
+	       ( ( dt & BLIS_PRECISION_BIT ) == BLIS_DOUBLE_PREC );
 }
 
 static num_t bli_dt_proj_to_real( num_t dt )
@@ -5153,6 +5466,97 @@ static void bli_toggle_dim( mdim_t* mdim )
 }
 
 
+// stor3_t-related
+
+static stor3_t bli_stor3_from_strides( inc_t rs_c, inc_t cs_c,
+                                       inc_t rs_a, inc_t cs_a,
+                                       inc_t rs_b, inc_t cs_b  )
+{
+	// If any matrix is general-stored, return the stor3_t id for the
+	// general-purpose sup microkernel.
+	if ( bli_is_gen_stored( rs_c, cs_c ) ||
+	     bli_is_gen_stored( rs_a, cs_a ) ||
+	     bli_is_gen_stored( rs_b, cs_b ) ) return BLIS_XXX;
+
+	// Otherwise, compute and return the stor3_t id as follows.
+	const bool_t c_is_col = bli_is_col_stored( rs_c, cs_c );
+	const bool_t a_is_col = bli_is_col_stored( rs_a, cs_a );
+	const bool_t b_is_col = bli_is_col_stored( rs_b, cs_b );
+
+	return ( stor3_t )( 4 * c_is_col +
+	                    2 * a_is_col +
+	                    1 * b_is_col );
+}
+
+static stor3_t bli_stor3_trans( stor3_t id )
+{
+#if 1
+	stor3_t map[ BLIS_NUM_3OP_RC_COMBOS ]
+	=
+	{
+	  ( stor3_t )7,  // BLIS_RRR = 0  ->  BLIS_CCC = 7
+	  ( stor3_t )5,  // BLIS_RRC = 1  ->  BLIS_CRC = 5
+	  ( stor3_t )6,  // BLIS_RCR = 2  ->  BLIS_CCR = 6
+	  ( stor3_t )4,  // BLIS_RCC = 3  ->  BLIS_CRR = 4
+	  ( stor3_t )3,  // BLIS_CRR = 4  ->  BLIS_RCC = 3
+	  ( stor3_t )1,  // BLIS_CRC = 5  ->  BLIS_RRC = 1
+	  ( stor3_t )2,  // BLIS_CCR = 6  ->  BLIS_RCR = 2
+	  ( stor3_t )0,  // BLIS_CCC = 7  ->  BLIS_RRR = 0
+	};
+
+	return map[id];
+#else
+	return   ( ( id & 0x4 ) ^ 0x4 )        | // flip c bit
+	       ( ( ( id & 0x1 ) ^ 0x1 ) << 1 ) | // flip b bit and move to a position
+	       ( ( ( id & 0x2 ) ^ 0x2 ) >> 1 );  // flip a bit and move to b position
+#endif
+}
+
+static stor3_t bli_stor3_transa( stor3_t id )
+{
+#if 0
+	stor3_t map[ BLIS_NUM_3OP_RC_COMBOS ]
+	=
+	{
+	  ( stor3_t )1,  // BLIS_RRR = 0  ->  BLIS_RRC = 1
+	  ( stor3_t )0,  // BLIS_RRC = 1  ->  BLIS_RRR = 0
+	  ( stor3_t )3,  // BLIS_RCR = 2  ->  BLIS_RCC = 3
+	  ( stor3_t )2,  // BLIS_RCC = 3  ->  BLIS_RCR = 2
+	  ( stor3_t )5,  // BLIS_CRR = 4  ->  BLIS_CRC = 5
+	  ( stor3_t )4,  // BLIS_CRC = 5  ->  BLIS_CRR = 4
+	  ( stor3_t )7,  // BLIS_CCR = 6  ->  BLIS_CCC = 7
+	  ( stor3_t )6,  // BLIS_CCC = 7  ->  BLIS_CCR = 6
+	};
+
+	return map[id];
+#else
+	return ( stor3_t )( id ^ 0x1 );
+#endif
+}
+
+static stor3_t bli_stor3_transb( stor3_t id )
+{
+#if 0
+	stor3_t map[ BLIS_NUM_3OP_RC_COMBOS ]
+	=
+	{
+	  ( stor3_t )2,  // BLIS_RRR = 0  ->  BLIS_RCR = 2
+	  ( stor3_t )3,  // BLIS_RRC = 1  ->  BLIS_RCC = 3
+	  ( stor3_t )0,  // BLIS_RCR = 2  ->  BLIS_RRR = 0
+	  ( stor3_t )1,  // BLIS_RCC = 3  ->  BLIS_RRC = 1
+	  ( stor3_t )6,  // BLIS_CRR = 4  ->  BLIS_CCR = 6
+	  ( stor3_t )7,  // BLIS_CRC = 5  ->  BLIS_CCC = 7
+	  ( stor3_t )4,  // BLIS_CCR = 6  ->  BLIS_CRR = 4
+	  ( stor3_t )5,  // BLIS_CCC = 7  ->  BLIS_CRC = 5
+	};
+
+	return map[id];
+#else
+	return ( stor3_t )( id ^ 0x2 );
+#endif
+}
+
+
 
 // index-related
 
@@ -5326,23 +5730,12 @@ static guint_t bli_pack_schema_index( pack_t schema )
 // Increment a pointer by an integer fraction:
 //   p0 + (num/dem)
 // where p0 is a pointer to a datatype of size sizeof_p0.
-static void* bli_ptr_inc_by_frac( void* p0, siz_t sizeof_p0, dim_t num, dim_t den )
+static void_fp bli_ptr_inc_by_frac( void_fp p0, siz_t sizeof_p0, dim_t num, dim_t den )
 {
-	return ( void* )
+	return ( void_fp )
 	       ( ( char* )p0 + ( ( num * ( dim_t )sizeof_p0 ) / den ) );
 }
 
-static bool_t bli_is_null( void* p )
-{
-	return ( bool_t )
-	       ( p == NULL );
-}
-
-static bool_t bli_is_nonnull( void* p )
-{
-	return ( bool_t )
-	       ( p != NULL );
-}
 
 
 // Set dimensions, increments, effective uplo/diagoff, etc for ONE matrix
@@ -6617,10 +7010,20 @@ static bool_t bli_obj_is_col_tilted( obj_t* obj )
 
 // Stride/increment modification
 
-static void bli_obj_set_strides( inc_t rs, inc_t cs, obj_t* obj )
+static void bli_obj_set_row_stride( inc_t rs, obj_t* obj )
 {
 	obj->rs = rs;
+}
+
+static void bli_obj_set_col_stride( inc_t cs, obj_t* obj )
+{
 	obj->cs = cs;
+}
+
+static void bli_obj_set_strides( inc_t rs, inc_t cs, obj_t* obj )
+{
+	bli_obj_set_row_stride( rs, obj );
+	bli_obj_set_col_stride( cs, obj );
 }
 
 static void bli_obj_set_imag_stride( inc_t is, obj_t* obj )
@@ -6827,6 +7230,93 @@ static void bli_obj_set_panel_stride( inc_t ps, obj_t* obj )
 	obj->ps = ps;
 }
 
+// stor3_t-related
+
+static stor3_t bli_obj_stor3_from_strides( obj_t* c, obj_t* a, obj_t* b )
+{
+	const inc_t rs_c = bli_obj_row_stride( c );
+	const inc_t cs_c = bli_obj_col_stride( c );
+
+	inc_t rs_a, cs_a;
+	inc_t rs_b, cs_b;
+
+	if ( bli_obj_has_notrans( a ) )
+	{
+		rs_a = bli_obj_row_stride( a );
+		cs_a = bli_obj_col_stride( a );
+	}
+	else
+	{
+		rs_a = bli_obj_col_stride( a );
+		cs_a = bli_obj_row_stride( a );
+	}
+
+	if ( bli_obj_has_notrans( b ) )
+	{
+		rs_b = bli_obj_row_stride( b );
+		cs_b = bli_obj_col_stride( b );
+	}
+	else
+	{
+		rs_b = bli_obj_col_stride( b );
+		cs_b = bli_obj_row_stride( b );
+	}
+
+	return bli_stor3_from_strides( rs_c, cs_c,
+	                               rs_a, cs_a,
+	                               rs_b, cs_b  );
+}
+
+
+// -- Initialization-related macros --
+
+// Finish the initialization started by the matrix-specific static initializer
+// (e.g. BLIS_OBJECT_PREINITIALIZER)
+// NOTE: This is intended only for use in the BLAS compatibility API and typed
+// BLIS API.
+
+static void bli_obj_init_finish( num_t dt, dim_t m, dim_t n, void* p, inc_t rs, inc_t cs, obj_t* obj )
+{
+	bli_obj_set_as_root( obj );
+
+	bli_obj_set_dt( dt, obj );
+	bli_obj_set_target_dt( dt, obj );
+	bli_obj_set_exec_dt( dt, obj );
+	bli_obj_set_comp_dt( dt, obj );
+
+	bli_obj_set_dims( m, n, obj );
+	bli_obj_set_strides( rs, cs, obj );
+
+	siz_t elem_size = sizeof( float );
+	if ( bli_dt_prec_is_double( dt ) ) elem_size *= 2;
+	if ( bli_dt_dom_is_complex( dt ) ) elem_size *= 2;
+	bli_obj_set_elem_size( elem_size, obj );
+
+	bli_obj_set_buffer( p, obj );
+
+	bli_obj_set_scalar_dt( dt, obj );
+	void* restrict s = bli_obj_internal_scalar_buffer( obj );
+
+	if      ( bli_dt_prec_is_single( dt ) ) { (( scomplex* )s)->real = 1.0F;
+	                                          (( scomplex* )s)->imag = 0.0F; }
+	else if ( bli_dt_prec_is_double( dt ) ) { (( dcomplex* )s)->real = 1.0;
+	                                          (( dcomplex* )s)->imag = 0.0; }
+}
+
+// Finish the initialization started by the 1x1-specific static initializer
+// (e.g. BLIS_OBJECT_PREINITIALIZER_1X1)
+// NOTE: This is intended only for use in the BLAS compatibility API and typed
+// BLIS API.
+
+static void bli_obj_init_finish_1x1( num_t dt, void* p, obj_t* obj )
+{
+	bli_obj_set_as_root( obj );
+
+	bli_obj_set_dt( dt, obj );
+
+	bli_obj_set_buffer( p, obj );
+}
+
 // -- Miscellaneous object macros --
 
 // Toggle the region referenced (or "stored").
@@ -6856,38 +7346,6 @@ static void bli_obj_set_defaults( obj_t* obj )
 {
 	obj->info = 0x0;
 	obj->info = obj->info | BLIS_BITVAL_DENSE | BLIS_BITVAL_GENERAL;
-}
-
-// Initializors for global scalar constants.
-// NOTE: These must remain cpp macros since they are initializor
-// expressions, not functions.
-
-#define bli_obj_init_const( buffer0 ) \
-{ \
-	.root      = NULL, \
-\
-	.off       = { 0, 0 }, \
-	.dim       = { 1, 1 }, \
-	.diag_off  = 0, \
-\
-	.info      = 0x0 | BLIS_BITVAL_CONST_TYPE | \
-	                   BLIS_BITVAL_DENSE      | \
-	                   BLIS_BITVAL_GENERAL, \
-	.elem_size = sizeof( constdata_t ), \
-\
-	.buffer    = buffer0, \
-	.rs        = 1, \
-	.cs        = 1, \
-	.is        = 1  \
-}
-
-#define bli_obj_init_constdata( val ) \
-{ \
-	.s =           ( float  )val, \
-	.d =           ( double )val, \
-	.c = { .real = ( float  )val, .imag = 0.0f }, \
-	.z = { .real = ( double )val, .imag = 0.0 }, \
-	.i =           ( gint_t )val, \
 }
 
 // Acquire buffer at object's submatrix offset (offset-aware buffer query).
@@ -7101,7 +7559,32 @@ static void bli_obj_induce_trans( obj_t* obj )
 	bli_obj_set_panel_dims( n_panel, m_panel, obj );
 
 	// Note that this macro DOES NOT touch the transposition bit! If
-	// the calling code is using this macro to handle an object whose
+	// the calling code is using this function to handle an object whose
+	// transposition bit is set prior to computation, that code needs
+	// to manually clear or toggle the bit, via
+	// bli_obj_set_onlytrans() or bli_obj_toggle_trans(),
+	// respectively.
+}
+
+static void bli_obj_induce_fast_trans( obj_t* obj )
+{
+	// NOTE: This function is only used in situations where the matrices
+	// are guaranteed to not have structure or be packed.
+
+	// Induce transposition among basic fields.
+	dim_t  m        = bli_obj_length( obj );
+	dim_t  n        = bli_obj_width( obj );
+	inc_t  rs       = bli_obj_row_stride( obj );
+	inc_t  cs       = bli_obj_col_stride( obj );
+	dim_t  offm     = bli_obj_row_off( obj );
+	dim_t  offn     = bli_obj_col_off( obj );
+
+	bli_obj_set_dims( n, m, obj );
+	bli_obj_set_strides( cs, rs, obj );
+	bli_obj_set_offs( offn, offm, obj );
+
+	// Note that this macro DOES NOT touch the transposition bit! If
+	// the calling code is using this function to handle an object whose
 	// transposition bit is set prior to computation, that code needs
 	// to manually clear or toggle the bit, via
 	// bli_obj_set_onlytrans() or bli_obj_toggle_trans(),
@@ -14745,6 +15228,65 @@ static void bli_zcopys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 
 #endif
 // end bli_copys_mxn.h
+// begin bli_scal2s_mxn.h
+
+
+#ifndef BLIS_SCAL2S_MXN_H
+#define BLIS_SCAL2S_MXN_H
+
+// scal2s_mxn
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname ) \
+\
+static void PASTEMAC(ch,opname) \
+     ( \
+       const conj_t       conjx, \
+       const dim_t        m, \
+       const dim_t        n, \
+       ctype*    restrict alpha, \
+       ctype*    restrict x, const inc_t rs_x, const inc_t cs_x, \
+       ctype*    restrict y, const inc_t rs_y, const inc_t cs_y  \
+     ) \
+{ \
+	if ( bli_is_conj( conjx ) ) \
+	{ \
+		for ( dim_t j = 0; j < n; ++j ) \
+		{ \
+			ctype* restrict xj = x + j*cs_x; \
+			ctype* restrict yj = y + j*cs_y; \
+\
+			for ( dim_t i = 0; i < m; ++i ) \
+			{ \
+				ctype* restrict xij = xj + i*rs_x; \
+				ctype* restrict yij = yj + i*rs_y; \
+\
+				PASTEMAC(ch,scal2js)( *alpha, *xij, *yij ); \
+			} \
+		} \
+	} \
+	else  \
+	{ \
+		for ( dim_t j = 0; j < n; ++j ) \
+		{ \
+			ctype* restrict xj = x + j*cs_x; \
+			ctype* restrict yj = y + j*cs_y; \
+\
+			for ( dim_t i = 0; i < m; ++i ) \
+			{ \
+				ctype* restrict xij = xj + i*rs_x; \
+				ctype* restrict yij = yj + i*rs_y; \
+\
+				PASTEMAC(ch,scal2s)( *alpha, *xij, *yij ); \
+			} \
+		} \
+	} \
+}
+
+INSERT_GENTFUNC_BASIC0( scal2s_mxn )
+
+#endif
+// end bli_scal2s_mxn.h
 // begin bli_xpbys_mxn.h
 
 
@@ -15631,6 +16173,271 @@ static void bli_zxpbys_mxn( const dim_t m, const dim_t n, dcomplex* restrict x, 
 
 #endif
 // end bli_xpbys_mxn_uplo.h
+
+// -- "broadcast B" scalar macros --
+
+// begin bli_bcastbbs_mxn.h
+
+
+#ifndef BLIS_BCASTBBS_MXN_H
+#define BLIS_BCASTBBS_MXN_H
+
+// bcastbbs_mxn
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname ) \
+\
+static void PASTEMAC(ch,opname) \
+     ( \
+       const dim_t        m, \
+       const dim_t        n, \
+       ctype*    restrict y, const inc_t incy, const inc_t ldy  \
+     ) \
+{ \
+	 \
+	const dim_t d    = ldy; \
+	const dim_t ds_y = 1; \
+\
+	for ( dim_t i = 0; i < m; ++i ) \
+	{ \
+		ctype* restrict yi = y + i*incy; \
+\
+		for ( dim_t j = 0; j < n; ++j ) \
+		{ \
+			ctype* restrict yij = yi + j*ldy; \
+\
+			for ( dim_t p = 1; p < d; ++p ) \
+			{ \
+				ctype* restrict yijd = yij + p*ds_y; \
+\
+				PASTEMAC(ch,copys)( *yij, *yijd ); \
+			} \
+		} \
+	} \
+}
+
+INSERT_GENTFUNC_BASIC0( bcastbbs_mxn )
+
+#endif
+// end bli_bcastbbs_mxn.h
+// begin bli_scal2bbs_mxn.h
+
+
+#ifndef BLIS_SCAL2BBS_MXN_H
+#define BLIS_SCAL2BBS_MXN_H
+
+// scal2bbs_mxn
+
+#undef  GENTFUNCRO
+#define GENTFUNCRO( ctype, ch, opname ) \
+\
+static void PASTEMAC(ch,opname) \
+     ( \
+       const conj_t       conjx, \
+       const dim_t        m, \
+       const dim_t        n, \
+       ctype*    restrict alpha, \
+       ctype*    restrict x, const inc_t incx, const inc_t ldx, \
+       ctype*    restrict y, const inc_t incy, const inc_t ldy  \
+     ) \
+{ \
+	 \
+	const dim_t d    = incy; \
+	const dim_t ds_y = 1; \
+\
+	if ( bli_is_conj( conjx ) ) \
+	{ \
+		for ( dim_t j = 0; j < n; ++j ) \
+		{ \
+			ctype* restrict xj = x + j*ldx; \
+			ctype* restrict yj = y + j*ldy; \
+\
+			for ( dim_t i = 0; i < m; ++i ) \
+			{ \
+				ctype* restrict xij = xj + i*incx; \
+				ctype* restrict yij = yj + i*incy; \
+\
+				PASTEMAC(ch,scal2js)( *alpha, *xij, *yij ); \
+\
+				for ( dim_t p = 1; p < d; ++p ) \
+				{ \
+					ctype* restrict yijd = yij + p*ds_y; \
+\
+					PASTEMAC(ch,copys)( *yij, *yijd ); \
+				} \
+			} \
+		} \
+	} \
+	else  \
+	{ \
+		for ( dim_t j = 0; j < n; ++j ) \
+		{ \
+			ctype* restrict xj = x + j*ldx; \
+			ctype* restrict yj = y + j*ldy; \
+\
+			for ( dim_t i = 0; i < m; ++i ) \
+			{ \
+				ctype* restrict xij = xj + i*incx; \
+				ctype* restrict yij = yj + i*incy; \
+\
+				PASTEMAC(ch,scal2s)( *alpha, *xij, *yij ); \
+\
+				for ( dim_t p = 1; p < d; ++p ) \
+				{ \
+					ctype* restrict yijd = yij + p*ds_y; \
+\
+					PASTEMAC(ch,copys)( *yij, *yijd ); \
+				} \
+			} \
+		} \
+	} \
+}
+
+INSERT_GENTFUNCRO_BASIC0( scal2bbs_mxn )
+
+
+#undef  GENTFUNCCO
+#define GENTFUNCCO( ctype, ctype_r, ch, chr, opname ) \
+\
+static void PASTEMAC(ch,opname) \
+     ( \
+       const conj_t       conjx, \
+       const dim_t        m, \
+       const dim_t        n, \
+       ctype*    restrict alpha, \
+       ctype*    restrict x, const inc_t incx, const inc_t ldx, \
+       ctype*    restrict y, const inc_t incy, const inc_t ldy  \
+     ) \
+{ \
+	 \
+	const dim_t       d          = incy; \
+	const dim_t       ds_y       = 1; \
+\
+	const inc_t       incx2      = 2 * incx; \
+	const inc_t       ldx2       = 2 * ldx; \
+\
+	const inc_t       incy2      = 2 * incy; \
+	const inc_t       ldy2       = 2 * ldy; \
+\
+	ctype_r* restrict alpha_r    = ( ctype_r* )alpha; \
+	ctype_r* restrict alpha_i    = ( ctype_r* )alpha + 1; \
+	ctype_r* restrict chi_r      = ( ctype_r* )x; \
+	ctype_r* restrict chi_i      = ( ctype_r* )x + 1; \
+	ctype_r* restrict psi_r      = ( ctype_r* )y; \
+	ctype_r* restrict psi_i      = ( ctype_r* )y + 1*d; \
+\
+	if ( bli_is_conj( conjx ) ) \
+	{ \
+		for ( dim_t j = 0; j < n; ++j ) \
+		{ \
+			ctype_r* restrict chij_r = chi_r + j*ldx2; \
+			ctype_r* restrict chij_i = chi_i + j*ldx2; \
+			ctype_r* restrict psij_r = psi_r + j*ldy2; \
+			ctype_r* restrict psij_i = psi_i + j*ldy2; \
+\
+			for ( dim_t i = 0; i < m; ++i ) \
+			{ \
+				ctype_r* restrict chiij_r = chij_r + i*incx2; \
+				ctype_r* restrict chiij_i = chij_i + i*incx2; \
+				ctype_r* restrict psiij_r = psij_r + i*incy2; \
+				ctype_r* restrict psiij_i = psij_i + i*incy2; \
+\
+				PASTEMAC(ch,scal2jris)( *alpha_r, *alpha_i, \
+				                        *chiij_r, *chiij_i, \
+				                        *psiij_r, *psiij_i ); \
+\
+				for ( dim_t p = 1; p < d; ++p ) \
+				{ \
+					ctype_r* restrict psiijd_r = psiij_r + p*ds_y; \
+					ctype_r* restrict psiijd_i = psiij_i + p*ds_y; \
+\
+					PASTEMAC(ch,copyris)( *psiij_r,  *psiij_i, \
+					                      *psiijd_r, *psiijd_i ); \
+				} \
+			} \
+		} \
+	} \
+	else  \
+	{ \
+		for ( dim_t j = 0; j < n; ++j ) \
+		{ \
+			ctype_r* restrict chij_r = chi_r + j*ldx2; \
+			ctype_r* restrict chij_i = chi_i + j*ldx2; \
+			ctype_r* restrict psij_r = psi_r + j*ldy2; \
+			ctype_r* restrict psij_i = psi_i + j*ldy2; \
+\
+			for ( dim_t i = 0; i < m; ++i ) \
+			{ \
+				ctype_r* restrict chiij_r = chij_r + i*incx2; \
+				ctype_r* restrict chiij_i = chij_i + i*incx2; \
+				ctype_r* restrict psiij_r = psij_r + i*incy2; \
+				ctype_r* restrict psiij_i = psij_i + i*incy2; \
+\
+				PASTEMAC(ch,scal2ris)( *alpha_r, *alpha_i, \
+				                       *chiij_r, *chiij_i, \
+				                       *psiij_r, *psiij_i ); \
+\
+				for ( dim_t p = 1; p < d; ++p ) \
+				{ \
+					ctype_r* restrict psiijd_r = psiij_r + p*ds_y; \
+					ctype_r* restrict psiijd_i = psiij_i + p*ds_y; \
+\
+					PASTEMAC(ch,copyris)( *psiij_r,  *psiij_i, \
+					                      *psiijd_r, *psiijd_i ); \
+				} \
+			} \
+		} \
+	} \
+}
+
+INSERT_GENTFUNCCO_BASIC0( scal2bbs_mxn )
+
+#endif
+// end bli_scal2bbs_mxn.h
+// begin bli_set0bbs_mxn.h
+
+
+#ifndef BLIS_SET0BBS_MXN_H
+#define BLIS_SET0BBS_MXN_H
+
+// set0bbs_mxn
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname ) \
+\
+static void PASTEMAC(ch,opname) \
+     ( \
+       const dim_t        m, \
+       const dim_t        n, \
+       ctype*    restrict y, const inc_t incy, const inc_t ldy  \
+     ) \
+{ \
+	 \
+	const dim_t d    = incy; \
+	const dim_t ds_y = 1; \
+\
+	for ( dim_t j = 0; j < n; ++j ) \
+	{ \
+		ctype* restrict yj = y + j*ldy; \
+\
+		for ( dim_t i = 0; i < m; ++i ) \
+		{ \
+			ctype* restrict yij = yj + i*incy; \
+\
+			for ( dim_t p = 0; p < d; ++p ) \
+			{ \
+				ctype* restrict yijd = yij + p*ds_y; \
+\
+				PASTEMAC(ch,set0s)( *yijd ); \
+			} \
+		} \
+	} \
+}
+
+INSERT_GENTFUNC_BASIC0( set0bbs_mxn )
+
+#endif
+// end bli_set0bbs_mxn.h
 
 
 // -- 3m-specific scalar macros --
@@ -19075,14 +19882,6 @@ void        bli_thrcomm_tree_barrier_free( barrier_t* barrier );
 void        bli_thrcomm_tree_barrier( barrier_t* barack );
 #endif
 
-void bli_l3_thread_decorator_thread_check
-     (
-       dim_t      n_threads,
-       dim_t      tid,
-	   thrcomm_t* gl_comm,
-       rntm_t*    rntm
-     );
-
 #endif
 
 #endif
@@ -19130,10 +19929,6 @@ typedef struct thrcomm_s thrcomm_t;
 // end bli_thrcomm_pthreads.h
 
 
-// thread entry point prototype.
-void* bli_l3_thread_entry( void* data_void );
-
-
 // thrcomm_t query (field only)
 
 static dim_t bli_thrcomm_num_threads( thrcomm_t* comm )
@@ -19147,8 +19942,9 @@ thrcomm_t* bli_thrcomm_create( rntm_t* rntm, dim_t n_threads );
 void       bli_thrcomm_free( rntm_t* rntm, thrcomm_t* comm );
 void       bli_thrcomm_init( dim_t n_threads, thrcomm_t* comm );
 void       bli_thrcomm_cleanup( thrcomm_t* comm );
-void       bli_thrcomm_barrier( dim_t thread_id, thrcomm_t* comm );
-void*      bli_thrcomm_bcast( dim_t inside_id, void* to_send, thrcomm_t* comm );
+
+BLIS_EXPORT_BLIS void  bli_thrcomm_barrier( dim_t thread_id, thrcomm_t* comm );
+BLIS_EXPORT_BLIS void* bli_thrcomm_bcast( dim_t inside_id, void* to_send, thrcomm_t* comm );
 
 void       bli_thrcomm_barrier_atomic( dim_t thread_id, thrcomm_t* comm );
 
@@ -19256,6 +20052,36 @@ static bool_t bli_thread_am_ochief( thrinfo_t* t )
 
 // thrinfo_t modification
 
+static void bli_thrinfo_set_ocomm( thrcomm_t* ocomm, thrinfo_t* t )
+{
+	t->ocomm = ocomm;
+}
+
+static void bli_thrinfo_set_ocomm_id( dim_t ocomm_id, thrinfo_t* t )
+{
+	t->ocomm_id = ocomm_id;
+}
+
+static void bli_thrinfo_set_n_way( dim_t n_way, thrinfo_t* t )
+{
+	t->n_way = n_way;
+}
+
+static void bli_thrinfo_set_work_id( dim_t work_id, thrinfo_t* t )
+{
+	t->work_id = work_id;
+}
+
+static void bli_thrinfo_set_free_comm( bool_t free_comm, thrinfo_t* t )
+{
+	t->free_comm = free_comm;
+}
+
+static void bli_thrinfo_set_bszid( bszid_t bszid, thrinfo_t* t )
+{
+	t->bszid = bszid;
+}
+
 static void bli_thrinfo_set_sub_node( thrinfo_t* sub_node, thrinfo_t* t )
 {
 	t->sub_node = sub_node;
@@ -19268,12 +20094,12 @@ static void bli_thrinfo_set_sub_prenode( thrinfo_t* sub_prenode, thrinfo_t* t )
 
 // other thrinfo_t-related functions
 
-static void* bli_thread_obroadcast( thrinfo_t* t, void* p )
+static void* bli_thread_broadcast( thrinfo_t* t, void* p )
 {
 	return bli_thrcomm_bcast( t->ocomm_id, p, t->ocomm );
 }
 
-static void bli_thread_obarrier( thrinfo_t* t )
+static void bli_thread_barrier( thrinfo_t* t )
 {
 	bli_thrcomm_barrier( t->ocomm_id, t->ocomm );
 }
@@ -19379,6 +20205,41 @@ void bli_thrinfo_grow_tree_ic
 
 #endif
 // end bli_thrinfo.h
+// begin bli_thrinfo_sup.h
+
+
+#ifndef BLIS_THRINFO_SUP_H
+#define BLIS_THRINFO_SUP_H
+
+//
+// Prototypes for level-3 thrinfo sup functions.
+//
+
+void bli_thrinfo_sup_grow
+     (
+       rntm_t*    rntm,
+       bszid_t*   bszid_par,
+       thrinfo_t* thread
+     );
+
+thrinfo_t* bli_thrinfo_sup_rgrow
+     (
+       rntm_t*    rntm,
+       bszid_t*   bszid_par,
+       bszid_t*   bszid_cur,
+       thrinfo_t* thread_par
+     );
+
+thrinfo_t* bli_thrinfo_sup_create_for_cntl
+     (
+       rntm_t*    rntm,
+       bszid_t*   bszid_par,
+       bszid_t*   bszid_chl,
+       thrinfo_t* thread_par
+     );
+
+#endif
+// end bli_thrinfo_sup.h
 
 // Include some operation-specific thrinfo_t prototypes.
 // Note that the bli_packm_thrinfo.h must be included before the others!
@@ -19515,6 +20376,12 @@ void bli_l3_thrinfo_free
        thrinfo_t* thread
      );
 
+void bli_l3_sup_thrinfo_free
+     (
+       rntm_t*    rntm,
+       thrinfo_t* thread
+     );
+
 // -----------------------------------------------------------------------------
 
 void bli_l3_thrinfo_create_root
@@ -19524,6 +20391,20 @@ void bli_l3_thrinfo_create_root
        rntm_t*     rntm,
        cntl_t*     cntl,
        thrinfo_t** thread
+     );
+
+void bli_l3_sup_thrinfo_create_root
+     (
+       dim_t       id,
+       thrcomm_t*  gl_comm,
+       rntm_t*     rntm,
+       thrinfo_t** thread
+     );
+
+void bli_l3_sup_thrinfo_update_root
+     (
+       rntm_t*    rntm,
+       thrinfo_t* thread
      );
 
 void bli_l3_thrinfo_print_gemm_paths
@@ -19546,6 +20427,194 @@ void bli_l3_thrinfo_free_paths
 
 // end bli_l3_thrinfo.h
 
+// Include the level-3 thread decorator and related definitions and prototypes
+// for the conventional code path.
+// begin bli_l3_decor.h
+
+
+#ifndef BLIS_L3_DECOR_H
+#define BLIS_L3_DECOR_H
+
+// -- conventional definitions -------------------------------------------------
+
+// Level-3 internal function type.
+typedef void (*l3int_t)
+     (
+       obj_t*     alpha,
+       obj_t*     a,
+       obj_t*     b,
+       obj_t*     beta,
+       obj_t*     c,
+       cntx_t*    cntx,
+       rntm_t*    rntm,
+       cntl_t*    cntl,
+       thrinfo_t* thread
+     );
+
+// Level-3 thread decorator prototype.
+void bli_l3_thread_decorator
+     (
+       l3int_t func,
+       opid_t  family,
+       obj_t*  alpha,
+       obj_t*  a,
+       obj_t*  b,
+       obj_t*  beta,
+       obj_t*  c,
+       cntx_t* cntx,
+       rntm_t* rntm,
+       cntl_t* cntl
+     );
+
+// Include definitions specific to the method of multithreading for the
+// conventional code path.
+// begin bli_l3_decor_single.h
+
+
+#ifndef BLIS_L3_DECOR_SINGLE_H
+#define BLIS_L3_DECOR_SINGLE_H
+
+// Definitions specific to situations when multithreading is disabled.
+#ifndef BLIS_ENABLE_MULTITHREADING
+
+#endif
+
+#endif
+
+// end bli_l3_decor_single.h
+// begin bli_l3_decor_openmp.h
+
+
+#ifndef BLIS_L3_DECOR_OPENMP_H
+#define BLIS_L3_DECOR_OPENMP_H
+
+// Definitions specific to situations when OpenMP multithreading is enabled.
+#ifdef BLIS_ENABLE_OPENMP
+
+void bli_l3_thread_decorator_thread_check
+     (
+       dim_t      n_threads,
+       dim_t      tid,
+	   thrcomm_t* gl_comm,
+       rntm_t*    rntm
+     );
+
+#endif
+
+#endif
+
+// end bli_l3_decor_openmp.h
+// begin bli_l3_decor_pthreads.h
+
+
+#ifndef BLIS_L3_DECOR_PTHREADS_H
+#define BLIS_L3_DECOR_PTHREADS_H
+
+// Definitions specific to situations when POSIX multithreading is enabled.
+#ifdef BLIS_ENABLE_PTHREADS
+
+// Thread entry point prototype.
+void* bli_l3_thread_entry( void* data_void );
+
+#endif
+
+#endif
+
+// end bli_l3_decor_pthreads.h
+
+#endif
+
+// end bli_l3_decor.h
+
+// Include the level-3 thread decorator and related definitions and prototypes
+// for the sup code path.
+// begin bli_l3_sup_decor.h
+
+
+#ifndef BLIS_L3_SUP_DECOR_H
+#define BLIS_L3_SUP_DECOR_H
+
+// -- sup definitions ----------------------------------------------------------
+
+// Level-3 sup internal function type.
+typedef err_t (*l3supint_t)
+     (
+       obj_t*     alpha,
+       obj_t*     a,
+       obj_t*     b,
+       obj_t*     beta,
+       obj_t*     c,
+       cntx_t*    cntx,
+       rntm_t*    rntm,
+       thrinfo_t* thread
+     );
+
+// Level-3 sup thread decorator prototype.
+err_t bli_l3_sup_thread_decorator
+     (
+       l3supint_t func,
+       opid_t     family,
+       obj_t*     alpha,
+       obj_t*     a,
+       obj_t*     b,
+       obj_t*     beta,
+       obj_t*     c,
+       cntx_t*    cntx,
+       rntm_t*    rntm
+     );
+
+// Include definitions specific to the method of multithreading for the
+// sup code path.
+// begin bli_l3_sup_decor_single.h
+
+
+#ifndef BLIS_L3_SUP_DECOR_SINGLE_H
+#define BLIS_L3_SUP_DECOR_SINGLE_H
+
+// Definitions specific to situations when multithreading is disabled.
+#ifndef BLIS_ENABLE_MULTITHREADING
+
+#endif
+
+#endif
+
+// end bli_l3_sup_decor_single.h
+// begin bli_l3_sup_decor_openmp.h
+
+
+#ifndef BLIS_L3_SUP_DECOR_OPENMP_H
+#define BLIS_L3_SUP_DECOR_OPENMP_H
+
+// Definitions specific to situations when OpenMP multithreading is enabled.
+#ifdef BLIS_ENABLE_OPENMP
+
+#endif
+
+#endif
+
+// end bli_l3_sup_decor_openmp.h
+// begin bli_l3_sup_decor_pthreads.h
+
+
+#ifndef BLIS_L3_SUP_DECOR_PTHREADS_H
+#define BLIS_L3_SUP_DECOR_PTHREADS_H
+
+// Definitions specific to situations when POSIX multithreading is enabled.
+#ifdef BLIS_ENABLE_PTHREADS
+
+// Thread entry point prototype.
+void* bli_l3_sup_thread_entry( void* data_void );
+
+#endif
+
+#endif
+
+// end bli_l3_sup_decor_pthreads.h
+
+#endif
+
+// end bli_l3_sup_decor.h
+
 // Initialization-related prototypes.
 void bli_thread_init( void );
 void bli_thread_finalize( void );
@@ -19556,6 +20625,7 @@ void bli_thread_finalize( void );
 
 // Thread range-related prototypes.
 
+BLIS_EXPORT_BLIS
 void bli_thread_range_sub
      (
        thrinfo_t* thread,
@@ -19639,37 +20709,6 @@ siz_t bli_thread_range_weighted_sub
        dim_t*     restrict j_end_thr
      );
 
-
-
-// Level-3 internal function type
-typedef void (*l3int_t)
-     (
-       obj_t*     alpha,
-       obj_t*     a,
-       obj_t*     b,
-       obj_t*     beta,
-       obj_t*     c,
-       cntx_t*    cntx,
-       rntm_t*    rntm,
-       cntl_t*    cntl,
-       thrinfo_t* thread
-     );
-
-// Level-3 thread decorator prototype
-void bli_l3_thread_decorator
-     (
-       l3int_t func,
-       opid_t  family,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm,
-       cntl_t* cntl
-     );
-
 // -----------------------------------------------------------------------------
 
 // Factorization and partitioning prototypes
@@ -19684,7 +20723,14 @@ void bli_prime_factorization(dim_t n, bli_prime_factors_t* factors);
 
 dim_t bli_next_prime_factor(bli_prime_factors_t* factors);
 
-void bli_partition_2x2(dim_t nthread, dim_t work1, dim_t work2, dim_t* nt1, dim_t* nt2);
+void bli_thread_partition_2x2
+     (
+       dim_t           n_thread,
+       dim_t           work1,
+       dim_t           work2,
+       dim_t* restrict nt1,
+       dim_t* restrict nt2
+     );
 
 // -----------------------------------------------------------------------------
 
@@ -19693,9 +20739,6 @@ dim_t bli_lcm( dim_t x, dim_t y );
 dim_t bli_ipow( dim_t base, dim_t power );
 
 // -----------------------------------------------------------------------------
-
-BLIS_EXPORT_BLIS dim_t bli_thread_get_env( const char* env, dim_t fallback );
-//void  bli_thread_set_env( const char* env, dim_t value );
 
 BLIS_EXPORT_BLIS dim_t bli_thread_get_jc_nt( void );
 BLIS_EXPORT_BLIS dim_t bli_thread_get_pc_nt( void );
@@ -19706,8 +20749,6 @@ BLIS_EXPORT_BLIS dim_t bli_thread_get_num_threads( void );
 
 BLIS_EXPORT_BLIS void  bli_thread_set_ways( dim_t jc, dim_t pc, dim_t ic, dim_t jr, dim_t ir );
 BLIS_EXPORT_BLIS void  bli_thread_set_num_threads( dim_t value );
-
-BLIS_EXPORT_BLIS void  bli_thread_init_rntm( rntm_t* rntm );
 
 void  bli_thread_init_rntm_from_env( rntm_t* rntm );
 
@@ -20414,6 +21455,7 @@ void PASTEMAC(ch,opname) \
 void PASTEMAC(ch,varname) \
      ( \
        conj_t           conja, \
+       pack_t           schema, \
        dim_t            cdim, \
        dim_t            n, \
        dim_t            n_max, \
@@ -20559,6 +21601,32 @@ void PASTEMAC(ch,opname) \
      );
 
 // end bli_l3_ukr_prot.h
+// begin bli_l3_sup_ker_prot.h
+
+
+//
+// Define template prototypes for level-3 kernels on small/unpacked matrices.
+//
+
+#define GEMMSUP_KER_PROT( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+       conj_t              conja, \
+       conj_t              conjb, \
+       dim_t               m, \
+       dim_t               n, \
+       dim_t               k, \
+       ctype*     restrict alpha, \
+       ctype*     restrict a, inc_t rs_a, inc_t cs_a, \
+       ctype*     restrict b, inc_t rs_b, inc_t cs_b, \
+       ctype*     restrict beta, \
+       ctype*     restrict c, inc_t rs_c, inc_t cs_c, \
+       auxinfo_t* restrict data, \
+       cntx_t*    restrict cntx  \
+     );
+
+// end bli_l3_sup_ker_prot.h
 
 // begin bli_arch_config_pre.h
 
@@ -20639,7 +21707,9 @@ CNTX_INIT_PROTS( penryn )
 #endif
 
 // -- AMD64 architectures --
-
+#ifdef BLIS_CONFIG_ZEN2
+CNTX_INIT_PROTS( zen2 )
+#endif
 #ifdef BLIS_CONFIG_ZEN
 CNTX_INIT_PROTS( zen )
 #endif
@@ -20674,7 +21744,7 @@ CNTX_INIT_PROTS( cortexa15 )
 CNTX_INIT_PROTS( cortexa9 )
 #endif
 
-// -- IBM BG/Q --
+// -- IBM Power --
 
 #ifdef BLIS_CONFIG_POWER9
 CNTX_INIT_PROTS( power9 )
@@ -20682,6 +21752,9 @@ CNTX_INIT_PROTS( power9 )
 #ifdef BLIS_CONFIG_POWER7
 CNTX_INIT_PROTS( power7 )
 #endif
+
+// -- IBM BG/Q --
+
 #ifdef BLIS_CONFIG_BGQ
 CNTX_INIT_PROTS( bgq )
 #endif
@@ -20717,6 +21790,10 @@ CNTX_INIT_PROTS( generic )
 //#endif
 
 // end bli_family_x86_64.h
+#endif
+
+#ifdef BLIS_FAMILY_X86_64_NO_SKX
+#include "bli_family_x86_64_no_skx.h" // skipped
 #endif
 
 // -- Intel64 architectures --
@@ -20928,7 +22005,6 @@ CNTX_INIT_PROTS( generic )
 
 //#ifndef BLIS_FAMILY_H
 //#define BLIS_FAMILY_H
-
 
 
 #if 0
@@ -21155,6 +22231,51 @@ CNTX_INIT_PROTS( generic )
 
 // -- AMD64 architectures --
 
+#ifdef BLIS_FAMILY_ZEN2
+// begin bli_family_zen2.h
+
+
+#ifndef BLI_FAMILY_ZEN2_
+#define BLI_FAMILY_ZEN2_
+
+// By default, it is effective to parallelize the outer loops.
+// Setting these macros to 1 will force JR and IR inner loops
+// to be not paralleized.
+#define BLIS_THREAD_MAX_IR      1
+#define BLIS_THREAD_MAX_JR      1
+
+
+#define BLIS_ENABLE_SMALL_MATRIX
+#define BLIS_ENABLE_SMALL_MATRIX_TRSM
+
+
+// This will select the threshold below which small matrix code will be called.
+#define BLIS_SMALL_MATRIX_THRES        700
+#define BLIS_SMALL_M_RECT_MATRIX_THRES 160
+#define BLIS_SMALL_K_RECT_MATRIX_THRES 128
+
+#define BLIS_SMALL_MATRIX_THRES_TRSM   32768 //128(128+128) => m*(m+n)
+#define BLIS_SMALL_MATRIX_A_THRES_TRSM	128
+#define BLIS_SMALL_MATRIX_A_THRES_M_SYRK	96
+#define BLIS_SMALL_MATRIX_A_THRES_N_SYRK	128
+
+#define BLIS_ENABLE_SMALL_MATRIX_ROME
+#define BLIS_SMALL_MATRIX_THRES_ROME       400
+
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_ROME 120
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_ALXB_ROME 60
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_XAUB_ROME 150
+
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_DIM_RATIO 22
+
+// When running HPL with pure MPI without DGEMM threading (Single-threaded
+// BLIS), defining this macro as 1 yields better performance.
+#define AOCL_BLIS_MULTIINSTANCE   0
+
+#endif
+
+// end bli_family_zen2.h
+#endif
 #ifdef BLIS_FAMILY_ZEN
 // begin bli_family_zen.h
 
@@ -21169,13 +22290,27 @@ CNTX_INIT_PROTS( generic )
 #define BLIS_THREAD_MAX_JR      1
 
 #define BLIS_ENABLE_ZEN_BLOCK_SIZES
-//#define BLIS_ENABLE_SMALL_MATRIX
+#define BLIS_ENABLE_SMALL_MATRIX
+#define BLIS_ENABLE_SMALL_MATRIX_TRSM
+
 
 // This will select the threshold below which small matrix code will be called.
 #define BLIS_SMALL_MATRIX_THRES        700
 #define BLIS_SMALL_M_RECT_MATRIX_THRES 160
 #define BLIS_SMALL_K_RECT_MATRIX_THRES 128
 
+#define BLIS_SMALL_MATRIX_THRES_TRSM   32768 //128(128+128) => m*(m+n)
+#define BLIS_SMALL_MATRIX_A_THRES_TRSM	128
+#define BLIS_SMALL_MATRIX_A_THRES_M_SYRK	96
+#define BLIS_SMALL_MATRIX_A_THRES_N_SYRK	128
+
+//This macro will enable  BLIS DGEMM to choose block sizes for a  single instance mode
+#define BLIS_ENABLE_SINGLE_INSTANCE_BLOCK_SIZES 	0
+
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_NAPLES 250
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_ALXB_NAPLES 90
+
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_DIM_RATIO 22
 
 
 //#endif
@@ -21349,6 +22484,9 @@ CNTX_INIT_PROTS( generic )
 
 // -- ARM architectures --
 
+#ifdef BLIS_FAMILY_THUNDERX2
+#include "bli_family_thunderx2.h" // skipped
+#endif
 #ifdef BLIS_FAMILY_CORTEXA57
 #include "bli_family_cortexa57.h" // skipped
 #endif
@@ -21362,7 +22500,7 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_cortexa9.h" // skipped
 #endif
 
-// -- IBM BG/Q --
+// -- IBM Power --
 
 #ifdef BLIS_FAMILY_POWER9
 #include "bli_family_power9.h" // skipped
@@ -21370,6 +22508,9 @@ CNTX_INIT_PROTS( generic )
 #ifdef BLIS_FAMILY_POWER7
 #include "bli_family_power7.h" // skipped
 #endif
+
+// -- IBM BG/Q --
+
 #ifdef BLIS_FAMILY_BGQ
 #include "bli_family_bgq.h" // skipped
 #endif
@@ -21439,7 +22580,7 @@ PACKM_KER_PROT( double,   d, packm_knl_asm_30xk )
 // begin bli_kernels_haswell.h
 
 
-// -- level-3 --
+// -- level-3 ------------------------------------------------------------------
 
 // gemm (asm d6x8)
 GEMM_UKR_PROT( float,    s, gemm_haswell_asm_6x16 )
@@ -21467,6 +22608,90 @@ GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_u_haswell_asm_6x8 )
 //GEMM_UKR_PROT( double,   d, gemm_haswell_asm_8x6 )
 //GEMM_UKR_PROT( scomplex, c, gemm_haswell_asm_8x3 )
 //GEMM_UKR_PROT( dcomplex, z, gemm_haswell_asm_4x3 )
+
+
+// -- level-3 sup --------------------------------------------------------------
+
+// gemmsup_rv
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_5x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_4x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_3x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_2x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_1x8 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x6 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_5x6 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_4x6 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_3x6 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_2x6 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_1x6 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_5x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_4x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_3x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_2x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_1x4 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_5x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_4x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_3x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_2x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_1x2 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_6x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_5x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_4x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_3x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_2x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_1x1 )
+
+// gemmsup_rv (mkernel in m dim)
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x8m )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x6m )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x4m )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x2m )
+
+// gemmsup_rv (mkernel in n dim)
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_5x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_4x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_3x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_2x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_1x8n )
+
+// gemmsup_rd
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_2x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_1x8 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_2x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_1x4 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_3x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_2x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_1x2 )
+
+// gemmsup_rd (mkernel in m dim)
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x8m )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x4m )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x2m )
+
+// gemmsup_rd (mkernel in n dim)
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_3x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_2x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_1x8n )
 
 // end bli_kernels_haswell.h
 #endif
@@ -21506,6 +22731,9 @@ TRSM_UKR_PROT( double,   d, trsm_u_penryn_asm_4x4 )
 
 // -- AMD64 architectures --
 
+//#ifdef BLIS_KERNELS_ZEN2
+//#include "bli_kernels_zen2.h"
+//#endif
 #ifdef BLIS_KERNELS_ZEN
 // begin bli_kernels_zen.h
 
@@ -21595,11 +22823,17 @@ GEMM_UKR_PROT( dcomplex, z, gemm_bulldozer_asm_4x4_fma4 )
 #include "bli_kernels_armv7a.h" // skipped
 #endif
 
-// -- IBM BG/Q --
+// -- IBM Power --
 
+#ifdef BLIS_KERNELS_POWER9
+#include "bli_kernels_power9.h" // skipped
+#endif
 #ifdef BLIS_KERNELS_POWER7
 #include "bli_kernels_power7.h" // skipped
 #endif
+
+// -- IBM BG/Q --
+
 #ifdef BLIS_KERNELS_BGQ
 #include "bli_kernels_bgq.h" // skipped
 #endif
@@ -21619,6 +22853,8 @@ GEMM_UKR_PROT( dcomplex, z, gemm_bulldozer_asm_4x4_fma4 )
 
 // -- Define default threading parameters --------------------------------------
 
+// -- Conventional (large code path) values --
+
 #ifndef BLIS_THREAD_RATIO_M
 #define BLIS_THREAD_RATIO_M     2
 #endif
@@ -21633,6 +22869,26 @@ GEMM_UKR_PROT( dcomplex, z, gemm_bulldozer_asm_4x4_fma4 )
 
 #ifndef BLIS_THREAD_MAX_JR
 #define BLIS_THREAD_MAX_JR      4
+#endif
+
+#if 0
+// -- Skinny/small possibly-unpacked (sup code path) values --
+
+#ifndef BLIS_THREAD_SUP_RATIO_M
+#define BLIS_THREAD_SUP_RATIO_M   1
+#endif
+
+#ifndef BLIS_THREAD_SUP_RATIO_N
+#define BLIS_THREAD_SUP_RATIO_N   2
+#endif
+
+#ifndef BLIS_THREAD_SUP_MAX_IR
+#define BLIS_THREAD_SUP_MAX_IR    1
+#endif
+
+#ifndef BLIS_THREAD_SUP_MAX_JR
+#define BLIS_THREAD_SUP_MAX_JR    8
+#endif
 #endif
 
 
@@ -21746,19 +23002,56 @@ GEMM_UKR_PROT( dcomplex, z, gemm_bulldozer_asm_4x4_fma4 )
 
 // Alignment size used to align local stack buffers within macro-kernel
 // functions.
+#ifndef BLIS_STACK_BUF_ALIGN_SIZE
 #define BLIS_STACK_BUF_ALIGN_SIZE        BLIS_SIMD_ALIGN_SIZE
+#endif
 
 // Alignment size used when allocating memory via BLIS_MALLOC_USER.
 // To disable heap alignment, set this to 1.
+#ifndef BLIS_HEAP_ADDR_ALIGN_SIZE
 #define BLIS_HEAP_ADDR_ALIGN_SIZE        BLIS_SIMD_ALIGN_SIZE
+#endif
 
 // Alignment size used when sizing leading dimensions of memory allocated
 // via BLIS_MALLOC_USER.
+#ifndef BLIS_HEAP_STRIDE_ALIGN_SIZE
 #define BLIS_HEAP_STRIDE_ALIGN_SIZE      BLIS_SIMD_ALIGN_SIZE
+#endif
 
-// Alignment size used when allocating blocks to the internal memory
+// Alignment sizes used when allocating blocks to the internal memory
 // pool, via BLIS_MALLOC_POOL.
-#define BLIS_POOL_ADDR_ALIGN_SIZE        BLIS_PAGE_SIZE
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_A
+#define BLIS_POOL_ADDR_ALIGN_SIZE_A      BLIS_PAGE_SIZE
+#endif
+
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_B
+#define BLIS_POOL_ADDR_ALIGN_SIZE_B      BLIS_PAGE_SIZE
+#endif
+
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_C
+#define BLIS_POOL_ADDR_ALIGN_SIZE_C      BLIS_PAGE_SIZE
+#endif
+
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_GEN
+#define BLIS_POOL_ADDR_ALIGN_SIZE_GEN    BLIS_PAGE_SIZE
+#endif
+
+// Offsets from alignment specified by BLIS_POOL_ADDR_ALIGN_SIZE_*.
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_A
+#define BLIS_POOL_ADDR_OFFSET_SIZE_A     0
+#endif
+
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_B
+#define BLIS_POOL_ADDR_OFFSET_SIZE_B     0
+#endif
+
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_C
+#define BLIS_POOL_ADDR_OFFSET_SIZE_C     0
+#endif
+
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_GEN
+#define BLIS_POOL_ADDR_OFFSET_SIZE_GEN   0
+#endif
 
 
 
@@ -22288,7 +23581,7 @@ dim_t bli_determine_blocksize_b_sub
 
 // func_t query
 
-static void* bli_func_get_dt
+static void_fp bli_func_get_dt
      (
        num_t   dt,
        func_t* func
@@ -22301,7 +23594,7 @@ static void* bli_func_get_dt
 
 static void bli_func_set_dt
      (
-       void*   fp,
+       void_fp fp,
        num_t   dt,
        func_t* func
      )
@@ -22315,7 +23608,7 @@ static void bli_func_copy_dt
        num_t dt_dst, func_t* func_dst
      )
 {
-	void* fp = bli_func_get_dt( dt_src, func_src );
+	void_fp fp = bli_func_get_dt( dt_src, func_src );
 
 	bli_func_set_dt( fp, dt_dst, func_dst );
 }
@@ -22324,19 +23617,19 @@ static void bli_func_copy_dt
 
 func_t* bli_func_create
      (
-       void* ptr_s,
-       void* ptr_d,
-       void* ptr_c,
-       void* ptr_z
+       void_fp ptr_s,
+       void_fp ptr_d,
+       void_fp ptr_c,
+       void_fp ptr_z
      );
 
 void bli_func_init
      (
        func_t* f,
-       void*   ptr_s,
-       void*   ptr_d,
-       void*   ptr_c,
-       void*   ptr_z
+       void_fp ptr_s,
+       void_fp ptr_d,
+       void_fp ptr_c,
+       void_fp ptr_z
      );
 
 void bli_func_init_null
@@ -22430,6 +23723,26 @@ static func_t* bli_cntx_l3_nat_ukrs_buf( cntx_t* cntx )
 static mbool_t* bli_cntx_l3_nat_ukrs_prefs_buf( cntx_t* cntx )
 {
 	return cntx->l3_nat_ukrs_prefs;
+}
+static blksz_t* bli_cntx_l3_sup_thresh_buf( cntx_t* cntx )
+{
+	return cntx->l3_sup_thresh;
+}
+static void** bli_cntx_l3_sup_handlers_buf( cntx_t* cntx )
+{
+	return cntx->l3_sup_handlers;
+}
+static blksz_t* bli_cntx_l3_sup_blkszs_buf( cntx_t* cntx )
+{
+	return cntx->l3_sup_blkszs;
+}
+static func_t* bli_cntx_l3_sup_kers_buf( cntx_t* cntx )
+{
+	return cntx->l3_sup_kers;
+}
+static mbool_t* bli_cntx_l3_sup_kers_prefs_buf( cntx_t* cntx )
+{
+	return cntx->l3_sup_kers_prefs;
 }
 static func_t* bli_cntx_l1f_kers_buf( cntx_t* cntx )
 {
@@ -22559,7 +23872,7 @@ static func_t* bli_cntx_get_l3_vir_ukrs( l3ukr_t ukr_id, cntx_t* cntx )
 	return func;
 }
 
-static void* bli_cntx_get_l3_vir_ukr_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
+static void_fp bli_cntx_get_l3_vir_ukr_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
 {
 	func_t* func = bli_cntx_get_l3_vir_ukrs( ukr_id, cntx );
 
@@ -22574,7 +23887,7 @@ static func_t* bli_cntx_get_l3_nat_ukrs( l3ukr_t ukr_id, cntx_t* cntx )
 	return func;
 }
 
-static void* bli_cntx_get_l3_nat_ukr_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
+static void_fp bli_cntx_get_l3_nat_ukr_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
 {
 	func_t* func = bli_cntx_get_l3_nat_ukrs( ukr_id, cntx );
 
@@ -22600,6 +23913,108 @@ static bool_t bli_cntx_get_l3_nat_ukr_prefs_dt( num_t dt, l3ukr_t ukr_id, cntx_t
 
 // -----------------------------------------------------------------------------
 
+static blksz_t* bli_cntx_get_l3_sup_thresh( threshid_t thresh_id, cntx_t* cntx )
+{
+	blksz_t* threshs = bli_cntx_l3_sup_thresh_buf( cntx );
+	blksz_t* thresh  = &threshs[ thresh_id ];
+
+	// Return the address of the blksz_t identified by thresh_id.
+	return thresh;
+}
+
+static dim_t bli_cntx_get_l3_sup_thresh_dt( num_t dt, threshid_t thresh_id, cntx_t* cntx )
+{
+	blksz_t* threshs   = bli_cntx_get_l3_sup_thresh( thresh_id, cntx );
+	dim_t    thresh_dt = bli_blksz_get_def( dt, threshs );
+
+	// Return the main (default) threshold value for the datatype given.
+	return thresh_dt;
+}
+
+static bool_t bli_cntx_l3_sup_thresh_is_met( num_t dt, dim_t m, dim_t n, dim_t k, cntx_t* cntx )
+{
+	if ( m < bli_cntx_get_l3_sup_thresh_dt( dt, BLIS_MT, cntx ) ) return TRUE;
+	if ( n < bli_cntx_get_l3_sup_thresh_dt( dt, BLIS_NT, cntx ) ) return TRUE;
+	if ( k < bli_cntx_get_l3_sup_thresh_dt( dt, BLIS_KT, cntx ) ) return TRUE;
+
+	return FALSE;
+}
+
+// -----------------------------------------------------------------------------
+
+static void* bli_cntx_get_l3_sup_handler( opid_t op, cntx_t* cntx )
+{
+	void** funcs = bli_cntx_l3_sup_handlers_buf( cntx );
+	void*  func  = funcs[ op ];
+
+	return func;
+}
+
+// -----------------------------------------------------------------------------
+
+static blksz_t* bli_cntx_get_l3_sup_blksz( bszid_t bs_id, cntx_t* cntx )
+{
+	blksz_t* blkszs = bli_cntx_l3_sup_blkszs_buf( cntx );
+	blksz_t* blksz  = &blkszs[ bs_id ];
+
+	// Return the address of the blksz_t identified by bs_id.
+	return blksz;
+}
+
+static dim_t bli_cntx_get_l3_sup_blksz_def_dt( num_t dt, bszid_t bs_id, cntx_t* cntx )
+{
+	blksz_t* blksz  = bli_cntx_get_l3_sup_blksz( bs_id, cntx );
+	dim_t    bs_dt  = bli_blksz_get_def( dt, blksz );
+
+	// Return the main (default) blocksize value for the datatype given.
+	return bs_dt;
+}
+
+static dim_t bli_cntx_get_l3_sup_blksz_max_dt( num_t dt, bszid_t bs_id, cntx_t* cntx )
+{
+	blksz_t* blksz  = bli_cntx_get_l3_sup_blksz( bs_id, cntx );
+	dim_t    bs_dt  = bli_blksz_get_max( dt, blksz );
+
+	// Return the auxiliary (maximum) blocksize value for the datatype given.
+	return bs_dt;
+}
+
+// -----------------------------------------------------------------------------
+
+static func_t* bli_cntx_get_l3_sup_kers( stor3_t stor_id, cntx_t* cntx )
+{
+	func_t* funcs = bli_cntx_l3_sup_kers_buf( cntx );
+	func_t* func  = &funcs[ stor_id ];
+
+	return func;
+}
+
+static void* bli_cntx_get_l3_sup_ker_dt( num_t dt, stor3_t stor_id, cntx_t* cntx )
+{
+	func_t* func = bli_cntx_get_l3_sup_kers( stor_id, cntx );
+
+	return bli_func_get_dt( dt, func );
+}
+
+// -----------------------------------------------------------------------------
+
+static mbool_t* bli_cntx_get_l3_sup_ker_prefs( stor3_t stor_id, cntx_t* cntx )
+{
+	mbool_t* mbools = bli_cntx_l3_sup_kers_prefs_buf( cntx );
+	mbool_t* mbool  = &mbools[ stor_id ];
+
+	return mbool;
+}
+
+static bool_t bli_cntx_get_l3_sup_ker_prefs_dt( num_t dt, stor3_t stor_id, cntx_t* cntx )
+{
+	mbool_t* mbool = bli_cntx_get_l3_sup_ker_prefs( stor_id, cntx );
+
+	return bli_mbool_get_dt( dt, mbool );
+}
+
+// -----------------------------------------------------------------------------
+
 static func_t* bli_cntx_get_l1f_kers( l1fkr_t ker_id, cntx_t* cntx )
 {
 	func_t* funcs = bli_cntx_l1f_kers_buf( cntx );
@@ -22608,7 +24023,7 @@ static func_t* bli_cntx_get_l1f_kers( l1fkr_t ker_id, cntx_t* cntx )
 	return func;
 }
 
-static void* bli_cntx_get_l1f_ker_dt( num_t dt, l1fkr_t ker_id, cntx_t* cntx )
+static void_fp bli_cntx_get_l1f_ker_dt( num_t dt, l1fkr_t ker_id, cntx_t* cntx )
 {
 	func_t* func = bli_cntx_get_l1f_kers( ker_id, cntx );
 
@@ -22625,7 +24040,7 @@ static func_t* bli_cntx_get_l1v_kers( l1vkr_t ker_id, cntx_t* cntx )
 	return func;
 }
 
-static void* bli_cntx_get_l1v_ker_dt( num_t dt, l1vkr_t ker_id, cntx_t* cntx )
+static void_fp bli_cntx_get_l1v_ker_dt( num_t dt, l1vkr_t ker_id, cntx_t* cntx )
 {
 	func_t* func = bli_cntx_get_l1v_kers( ker_id, cntx );
 
@@ -22651,9 +24066,9 @@ static func_t* bli_cntx_get_packm_kers( l1mkr_t ker_id, cntx_t* cntx )
 	return func;
 }
 
-static void* bli_cntx_get_packm_ker_dt( num_t dt, l1mkr_t ker_id, cntx_t* cntx )
+static void_fp bli_cntx_get_packm_ker_dt( num_t dt, l1mkr_t ker_id, cntx_t* cntx )
 {
-	void* fp = NULL;
+	void_fp fp = NULL;
 
 	// Only query the context for the packm func_t (and then extract the
 	// datatype-specific function pointer) if the packm kernel being
@@ -22686,9 +24101,9 @@ static func_t* bli_cntx_get_unpackm_kers( l1mkr_t ker_id, cntx_t* cntx )
 	return func;
 }
 
-static void* bli_cntx_get_unpackm_ker_dt( num_t dt, l1mkr_t ker_id, cntx_t* cntx )
+static void_fp bli_cntx_get_unpackm_ker_dt( num_t dt, l1mkr_t ker_id, cntx_t* cntx )
 {
-	void* fp = NULL;
+	void_fp fp = NULL;
 
 	// Only query the context for the unpackm func_t (and then extract the
 	// datatype-specific function pointer) if the unpackm kernel being
@@ -22708,7 +24123,7 @@ static void* bli_cntx_get_unpackm_ker_dt( num_t dt, l1mkr_t ker_id, cntx_t* cntx
 
 static bool_t bli_cntx_l3_nat_ukr_prefers_rows_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
 {
-	bool_t prefs = bli_cntx_get_l3_nat_ukr_prefs_dt( dt, ukr_id, cntx );
+	const bool_t prefs = bli_cntx_get_l3_nat_ukr_prefs_dt( dt, ukr_id, cntx );
 
 	// A ukernel preference of TRUE means the ukernel prefers row storage.
 	return ( bool_t )
@@ -22717,7 +24132,7 @@ static bool_t bli_cntx_l3_nat_ukr_prefers_rows_dt( num_t dt, l3ukr_t ukr_id, cnt
 
 static bool_t bli_cntx_l3_nat_ukr_prefers_cols_dt( num_t dt, l3ukr_t ukr_id, cntx_t* cntx )
 {
-	bool_t prefs = bli_cntx_get_l3_nat_ukr_prefs_dt( dt, ukr_id, cntx );
+	const bool_t prefs = bli_cntx_get_l3_nat_ukr_prefs_dt( dt, ukr_id, cntx );
 
 	// A ukernel preference of FALSE means the ukernel prefers column storage.
 	return ( bool_t )
@@ -22800,9 +24215,57 @@ static bool_t bli_cntx_l3_vir_ukr_dislikes_storage_of( obj_t* obj, l3ukr_t ukr_i
 
 // -----------------------------------------------------------------------------
 
+static bool_t bli_cntx_l3_sup_ker_prefers_rows_dt( num_t dt, stor3_t stor_id, cntx_t* cntx )
+{
+	const bool_t prefs = bli_cntx_get_l3_sup_ker_prefs_dt( dt, stor_id, cntx );
+
+	// A ukernel preference of TRUE means the ukernel prefers row storage.
+	return ( bool_t )
+	       ( prefs == TRUE );
+}
+
+static bool_t bli_cntx_l3_sup_ker_prefers_cols_dt( num_t dt, stor3_t stor_id, cntx_t* cntx )
+{
+	const bool_t prefs = bli_cntx_get_l3_sup_ker_prefs_dt( dt, stor_id, cntx );
+
+	// A ukernel preference of FALSE means the ukernel prefers column storage.
+	return ( bool_t )
+	       ( prefs == FALSE );
+}
+
+#if 0
+// NOTE: These static functions aren't needed yet.
+
+static bool_t bli_cntx_l3_sup_ker_prefers_storage_of( obj_t* obj, stor3_t stor_id, cntx_t* cntx )
+{
+	const num_t  dt    = bli_obj_dt( obj );
+	const bool_t ukr_prefers_rows
+	                   = bli_cntx_l3_sup_ker_prefers_rows_dt( dt, stor_id, cntx );
+	const bool_t ukr_prefers_cols
+	                   = bli_cntx_l3_sup_ker_prefers_cols_dt( dt, stor_id, cntx );
+	bool_t       r_val = FALSE;
+
+	if      ( bli_obj_is_row_stored( obj ) && ukr_prefers_rows ) r_val = TRUE;
+	else if ( bli_obj_is_col_stored( obj ) && ukr_prefers_cols ) r_val = TRUE;
+
+	return r_val;
+}
+
+static bool_t bli_cntx_l3_sup_ker_dislikes_storage_of( obj_t* obj, stor3_t stor_id, cntx_t* cntx )
+{
+	return ( bool_t )
+	       !bli_cntx_l3_sup_ker_prefers_storage_of( obj, stor_id, cntx );
+}
+#endif
+
+// -----------------------------------------------------------------------------
+
 //
 // -- cntx_t modification (complex) --------------------------------------------
 //
+
+// NOTE: The framework does not use any of the following functions. We provide
+// them in order to facilitate creating/modifying custom contexts.
 
 static void bli_cntx_set_blksz( bszid_t bs_id, blksz_t* blksz, bszid_t mult_id, cntx_t* cntx )
 {
@@ -22811,6 +24274,22 @@ static void bli_cntx_set_blksz( bszid_t bs_id, blksz_t* blksz, bszid_t mult_id, 
 
 	blkszs[ bs_id ] = *blksz;
 	bmults[ bs_id ] = mult_id;
+}
+
+static void bli_cntx_set_blksz_def_dt( num_t dt, bszid_t bs_id, dim_t bs, cntx_t* cntx )
+{
+	blksz_t* blkszs = bli_cntx_blkszs_buf( cntx );
+	blksz_t* blksz  = &blkszs[ bs_id ];
+
+	bli_blksz_set_def( bs, dt, blksz );
+}
+
+static void bli_cntx_set_blksz_max_dt( num_t dt, bszid_t bs_id, dim_t bs, cntx_t* cntx )
+{
+	blksz_t* blkszs = bli_cntx_blkszs_buf( cntx );
+	blksz_t* blksz  = &blkszs[ bs_id ];
+
+	bli_blksz_set_max( bs, dt, blksz );
 }
 
 static void bli_cntx_set_l3_vir_ukr( l3ukr_t ukr_id, func_t* func, cntx_t* cntx )
@@ -22855,7 +24334,7 @@ static void bli_cntx_set_packm_ker( l1mkr_t ker_id, func_t* func, cntx_t* cntx )
 	funcs[ ker_id ] = *func;
 }
 
-static void bli_cntx_set_packm_ker_dt( void* fp, num_t dt, l1mkr_t ker_id, cntx_t* cntx )
+static void bli_cntx_set_packm_ker_dt( void_fp fp, num_t dt, l1mkr_t ker_id, cntx_t* cntx )
 {
 	func_t* func = ( func_t* )bli_cntx_get_packm_kers( ker_id, cntx );
 
@@ -22869,7 +24348,7 @@ static void bli_cntx_set_unpackm_ker( l1mkr_t ker_id, func_t* func, cntx_t* cntx
 	funcs[ ker_id ] = *func;
 }
 
-static void bli_cntx_set_unpackm_ker_dt( void* fp, num_t dt, l1mkr_t ker_id, cntx_t* cntx )
+static void bli_cntx_set_unpackm_ker_dt( void_fp fp, num_t dt, l1mkr_t ker_id, cntx_t* cntx )
 {
 	func_t* func = ( func_t* )bli_cntx_get_unpackm_kers( ker_id, cntx );
 
@@ -22880,18 +24359,25 @@ static void bli_cntx_set_unpackm_ker_dt( void* fp, num_t dt, l1mkr_t ker_id, cnt
 
 // Function prototypes
 
-BLIS_EXPORT_BLIS void  bli_cntx_clear( cntx_t* cntx );
+BLIS_EXPORT_BLIS void bli_cntx_clear( cntx_t* cntx );
 
-BLIS_EXPORT_BLIS void  bli_cntx_set_blkszs( ind_t method, dim_t n_bs, ... );
+BLIS_EXPORT_BLIS void bli_cntx_set_blkszs( ind_t method, dim_t n_bs, ... );
 
-BLIS_EXPORT_BLIS void  bli_cntx_set_ind_blkszs( ind_t method, dim_t n_bs, ... );
+BLIS_EXPORT_BLIS void bli_cntx_set_ind_blkszs( ind_t method, dim_t n_bs, ... );
 
-BLIS_EXPORT_BLIS void  bli_cntx_set_l3_nat_ukrs( dim_t n_ukrs, ... );
-BLIS_EXPORT_BLIS void  bli_cntx_set_l1f_kers( dim_t n_kers, ... );
-BLIS_EXPORT_BLIS void  bli_cntx_set_l1v_kers( dim_t n_kers, ... );
-BLIS_EXPORT_BLIS void  bli_cntx_set_packm_kers( dim_t n_kers, ... );
+BLIS_EXPORT_BLIS void bli_cntx_set_l3_nat_ukrs( dim_t n_ukrs, ... );
+BLIS_EXPORT_BLIS void bli_cntx_set_l3_vir_ukrs( dim_t n_ukrs, ... );
 
-BLIS_EXPORT_BLIS void  bli_cntx_print( cntx_t* cntx );
+BLIS_EXPORT_BLIS void bli_cntx_set_l3_sup_thresh( dim_t n_thresh, ... );
+BLIS_EXPORT_BLIS void bli_cntx_set_l3_sup_handlers( dim_t n_ops, ... );
+BLIS_EXPORT_BLIS void bli_cntx_set_l3_sup_blkszs( dim_t n_bs, ... );
+BLIS_EXPORT_BLIS void bli_cntx_set_l3_sup_kers( dim_t n_ukrs, ... );
+
+BLIS_EXPORT_BLIS void bli_cntx_set_l1f_kers( dim_t n_kers, ... );
+BLIS_EXPORT_BLIS void bli_cntx_set_l1v_kers( dim_t n_kers, ... );
+BLIS_EXPORT_BLIS void bli_cntx_set_packm_kers( dim_t n_kers, ... );
+
+BLIS_EXPORT_BLIS void bli_cntx_print( cntx_t* cntx );
 
 
 #endif
@@ -22911,6 +24397,11 @@ BLIS_EXPORT_BLIS void  bli_cntx_print( cntx_t* cntx );
 //
 // -- rntm_t query (public API) ------------------------------------------------
 //
+
+static bool_t bli_rntm_auto_factor( rntm_t* rntm )
+{
+	return rntm->auto_factor;
+}
 
 static dim_t bli_rntm_num_threads( rntm_t* rntm )
 {
@@ -22947,6 +24438,20 @@ static dim_t bli_rntm_pr_ways( rntm_t* rntm )
 	return bli_rntm_ways_for( BLIS_KR, rntm );
 }
 
+static bool_t bli_rntm_pack_a( rntm_t* rntm )
+{
+	return rntm->pack_a;
+}
+static bool_t bli_rntm_pack_b( rntm_t* rntm )
+{
+	return rntm->pack_b;
+}
+
+static bool_t bli_rntm_l3_sup( rntm_t* rntm )
+{
+	return rntm->l3_sup;
+}
+
 //
 // -- rntm_t query (internal use only) -----------------------------------------
 //
@@ -22961,6 +24466,7 @@ static membrk_t* bli_rntm_membrk( rntm_t* rntm )
 	return rntm->membrk;
 }
 
+#if 0
 static dim_t bli_rntm_equals( rntm_t* rntm1, rntm_t* rntm2 )
 {
 	const bool_t nt = bli_rntm_num_threads( rntm1 ) == bli_rntm_num_threads( rntm2 );
@@ -22974,10 +24480,16 @@ static dim_t bli_rntm_equals( rntm_t* rntm1, rntm_t* rntm2 )
 	if ( nt && jc && pc && ic && jr && ir && pr ) return TRUE;
 	else                                          return FALSE;
 }
+#endif
 
 //
 // -- rntm_t modification (internal use only) ----------------------------------
 //
+
+static void bli_rntm_set_auto_factor_only( bool_t auto_factor, rntm_t* rntm )
+{
+	rntm->auto_factor = auto_factor;
+}
 
 static void bli_rntm_set_num_threads_only( dim_t nt, rntm_t* rntm )
 {
@@ -23047,6 +24559,10 @@ static void bli_rntm_clear_sba_pool( rntm_t* rntm )
 {
 	bli_rntm_set_sba_pool( NULL, rntm );
 }
+static void bli_rntm_clear_membrk( rntm_t* rntm )
+{
+	bli_rntm_set_membrk( NULL, rntm );
+}
 
 //
 // -- rntm_t modification (public API) -----------------------------------------
@@ -23075,6 +24591,48 @@ static void bli_rntm_set_ways( dim_t jc, dim_t pc, dim_t ic, dim_t jr, dim_t ir,
 	bli_rntm_clear_num_threads_only( rntm );
 }
 
+static void bli_rntm_set_pack_a( bool_t pack_a, rntm_t* rntm )
+{
+	// Set the bool_t indicating whether matrix A should be packed.
+	rntm->pack_a = pack_a;
+}
+static void bli_rntm_set_pack_b( bool_t pack_b, rntm_t* rntm )
+{
+	// Set the bool_t indicating whether matrix B should be packed.
+	rntm->pack_b = pack_b;
+}
+
+static void bli_rntm_set_l3_sup( bool_t l3_sup, rntm_t* rntm )
+{
+	// Set the bool_t indicating whether level-3 sup handling is enabled.
+	rntm->l3_sup = l3_sup;
+}
+static void bli_rntm_enable_l3_sup( rntm_t* rntm )
+{
+	bli_rntm_set_l3_sup( TRUE, rntm );
+}
+static void bli_rntm_disable_l3_sup( rntm_t* rntm )
+{
+	bli_rntm_set_l3_sup( FALSE, rntm );
+}
+
+//
+// -- rntm_t modification (internal use only) ----------------------------------
+//
+
+static void bli_rntm_clear_pack_a( rntm_t* rntm )
+{
+	bli_rntm_set_pack_a( TRUE, rntm );
+}
+static void bli_rntm_clear_pack_b( rntm_t* rntm )
+{
+	bli_rntm_set_pack_b( TRUE, rntm );
+}
+static void bli_rntm_clear_l3_sup( rntm_t* rntm )
+{
+	bli_rntm_set_l3_sup( TRUE, rntm );
+}
+
 //
 // -- rntm_t initialization ----------------------------------------------------
 //
@@ -23083,23 +24641,57 @@ static void bli_rntm_set_ways( dim_t jc, dim_t pc, dim_t ic, dim_t jr, dim_t ir,
 // of the public "set" accessors, each of which guarantees that the rntm_t
 // will be in a good state upon return.
 
-#define BLIS_RNTM_INITIALIZER { .num_threads = -1, \
-                                .thrloop = { -1, -1, -1, -1, -1, -1 }, \
-                                .sba_pool = NULL } \
+#define BLIS_RNTM_INITIALIZER \
+        { \
+          .auto_factor = TRUE, \
+          .num_threads = -1, \
+          .thrloop     = { -1, -1, -1, -1, -1, -1 }, \
+          .pack_a      = TRUE, \
+          .pack_b      = TRUE, \
+          .l3_sup      = TRUE, \
+          .sba_pool    = NULL, \
+          .membrk      = NULL, \
+        }  \
 
 static void bli_rntm_init( rntm_t* rntm )
 {
+	bli_rntm_set_auto_factor_only( TRUE, rntm );
+
 	bli_rntm_clear_num_threads_only( rntm );
 	bli_rntm_clear_ways_only( rntm );
+	bli_rntm_clear_pack_a( rntm );
+	bli_rntm_clear_pack_b( rntm );
+	bli_rntm_clear_l3_sup( rntm );
 
 	bli_rntm_clear_sba_pool( rntm );
+	bli_rntm_clear_membrk( rntm );
+}
+
+// -- rntm_t total thread calculation ------------------------------------------
+
+static dim_t bli_rntm_calc_num_threads
+     (
+       rntm_t*  restrict rntm
+     )
+{
+	dim_t n_threads;
+
+	n_threads  = bli_rntm_ways_for( BLIS_NC, rntm );
+	n_threads *= bli_rntm_ways_for( BLIS_KC, rntm );
+	n_threads *= bli_rntm_ways_for( BLIS_MC, rntm );
+	n_threads *= bli_rntm_ways_for( BLIS_NR, rntm );
+	n_threads *= bli_rntm_ways_for( BLIS_MR, rntm );
+
+	return n_threads;
 }
 
 // -----------------------------------------------------------------------------
 
 // Function prototypes
 
-void bli_rntm_set_ways_for_op
+BLIS_EXPORT_BLIS void bli_rntm_init_from_global( rntm_t* rntm );
+
+BLIS_EXPORT_BLIS void bli_rntm_set_ways_for_op
      (
        opid_t  l3_op,
        side_t  side,
@@ -23117,9 +24709,23 @@ void bli_rntm_set_ways_from_rntm
        rntm_t* rntm
      );
 
+void bli_rntm_set_ways_from_rntm_sup
+     (
+       dim_t   m,
+       dim_t   n,
+       dim_t   k,
+       rntm_t* rntm
+     );
+
 void bli_rntm_print
      (
        rntm_t* rntm
+     );
+
+dim_t bli_rntm_calc_num_threads_in
+     (
+       bszid_t* restrict bszid_cur,
+       rntm_t*  restrict rntm
      );
 
 #endif
@@ -23138,14 +24744,14 @@ void    bli_gks_init_index( void );
 
 cntx_t* bli_gks_lookup_nat_cntx( arch_t id );
 cntx_t* bli_gks_lookup_ind_cntx( arch_t id, ind_t ind );
-void    bli_gks_register_cntx( arch_t id, void* nat_fp, void* ref_fp, void* ind_fp );
+void    bli_gks_register_cntx( arch_t id, void_fp nat_fp, void_fp ref_fp, void_fp ind_fp );
 
 BLIS_EXPORT_BLIS cntx_t* bli_gks_query_cntx( void );
 BLIS_EXPORT_BLIS cntx_t* bli_gks_query_nat_cntx( void );
 
 cntx_t* bli_gks_query_cntx_noinit( void );
 
-cntx_t* bli_gks_query_ind_cntx( ind_t ind, num_t dt );
+BLIS_EXPORT_BLIS cntx_t* bli_gks_query_ind_cntx( ind_t ind, num_t dt );
 
 BLIS_EXPORT_BLIS void    bli_gks_init_ref_cntx( cntx_t* cntx );
 
@@ -23177,7 +24783,7 @@ BLIS_EXPORT_BLIS kimpl_t bli_gks_l3_ukr_impl_type( l3ukr_t ukr, ind_t method, nu
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void* PASTEMAC(opname,ind_get_avail)( num_t dt );
+void_fp PASTEMAC(opname,ind_get_avail)( num_t dt );
 
 
 GENPROT( gemm )
@@ -23195,17 +24801,17 @@ GENPROT( trsm )
 
 //bool_t bli_l3_ind_oper_is_avail( opid_t oper, ind_t method, num_t dt );
 
-ind_t  bli_l3_ind_oper_find_avail( opid_t oper, num_t dt );
+ind_t   bli_l3_ind_oper_find_avail( opid_t oper, num_t dt );
 
-void   bli_l3_ind_set_enable_dt( ind_t method, num_t dt, bool_t status );
+void    bli_l3_ind_set_enable_dt( ind_t method, num_t dt, bool_t status );
 
-void   bli_l3_ind_oper_enable_only( opid_t oper, ind_t method, num_t dt );
-void   bli_l3_ind_oper_set_enable_all( opid_t oper, num_t dt, bool_t status );
+void    bli_l3_ind_oper_enable_only( opid_t oper, ind_t method, num_t dt );
+void    bli_l3_ind_oper_set_enable_all( opid_t oper, num_t dt, bool_t status );
 
-void   bli_l3_ind_oper_set_enable( opid_t oper, ind_t method, num_t dt, bool_t status );
-bool_t bli_l3_ind_oper_get_enable( opid_t oper, ind_t method, num_t dt );
+void    bli_l3_ind_oper_set_enable( opid_t oper, ind_t method, num_t dt, bool_t status );
+bool_t  bli_l3_ind_oper_get_enable( opid_t oper, ind_t method, num_t dt );
 
-void*  bli_l3_ind_oper_get_func( opid_t oper, ind_t method );
+void_fp bli_l3_ind_oper_get_func( opid_t oper, ind_t method );
 
 
 #endif
@@ -23556,21 +25162,21 @@ void bli_cntx_nat_stage( dim_t stage, cntx_t* cntx );
 void   bli_ind_init( void );
 void   bli_ind_finalize( void );
 
-BLIS_EXPORT_BLIS void   bli_ind_enable( ind_t method );
-BLIS_EXPORT_BLIS void   bli_ind_disable( ind_t method );
-BLIS_EXPORT_BLIS void   bli_ind_disable_all( void );
+BLIS_EXPORT_BLIS void    bli_ind_enable( ind_t method );
+BLIS_EXPORT_BLIS void    bli_ind_disable( ind_t method );
+BLIS_EXPORT_BLIS void    bli_ind_disable_all( void );
 
-BLIS_EXPORT_BLIS void   bli_ind_enable_dt( ind_t method, num_t dt );
-BLIS_EXPORT_BLIS void   bli_ind_disable_dt( ind_t method, num_t dt );
-BLIS_EXPORT_BLIS void   bli_ind_disable_all_dt( num_t dt );
+BLIS_EXPORT_BLIS void    bli_ind_enable_dt( ind_t method, num_t dt );
+BLIS_EXPORT_BLIS void    bli_ind_disable_dt( ind_t method, num_t dt );
+BLIS_EXPORT_BLIS void    bli_ind_disable_all_dt( num_t dt );
 
-BLIS_EXPORT_BLIS void   bli_ind_oper_enable_only( opid_t oper, ind_t method, num_t dt );
+BLIS_EXPORT_BLIS void    bli_ind_oper_enable_only( opid_t oper, ind_t method, num_t dt );
 
-BLIS_EXPORT_BLIS bool_t bli_ind_oper_is_impl( opid_t oper, ind_t method );
+BLIS_EXPORT_BLIS bool_t  bli_ind_oper_is_impl( opid_t oper, ind_t method );
 //bool_t bli_ind_oper_has_avail( opid_t oper, num_t dt );
-BLIS_EXPORT_BLIS void*  bli_ind_oper_get_avail( opid_t oper, num_t dt );
-BLIS_EXPORT_BLIS ind_t  bli_ind_oper_find_avail( opid_t oper, num_t dt );
-BLIS_EXPORT_BLIS char*  bli_ind_oper_get_avail_impl_string( opid_t oper, num_t dt );
+BLIS_EXPORT_BLIS void_fp bli_ind_oper_get_avail( opid_t oper, num_t dt );
+BLIS_EXPORT_BLIS ind_t   bli_ind_oper_find_avail( opid_t oper, num_t dt );
+BLIS_EXPORT_BLIS char*   bli_ind_oper_get_avail_impl_string( opid_t oper, num_t dt );
 
 char*  bli_ind_get_impl_string( ind_t method );
 num_t  bli_ind_map_cdt_to_index( num_t dt );
@@ -23756,6 +25362,20 @@ static void bli_pblk_set_block_size( siz_t block_size, pblk_t* pblk )
 	pblk->block_size = block_size;
 }
 
+//
+// -- pool block initialization ------------------------------------------------
+//
+
+// NOTE: This initializer macro must be updated whenever fields are added or
+// removed from the pblk_t type definition. An alternative to the initializer is
+// calling bli_pblk_clear() at runtime.
+
+#define BLIS_PBLK_INITIALIZER \
+        { \
+          .buf        = NULL, \
+          .block_size = 0, \
+        }  \
+
 static void bli_pblk_clear( pblk_t* pblk )
 {
 	bli_pblk_set_buf( NULL, pblk );
@@ -23788,6 +25408,11 @@ static siz_t bli_pool_block_size( pool_t* pool )
 static siz_t bli_pool_align_size( pool_t* pool )
 {
 	return pool->align_size;
+}
+
+static siz_t bli_pool_offset_size( pool_t* pool )
+{
+	return pool->offset_size;
 }
 
 static malloc_ft bli_pool_malloc_fp( pool_t* pool )
@@ -23838,6 +25463,11 @@ static void bli_pool_set_align_size( siz_t align_size, pool_t* pool ) \
 	pool->align_size = align_size;
 }
 
+static void bli_pool_set_offset_size( siz_t offset_size, pool_t* pool ) \
+{
+	pool->offset_size = offset_size;
+}
+
 static void bli_pool_set_malloc_fp( malloc_ft malloc_fp, pool_t* pool ) \
 {
 	pool->malloc_fp = malloc_fp;
@@ -23861,6 +25491,7 @@ void bli_pool_init
        siz_t            block_ptrs_len,
        siz_t            block_size,
        siz_t            align_size,
+       siz_t            offset_size,
        malloc_ft        malloc_fp,
        free_ft          free_fp,
        pool_t* restrict pool
@@ -23875,6 +25506,7 @@ void bli_pool_reinit
        siz_t            block_ptrs_len_new,
        siz_t            block_size_new,
        siz_t            align_size_new,
+       siz_t            offset_size_new,
        pool_t* restrict pool
      );
 
@@ -23905,11 +25537,13 @@ void bli_pool_alloc_block
      (
        siz_t            block_size,
        siz_t            align_size,
+       siz_t            offset_size,
        malloc_ft        malloc_fp,
        pblk_t* restrict block
      );
 void bli_pool_free_block
      (
+       siz_t            offset_size,
        free_ft          free_fp,
        pblk_t* restrict block
      );
@@ -24169,11 +25803,18 @@ void bli_memsys_finalize( void );
 // begin bli_mem.h
 
 
+
 #ifndef BLIS_MEM_H
 #define BLIS_MEM_H
 
 
-// Mem entry query
+// mem_t object type (defined in bli_type_defs.h)
+
+
+
+//
+// -- mem_t query --------------------------------------------------------------
+//
 
 static pblk_t* bli_mem_pblk( mem_t* mem )
 {
@@ -24213,7 +25854,9 @@ static bool_t bli_mem_is_unalloc( mem_t* mem )
 }
 
 
-// Mem entry modification
+//
+// -- mem_t modification -------------------------------------------------------
+//
 
 static void bli_mem_set_pblk( pblk_t* pblk, mem_t* mem )
 {
@@ -24240,9 +25883,26 @@ static void bli_mem_set_size( siz_t size, mem_t* mem )
 	mem->size = size;
 }
 
+//
+// -- mem_t initialization -----------------------------------------------------
+//
+
+// NOTE: This initializer macro must be updated whenever fields are added or
+// removed from the mem_t type definition. An alternative to the initializer is
+// calling bli_mem_clear() at runtime.
+
+#define BLIS_MEM_INITIALIZER \
+        { \
+          .pblk        = BLIS_PBLK_INITIALIZER, \
+          .buf_type    = -1, \
+          .pool        = NULL, \
+          .size        = 0, \
+        }  \
+
 static void bli_mem_clear( mem_t* mem )
 {
 	bli_mem_set_buffer( NULL, mem );
+	bli_mem_set_buf_type( ( packbuf_t )-1, mem );
 	bli_mem_set_pool( NULL, mem );
 	bli_mem_set_size( 0, mem );
 }
@@ -24412,6 +26072,15 @@ static inc_t bli_auxinfo_is_b( auxinfo_t* ai )
 	return ai->is_b;
 }
 
+static inc_t bli_auxinfo_ps_a( auxinfo_t* ai )
+{
+	return ai->ps_a;
+}
+static inc_t bli_auxinfo_ps_b( auxinfo_t* ai )
+{
+	return ai->ps_b;
+}
+
 #if 0
 static inc_t bli_auxinfo_dt_on_output( auxinfo_t* ai )
 {
@@ -24454,6 +26123,15 @@ static void bli_auxinfo_set_is_b( inc_t is, auxinfo_t* ai )
 	ai->is_b = is;
 }
 
+static void bli_auxinfo_set_ps_a( inc_t ps, auxinfo_t* ai )
+{
+	ai->ps_a = ps;
+}
+static void bli_auxinfo_set_ps_b( inc_t ps, auxinfo_t* ai )
+{
+	ai->ps_b = ps;
+}
+
 #if 0
 static void bli_auxinfo_set_dt_on_output( num_t dt_on_output, auxinfo_t* ai )
 {
@@ -24479,10 +26157,64 @@ BLIS_EXPORT_BLIS void bli_param_map_blis_to_netlib_machval( machval_t machval, c
 
 // --- BLAS/LAPACK to BLIS mappings --------------------------------------------
 
-BLIS_EXPORT_BLIS void bli_param_map_netlib_to_blis_side( char side, side_t* blis_side );
-BLIS_EXPORT_BLIS void bli_param_map_netlib_to_blis_uplo( char uplo, uplo_t* blis_uplo );
-BLIS_EXPORT_BLIS void bli_param_map_netlib_to_blis_trans( char trans, trans_t* blis_trans );
-BLIS_EXPORT_BLIS void bli_param_map_netlib_to_blis_diag( char diag, diag_t* blis_diag );
+// NOTE: These static functions were converted from regular functions in order
+// to reduce function call overhead within the BLAS compatibility layer.
+
+static void bli_param_map_netlib_to_blis_side( char side, side_t* blis_side )
+{
+	if      ( side == 'l' || side == 'L' ) *blis_side = BLIS_LEFT;
+	else if ( side == 'r' || side == 'R' ) *blis_side = BLIS_RIGHT;
+	else
+	{
+		// Instead of reporting an error to the framework, default to
+		// an arbitrary value. This is needed because this function is
+		// called by the BLAS compatibility layer AFTER it has already
+		// checked errors and called xerbla(). If the application wants
+		// to override the BLAS compatibility layer's xerbla--which
+		// responds to errors with abort()--we need to also NOT call
+		// abort() here, since either way it has already been dealt
+		// with.
+		//bli_check_error_code( BLIS_INVALID_SIDE );
+		*blis_side = BLIS_LEFT;
+	}
+}
+
+static void bli_param_map_netlib_to_blis_uplo( char uplo, uplo_t* blis_uplo )
+{
+	if      ( uplo == 'l' || uplo == 'L' ) *blis_uplo = BLIS_LOWER;
+	else if ( uplo == 'u' || uplo == 'U' ) *blis_uplo = BLIS_UPPER;
+	else
+	{
+		// See comment for bli_param_map_netlib_to_blis_side() above.
+		//bli_check_error_code( BLIS_INVALID_UPLO );
+		*blis_uplo = BLIS_LOWER;
+	}
+}
+
+static void bli_param_map_netlib_to_blis_trans( char trans, trans_t* blis_trans )
+{
+	if      ( trans == 'n' || trans == 'N' ) *blis_trans = BLIS_NO_TRANSPOSE;
+	else if ( trans == 't' || trans == 'T' ) *blis_trans = BLIS_TRANSPOSE;
+	else if ( trans == 'c' || trans == 'C' ) *blis_trans = BLIS_CONJ_TRANSPOSE;
+	else
+	{
+		// See comment for bli_param_map_netlib_to_blis_side() above.
+		//bli_check_error_code( BLIS_INVALID_TRANS );
+		*blis_trans = BLIS_NO_TRANSPOSE;
+	}
+}
+
+static void bli_param_map_netlib_to_blis_diag( char diag, diag_t* blis_diag )
+{
+	if      ( diag == 'n' || diag == 'N' ) *blis_diag = BLIS_NONUNIT_DIAG;
+	else if ( diag == 'u' || diag == 'U' ) *blis_diag = BLIS_UNIT_DIAG;
+	else
+	{
+		// See comment for bli_param_map_netlib_to_blis_side() above.
+		//bli_check_error_code( BLIS_INVALID_DIAG );
+		*blis_diag = BLIS_NONUNIT_DIAG;
+	}
+}
 
 
 // --- BLIS char to BLIS mappings ----------------------------------------------
@@ -24518,7 +26250,7 @@ double bli_clock_helper( void );
 
 
 
-err_t bli_check_error_code_helper( gint_t code, char* file, guint_t line );
+BLIS_EXPORT_BLIS err_t bli_check_error_code_helper( gint_t code, char* file, guint_t line );
 
 err_t bli_check_valid_error_level( errlev_t level );
 
@@ -24810,7 +26542,7 @@ BLIS_EXPORT_BLIS cntl_t* bli_cntl_create_node
        rntm_t* rntm,
        opid_t  family,
        bszid_t bszid,
-       void*   var_func,
+       void_fp var_func,
        void*   params,
        cntl_t* sub_node
      );
@@ -24882,7 +26614,7 @@ static bszid_t bli_cntl_bszid( cntl_t* cntl )
 	return cntl->bszid;
 }
 
-static void* bli_cntl_var_func( cntl_t* cntl )
+static void_fp bli_cntl_var_func( cntl_t* cntl )
 {
 	return cntl->var_func;
 }
@@ -24945,7 +26677,7 @@ static void bli_cntl_set_bszid( bszid_t bszid, cntl_t* cntl )
 	cntl->bszid = bszid;
 }
 
-static void bli_cntl_set_var_func( void* var_func, cntl_t* cntl )
+static void bli_cntl_set_var_func( void_fp var_func, cntl_t* cntl )
 {
 	cntl->var_func = var_func;
 }
@@ -24971,6 +26703,37 @@ static void bli_cntl_set_pack_mem( mem_t* pack_mem, cntl_t* cntl )
 }
 
 // end bli_cntl.h
+// begin bli_env.h
+
+
+#ifndef BLIS_ENV_H
+#define BLIS_ENV_H
+
+dim_t bli_env_get_var( const char* env, dim_t fallback );
+//void  bli_env_set_var( const char* env, dim_t value );
+
+#endif
+
+// end bli_env.h
+// begin bli_pack.h
+
+
+#ifndef BLIS_PACK_H
+#define BLIS_PACK_H
+
+void  bli_pack_init( void );
+void  bli_pack_finalize( void );
+
+BLIS_EXPORT_BLIS dim_t bli_pack_get_pack_a( void );
+BLIS_EXPORT_BLIS dim_t bli_pack_get_pack_b( void );
+BLIS_EXPORT_BLIS void  bli_pack_set_pack_a( bool_t pack_a );
+BLIS_EXPORT_BLIS void  bli_pack_set_pack_b( bool_t pack_b );
+
+void  bli_pack_init_rntm_from_env( rntm_t* rntm );
+
+#endif
+
+// end bli_pack.h
 // begin bli_info.h
 
 
@@ -24994,7 +26757,14 @@ BLIS_EXPORT_BLIS gint_t bli_info_get_stack_buf_max_size( void );
 BLIS_EXPORT_BLIS gint_t bli_info_get_stack_buf_align_size( void );
 BLIS_EXPORT_BLIS gint_t bli_info_get_heap_addr_align_size( void );
 BLIS_EXPORT_BLIS gint_t bli_info_get_heap_stride_align_size( void );
-BLIS_EXPORT_BLIS gint_t bli_info_get_pool_addr_align_size( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_pool_addr_align_size_a( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_pool_addr_align_size_b( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_pool_addr_align_size_c( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_pool_addr_align_size_gen( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_pool_addr_offset_size_a( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_pool_addr_offset_size_b( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_pool_addr_offset_size_c( void );
+BLIS_EXPORT_BLIS gint_t bli_info_get_pool_addr_offset_size_gen( void );
 BLIS_EXPORT_BLIS gint_t bli_info_get_enable_stay_auto_init( void );
 BLIS_EXPORT_BLIS gint_t bli_info_get_enable_blas( void );
 BLIS_EXPORT_BLIS gint_t bli_info_get_enable_cblas( void );
@@ -25042,13 +26812,16 @@ BLIS_EXPORT_BLIS char* bli_info_get_trsm_impl_string( num_t dt );
 #ifndef BLIS_ARCH_H
 #define BLIS_ARCH_H
 
-arch_t bli_arch_query_id( void );
+BLIS_EXPORT_BLIS arch_t bli_arch_query_id( void );
 
 void   bli_arch_set_id_once( void );
 void   bli_arch_set_id( void );
 
-char*  bli_arch_string( arch_t id );
+BLIS_EXPORT_BLIS char*  bli_arch_string( arch_t id );
 
+void   bli_arch_set_logging( bool_t dolog );
+bool_t bli_arch_get_logging( void );
+void   bli_arch_log( char*, ... );
 
 #endif
 
@@ -25074,28 +26847,29 @@ char*  bli_arch_string( arch_t id );
 #ifndef BLIS_CPUID_H
 #define BLIS_CPUID_H
 
-arch_t    bli_cpuid_query_id( void );
+arch_t   bli_cpuid_query_id( void );
 
 // Intel
-bool_t    bli_cpuid_is_skx( uint32_t family, uint32_t model, uint32_t features );
-bool_t    bli_cpuid_is_knl( uint32_t family, uint32_t model, uint32_t features );
-bool_t    bli_cpuid_is_haswell( uint32_t family, uint32_t model, uint32_t features );
-bool_t    bli_cpuid_is_sandybridge( uint32_t family, uint32_t model, uint32_t features );
-bool_t    bli_cpuid_is_penryn( uint32_t family, uint32_t model, uint32_t features );
+bool_t   bli_cpuid_is_skx( uint32_t family, uint32_t model, uint32_t features );
+bool_t   bli_cpuid_is_knl( uint32_t family, uint32_t model, uint32_t features );
+bool_t   bli_cpuid_is_haswell( uint32_t family, uint32_t model, uint32_t features );
+bool_t   bli_cpuid_is_sandybridge( uint32_t family, uint32_t model, uint32_t features );
+bool_t   bli_cpuid_is_penryn( uint32_t family, uint32_t model, uint32_t features );
 
 // AMD
-bool_t    bli_cpuid_is_zen( uint32_t family, uint32_t model, uint32_t features );
-bool_t    bli_cpuid_is_excavator( uint32_t family, uint32_t model, uint32_t features );
-bool_t    bli_cpuid_is_steamroller( uint32_t family, uint32_t model, uint32_t features );
-bool_t    bli_cpuid_is_piledriver( uint32_t family, uint32_t model, uint32_t features );
-bool_t    bli_cpuid_is_bulldozer( uint32_t family, uint32_t model, uint32_t features );
+bool_t   bli_cpuid_is_zen2( uint32_t family, uint32_t model, uint32_t features );
+bool_t   bli_cpuid_is_zen( uint32_t family, uint32_t model, uint32_t features );
+bool_t   bli_cpuid_is_excavator( uint32_t family, uint32_t model, uint32_t features );
+bool_t   bli_cpuid_is_steamroller( uint32_t family, uint32_t model, uint32_t features );
+bool_t   bli_cpuid_is_piledriver( uint32_t family, uint32_t model, uint32_t features );
+bool_t   bli_cpuid_is_bulldozer( uint32_t family, uint32_t model, uint32_t features );
 
 // ARM
-bool_t    bli_cpuid_is_thunderx2( uint32_t model, uint32_t part, uint32_t features );
-bool_t    bli_cpuid_is_cortexa57( uint32_t model, uint32_t part, uint32_t features );
-bool_t    bli_cpuid_is_cortexa53( uint32_t model, uint32_t part, uint32_t features );
-bool_t    bli_cpuid_is_cortexa15( uint32_t model, uint32_t part, uint32_t features );
-bool_t    bli_cpuid_is_cortexa9( uint32_t model, uint32_t part, uint32_t features );
+bool_t   bli_cpuid_is_thunderx2( uint32_t model, uint32_t part, uint32_t features );
+bool_t   bli_cpuid_is_cortexa57( uint32_t model, uint32_t part, uint32_t features );
+bool_t   bli_cpuid_is_cortexa53( uint32_t model, uint32_t part, uint32_t features );
+bool_t   bli_cpuid_is_cortexa15( uint32_t model, uint32_t part, uint32_t features );
+bool_t   bli_cpuid_is_cortexa9( uint32_t model, uint32_t part, uint32_t features );
 
 uint32_t bli_cpuid_query( uint32_t* family, uint32_t* model, uint32_t* features );
 
@@ -25150,6 +26924,8 @@ enum
 };
 
 #elif defined(__aarch64__) || defined(__arm__) || defined(_M_ARM)
+
+char* find_string_in( char* target, char* buffer, size_t buf_len, char* filepath );
 
 enum
 {
@@ -29635,6 +31411,7 @@ INSERT_GENTDEF( packm )
 typedef void (*PASTECH3(ch,opname,_ker,tsuf)) \
      ( \
        conj_t           conja, \
+       pack_t           schema, \
        dim_t            cdim, \
        dim_t            n, \
        dim_t            n_max, \
@@ -30546,7 +32323,7 @@ GENPROT( xpbym_md )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
+void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -30568,7 +32345,7 @@ INSERT_GENTPROT_BASIC0( subm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
+void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -30590,7 +32367,7 @@ INSERT_GENTPROT_BASIC0( scal2m )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
+void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        conj_t  conjalpha, \
        doff_t  diagoffx, \
@@ -30611,7 +32388,7 @@ INSERT_GENTPROT_BASIC0( setm )
 #undef  GENTPROT
 #define GENTPROT( ctype, ch, opname ) \
 \
-BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,_unb_var1) \
+void PASTEMAC2(ch,opname,_unb_var1) \
      ( \
        doff_t  diagoffx, \
        diag_t  diagx, \
@@ -30632,7 +32409,7 @@ INSERT_GENTPROT_BASIC0( xpbym )
 #undef  GENTPROT2
 #define GENTPROT2( ctype_x, ctype_y, chx, chy, opname ) \
 \
-BLIS_EXPORT_BLIS void PASTEMAC3(chx,chy,opname,_unb_var1) \
+void PASTEMAC3(chx,chy,opname,_unb_var1) \
      ( \
        doff_t   diagoffx, \
        diag_t   diagx, \
@@ -30718,8 +32495,8 @@ static packbuf_t bli_cntl_packm_params_pack_buf_type( cntl_t* cntl )
 cntl_t* bli_packm_cntl_create_node
      (
        rntm_t*   rntm,
-       void*     var_func,
-       void*     packm_var_func,
+       void_fp   var_func,
+       void_fp   packm_var_func,
        bszid_t   bmid_m,
        bszid_t   bmid_n,
        bool_t    does_invert_diag,
@@ -30760,7 +32537,7 @@ siz_t bli_packm_init
        cntl_t* cntl
      );
 
-siz_t bli_packm_init_pack
+BLIS_EXPORT_BLIS siz_t bli_packm_init_pack
      (
        invdiag_t invert_diag,
        pack_t    schema,
@@ -30824,7 +32601,7 @@ dim_t bli_packm_offset_to_panel_for( dim_t offmn, obj_t* p );
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-void PASTEMAC0(opname) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*   c, \
        obj_t*   p, \
@@ -30885,7 +32662,7 @@ void PASTEMAC(ch,varname) \
        void*   p, inc_t rs_p, inc_t cs_p, \
                   inc_t is_p, \
                   dim_t pd_p, inc_t ps_p, \
-       void*   packm_ker, \
+       void_fp packm_ker, \
        cntx_t* cntx, \
        thrinfo_t* thread  \
      );
@@ -31360,6 +33137,7 @@ INSERT_GENTPROTCO_BASIC0( packm_tri_cxk_1er )
 void PASTEMAC(ch,varname) \
      ( \
        conj_t  conja, \
+       pack_t  schema, \
        dim_t   panel_dim, \
        dim_t   panel_dim_max, \
        dim_t   panel_len, \
@@ -31582,8 +33360,8 @@ typedef struct unpackm_params_s unpackm_params_t;
 cntl_t* bli_unpackm_cntl_create_node
      (
        rntm_t*   rntm,
-       void*     var_func,
-       void*     unpackm_var_func,
+       void_fp   var_func,
+       void_fp   unpackm_var_func,
        cntl_t*   sub_node
      );
 
@@ -34714,7 +36492,528 @@ INSERT_GENTPROT_BASIC0( trsm )
 
 // end bli_l3_tapi.h
 
-// Prototype microkernel wrapper APIs
+// Define function types for small/unpacked handlers/kernels.
+// begin bli_l3_sup_oft.h
+
+
+#ifndef BLIS_L3_SUP_OFT_H
+#define BLIS_L3_SUP_OFT_H
+
+
+//
+// -- Level-3 small/unpacked object function types -----------------------------
+//
+
+// gemm
+
+#undef  GENTDEF
+#define GENTDEF( opname ) \
+\
+typedef err_t (*PASTECH(opname,_oft)) \
+( \
+  obj_t*  alpha, \
+  obj_t*  a, \
+  obj_t*  b, \
+  obj_t*  beta, \
+  obj_t*  c, \
+  cntx_t* cntx, \
+  rntm_t* rntm  \
+);
+
+GENTDEF( gemmsup )
+
+#endif
+
+// end bli_l3_sup_oft.h
+// begin bli_l3_sup_ft_ker.h
+
+
+#ifndef BLIS_L3_SUP_FT_KER_H
+#define BLIS_L3_SUP_FT_KER_H
+
+
+//
+// -- Level-3 small/unpacked kernel function types -----------------------------
+//
+
+// gemmsup
+
+#undef  GENTDEF
+#define GENTDEF( ctype, ch, opname, tsuf ) \
+\
+typedef void (*PASTECH3(ch,opname,_ker,tsuf)) \
+     ( \
+       conj_t              conja, \
+       conj_t              conjb, \
+       dim_t               m, \
+       dim_t               n, \
+       dim_t               k, \
+       ctype*     restrict alpha, \
+       ctype*     restrict a, inc_t rs_a, inc_t cs_a, \
+       ctype*     restrict b, inc_t rs_b, inc_t cs_b, \
+       ctype*     restrict beta, \
+       ctype*     restrict c, inc_t rs_c, inc_t cs_c, \
+       auxinfo_t* restrict data, \
+       cntx_t*    restrict cntx  \
+     );
+
+INSERT_GENTDEF( gemmsup )
+
+
+#endif
+
+// end bli_l3_sup_ft_ker.h
+
+// Define static edge case logic for use in small/unpacked kernels.
+//#include "bli_l3_sup_edge.h"
+
+// Prototype object API to small/unpacked matrix dispatcher.
+// begin bli_l3_sup.h
+
+
+err_t bli_gemmsup
+     (
+       obj_t*  alpha,
+       obj_t*  a,
+       obj_t*  b,
+       obj_t*  beta,
+       obj_t*  c,
+       cntx_t* cntx,
+       rntm_t* rntm
+     );
+
+// end bli_l3_sup.h
+
+// Prototype reference implementation of small/unpacked matrix handler.
+// begin bli_l3_sup_ref.h
+
+
+err_t bli_gemmsup_ref
+     (
+       obj_t*  alpha,
+       obj_t*  a,
+       obj_t*  b,
+       obj_t*  beta,
+       obj_t*  c,
+       cntx_t* cntx,
+       rntm_t* rntm
+     );
+
+// end bli_l3_sup_ref.h
+// begin bli_l3_sup_int.h
+
+
+err_t bli_gemmsup_int
+     (
+       obj_t*  alpha,
+       obj_t*  a,
+       obj_t*  b,
+       obj_t*  beta,
+       obj_t*  c,
+       cntx_t* cntx,
+       rntm_t* rntm,
+       thrinfo_t* thread
+     );
+// end bli_l3_sup_int.h
+// begin bli_l3_sup_vars.h
+
+
+
+//
+// Prototype object-based interfaces.
+//
+
+#undef  GENPROT
+#define GENPROT( opname ) \
+\
+void PASTEMAC0(opname) \
+     ( \
+       trans_t trans, \
+       obj_t*  alpha, \
+       obj_t*  a, \
+       obj_t*  b, \
+       obj_t*  beta, \
+       obj_t*  c, \
+       stor3_t eff_id, \
+       cntx_t* cntx, \
+       rntm_t* rntm, \
+       thrinfo_t* thread  \
+     );
+
+GENPROT( gemmsup_ref_var1 )
+GENPROT( gemmsup_ref_var2 )
+
+GENPROT( gemmsup_ref_var1n )
+GENPROT( gemmsup_ref_var2m )
+
+
+//
+// Prototype BLAS-like interfaces with void pointer operands.
+//
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, varname ) \
+\
+void PASTEMAC(ch,varname) \
+     ( \
+       conj_t           conja, \
+       conj_t           conjb, \
+       dim_t            m, \
+       dim_t            n, \
+       dim_t            k, \
+       void*   restrict alpha, \
+       void*   restrict a, inc_t rs_a, inc_t cs_a, \
+       void*   restrict b, inc_t rs_b, inc_t cs_b, \
+       void*   restrict beta, \
+       void*   restrict c, inc_t rs_c, inc_t cs_c, \
+       stor3_t          eff_id, \
+       cntx_t* restrict cntx, \
+       rntm_t* restrict rntm, \
+       thrinfo_t* restrict thread  \
+     );
+
+INSERT_GENTPROT_BASIC0( gemmsup_ref_var1 )
+INSERT_GENTPROT_BASIC0( gemmsup_ref_var2 )
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, varname ) \
+\
+void PASTEMAC(ch,varname) \
+     ( \
+       bool_t           packa, \
+       bool_t           packb, \
+       conj_t           conja, \
+       conj_t           conjb, \
+       dim_t            m, \
+       dim_t            n, \
+       dim_t            k, \
+       void*   restrict alpha, \
+       void*   restrict a, inc_t rs_a, inc_t cs_a, \
+       void*   restrict b, inc_t rs_b, inc_t cs_b, \
+       void*   restrict beta, \
+       void*   restrict c, inc_t rs_c, inc_t cs_c, \
+       stor3_t          eff_id, \
+       cntx_t* restrict cntx, \
+       rntm_t* restrict rntm, \
+       thrinfo_t* restrict thread  \
+     );
+
+INSERT_GENTPROT_BASIC0( gemmsup_ref_var1n )
+INSERT_GENTPROT_BASIC0( gemmsup_ref_var2m )
+
+// -----------------------------------------------------------------------------
+
+static void bli_gemmsup_ref_var1n2m_opt_cases
+     (
+       num_t    dt,
+       trans_t* trans,
+       bool_t   packa,
+       bool_t   packb,
+       stor3_t* eff_id,
+       cntx_t*  cntx
+     )
+{
+	const bool_t row_pref = bli_cntx_l3_sup_ker_prefers_rows_dt( dt, *eff_id, cntx );
+
+	// Handle row- and column-preferrential kernels separately.
+	if ( row_pref )
+	{
+		if      ( packa && packb )
+		{
+			if      ( *eff_id == BLIS_RRC )
+			{
+				// Since C is already row-stored, we can use BLIS_RRR kernel instead.
+				*eff_id = BLIS_RRR;
+			}
+			else if ( *eff_id == BLIS_CRC )
+			{
+				// BLIS_RRC when transposed below (both matrices still packed).
+				// This allows us to use the BLIS_RRR kernel instead.
+				*eff_id = BLIS_CCC; // BLIS_RRR when transposed below.
+			}
+			else if ( *eff_id == BLIS_CRR )
+			{
+				// Induce a transpose to make C row-stored.
+				// BLIS_RCC when transposed below (both matrices still packed).
+				// This allows us to use the BLIS_RRR kernel instead.
+				*trans = bli_trans_toggled( *trans );
+				*eff_id = BLIS_CCC; // BLIS_RRR when transposed below.
+			}
+		}
+		else if ( packb )
+		{
+			if      ( *eff_id == BLIS_RRC )
+			{
+				// Since C is already row-stored, we can use BLIS_RRR kernel instead.
+				*eff_id = BLIS_RRR;
+			}
+			else if ( *eff_id == BLIS_CRC )
+			{
+				// BLIS_RRC when transposed below (with packa instead of packb).
+				// No transformation is beneficial here.
+			}
+			else if ( *eff_id == BLIS_RCC )
+			{
+				// C is already row-stored; cancel transposition and use BLIS_RCR
+				// kernel instead.
+				*trans = bli_trans_toggled( *trans );
+				*eff_id = BLIS_RCR;
+			}
+			#if 0
+			// This transformation performs poorly. Theory: packing A (formerly B)
+			// when eff_id == BLIS_RCC (formerly BLIS_CRR) to row storage is slow
+			// and kills the performance?
+			else if ( eff_id == BLIS_CRR )
+			{
+				trans = bli_trans_toggled( trans );
+				eff_id = BLIS_CRC; // BLIS_RRC when transposed below.
+			}
+			#endif
+		}
+		else if ( packa )
+		{
+			if      ( *eff_id == BLIS_CRR )
+			{
+				// Induce a transpose to make C row-stored.
+				// BLIS_RCC when transposed below (both matrices still packed).
+				// This allows us to use the BLIS_RRR kernel instead.
+				*trans = bli_trans_toggled( *trans );
+				*eff_id = BLIS_CCR; // BLIS_RCR when transposed below.
+			}
+		}
+	}
+	else
+	{
+		//bli_check_error_code( BLIS_NOT_YET_IMPLEMENTED );
+		printf( "libblis: sup var1n2m_opt_cases not yet implemented for column-preferential kernels.\n" );
+		bli_abort();
+	}
+}
+
+// end bli_l3_sup_vars.h
+// begin bli_l3_sup_packm_a.h
+
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+       bool_t           will_pack, \
+       packbuf_t        pack_buf_type, \
+       dim_t            m, \
+       dim_t            k, \
+       dim_t            mr, \
+       cntx_t* restrict cntx, \
+       rntm_t* restrict rntm, \
+       mem_t*  restrict mem, \
+       thrinfo_t* restrict thread  \
+     ); \
+
+INSERT_GENTPROT_BASIC0( packm_sup_init_mem_a )
+
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+       bool_t           did_pack, \
+       rntm_t* restrict rntm, \
+       mem_t*  restrict mem, \
+       thrinfo_t* restrict thread  \
+     ); \
+
+INSERT_GENTPROT_BASIC0( packm_sup_finalize_mem_a )
+
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+       bool_t           will_pack, \
+       stor3_t          stor_id, \
+       pack_t* restrict schema, \
+       dim_t            m, \
+       dim_t            k, \
+       dim_t            mr, \
+       dim_t*  restrict m_max, \
+       dim_t*  restrict k_max, \
+       ctype*           a, inc_t           rs_a, inc_t           cs_a, \
+       ctype**          p, inc_t* restrict rs_p, inc_t* restrict cs_p, \
+                           dim_t* restrict pd_p, inc_t* restrict ps_p, \
+       cntx_t* restrict cntx, \
+       mem_t*  restrict mem, \
+       thrinfo_t* restrict thread  \
+     ); \
+
+INSERT_GENTPROT_BASIC0( packm_sup_init_a )
+
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+       bool_t           will_pack, \
+       packbuf_t        pack_buf_type, \
+       stor3_t          stor_id, \
+       trans_t          transc, \
+       dim_t            m_alloc, \
+       dim_t            k_alloc, \
+       dim_t            m, \
+       dim_t            k, \
+       dim_t            mr, \
+       ctype*  restrict kappa, \
+       ctype*  restrict a, inc_t           rs_a, inc_t           cs_a, \
+       ctype** restrict p, inc_t* restrict rs_p, inc_t* restrict cs_p, \
+                                                 inc_t* restrict ps_p, \
+       cntx_t* restrict cntx, \
+       rntm_t* restrict rntm, \
+       mem_t*  restrict mem, \
+       thrinfo_t* restrict thread  \
+     ); \
+
+INSERT_GENTPROT_BASIC0( packm_sup_a )
+
+// end bli_l3_sup_packm_a.h
+// begin bli_l3_sup_packm_b.h
+
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+       bool_t           will_pack, \
+       packbuf_t        pack_buf_type, \
+       dim_t            k, \
+       dim_t            n, \
+       dim_t            nr, \
+       cntx_t* restrict cntx, \
+       rntm_t* restrict rntm, \
+       mem_t*  restrict mem, \
+       thrinfo_t* restrict thread  \
+     ); \
+
+INSERT_GENTPROT_BASIC0( packm_sup_init_mem_b )
+
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+       bool_t           did_pack, \
+       rntm_t* restrict rntm, \
+       mem_t*  restrict mem, \
+       thrinfo_t* restrict thread  \
+     ); \
+
+INSERT_GENTPROT_BASIC0( packm_sup_finalize_mem_b )
+
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+       bool_t           will_pack, \
+       stor3_t          stor_id, \
+       pack_t* restrict schema, \
+       dim_t            k, \
+       dim_t            n, \
+       dim_t            nr, \
+       dim_t*  restrict k_max, \
+       dim_t*  restrict n_max, \
+       ctype*           b, inc_t           rs_b, inc_t           cs_b, \
+       ctype**          p, inc_t* restrict rs_p, inc_t* restrict cs_p, \
+                           dim_t* restrict pd_p, inc_t* restrict ps_p, \
+       cntx_t* restrict cntx, \
+       mem_t*  restrict mem, \
+       thrinfo_t* restrict thread  \
+     ); \
+
+INSERT_GENTPROT_BASIC0( packm_sup_init_b )
+
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+       bool_t           will_pack, \
+       packbuf_t        pack_buf_type, \
+       stor3_t          stor_id, \
+       trans_t          transc, \
+       dim_t            k_alloc, \
+       dim_t            n_alloc, \
+       dim_t            k, \
+       dim_t            n, \
+       dim_t            nr, \
+       ctype*  restrict kappa, \
+       ctype*  restrict b, inc_t           rs_b, inc_t           cs_b, \
+       ctype** restrict p, inc_t* restrict rs_p, inc_t* restrict cs_p, \
+                                                 inc_t* restrict ps_p, \
+       cntx_t* restrict cntx, \
+       rntm_t* restrict rntm, \
+       mem_t*  restrict mem, \
+       thrinfo_t* restrict thread  \
+     ); \
+
+INSERT_GENTPROT_BASIC0( packm_sup_b )
+
+// end bli_l3_sup_packm_b.h
+// begin bli_l3_sup_packm_var.h
+
+
+//
+// Prototype BLAS-like interfaces to the variants.
+//
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, varname ) \
+\
+void PASTEMAC(ch,varname) \
+     ( \
+       trans_t          transc, \
+       pack_t           schema, \
+       dim_t            m, \
+       dim_t            n, \
+       dim_t            m_max, \
+       dim_t            n_max, \
+       ctype*  restrict kappa, \
+       ctype*  restrict c, inc_t rs_c, inc_t cs_c, \
+       ctype*  restrict p, inc_t rs_p, inc_t cs_p, \
+                           dim_t pd_p, inc_t ps_p, \
+       cntx_t* restrict cntx, \
+       thrinfo_t* restrict thread  \
+     );
+
+INSERT_GENTPROT_BASIC0( packm_sup_var1 )
+
+#undef  GENTPROT
+#define GENTPROT( ctype, ch, varname ) \
+\
+void PASTEMAC(ch,varname) \
+     ( \
+       trans_t          transc, \
+       pack_t           schema, \
+       dim_t            m, \
+       dim_t            n, \
+       ctype*  restrict kappa, \
+       ctype*  restrict c, inc_t rs_c, inc_t cs_c, \
+       ctype*  restrict p, inc_t rs_p, inc_t cs_p, \
+       cntx_t* restrict cntx, \
+       thrinfo_t* restrict thread  \
+     );
+
+INSERT_GENTPROT_BASIC0( packm_sup_var2 )
+
+// end bli_l3_sup_packm_var.h
+
+// Prototype microkernel wrapper APIs.
 // begin bli_l3_ukr_oapi.h
 
 
@@ -34850,7 +37149,7 @@ GENPROT( trsm,     trsm_u_ukernel )
 
 // end bli_l3_ukr_fpa.h
 
-// Operation-specific headers
+// Operation-specific headers.
 // begin bli_gemm.h
 
 
@@ -34898,7 +37197,7 @@ cntl_t* bli_gemm_cntl_create_node
        rntm_t* rntm,
        opid_t  family,
        bszid_t bszid,
-       void*   var_func,
+       void_fp var_func,
        cntl_t* sub_node
      );
 
@@ -34918,6 +37217,7 @@ void bli_gemm_front
        cntl_t* cntl
      );
 
+#ifdef BLIS_ENABLE_SMALL_MATRIX
 err_t bli_gemm_small
      (
        obj_t*  alpha,
@@ -34928,6 +37228,8 @@ err_t bli_gemm_small
        cntx_t* cntx,
        cntl_t* cntl
      );
+#endif
+
 // end bli_gemm_front.h
 // begin bli_gemm_int.h
 
@@ -35571,6 +37873,20 @@ void bli_syrk_front
        rntm_t* rntm,
        cntl_t* cntl
      );
+
+#ifdef BLIS_ENABLE_SMALL_MATRIX
+err_t bli_syrk_small
+     (
+       obj_t*  alpha,
+       obj_t*  a,
+       obj_t*  b,
+       obj_t*  beta,
+       obj_t*  c,
+       cntx_t* cntx,
+       cntl_t* cntl
+     );
+#endif
+
 // end bli_syrk_front.h
 
 // end bli_syrk.h
@@ -35744,7 +38060,7 @@ cntl_t* bli_trsm_cntl_create_node
        rntm_t* rntm,
        opid_t  family,
        bszid_t bszid,
-       void*   var_func, 
+       void_fp var_func,
        cntl_t* sub_node
      );
 
@@ -35762,6 +38078,19 @@ void bli_trsm_front
        rntm_t* rntm,
        cntl_t* cntl
      );
+
+#ifdef BLIS_ENABLE_SMALL_MATRIX
+err_t bli_trsm_small
+     (
+       side_t  side,
+       obj_t*  alpha,
+       obj_t*  a,
+       obj_t*  b,
+       cntx_t* cntx,
+       cntl_t* cntl
+     );
+#endif
+
 // end bli_trsm_front.h
 // begin bli_trsm_int.h
 
@@ -37285,10 +39614,31 @@ INSERT_GENTPROTR_BASIC0( sumsqv_unb_var1 )
 #endif
 #endif // BLIS_ENABLE_CBLAS
 
+// By default, if the BLAS compatibility layer is enabled, we define
+// (include) all of the BLAS prototypes. However, if the user is
+// #including "blis.h" and also #including another header that also
+// declares the BLAS functions, then we provide an opportunity to
+// #undefine the BLIS_ENABLE_BLAS_DEFS macro (see below).
+#ifdef BLIS_ENABLE_BLAS
+#define BLIS_ENABLE_BLAS_DEFS
+#else
+#undef  BLIS_ENABLE_BLAS_DEFS
+#endif
+
 // Skip prototyping all of the BLAS if the BLAS test drivers are being
 // compiled.
-#ifndef BLIS_VIA_BLASTEST
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_VIA_BLASTEST
+#undef BLIS_ENABLE_BLAS_DEFS
+#endif
+
+// Skip prototyping all of the BLAS if the environment has defined the
+// macro BLIS_DISABLE_BLAS_DEFS.
+#ifdef BLIS_DISABLE_BLAS_DEFS
+#undef BLIS_ENABLE_BLAS_DEFS
+#endif
+
+// Begin including all BLAS prototypes.
+#ifdef BLIS_ENABLE_BLAS_DEFS
 
 
 // -- System headers needed by BLAS compatibility layer --
@@ -39189,7 +41539,6 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 
 
 #endif // BLIS_ENABLE_BLAS
-#endif // BLIS_VIA_BLASTEST
 // end bli_blas.h
 
 
@@ -39226,6 +41575,12 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 
 #ifndef BLIS_SYSTEM_H
 #define BLIS_SYSTEM_H
+
+// NOTE: If not yet defined, we define _POSIX_C_SOURCE to make sure that
+// various parts of POSIX are defined and made available.
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
 
 #include <stdio.h> // skipped
 #include <stdlib.h> // skipped
@@ -39270,7 +41625,8 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #elif defined(__bg__)
   #define BLIS_OS_BGP 1
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
-      defined(__bsdi__) || defined(__DragonFly__) || defined(__FreeBSD_kernel__)
+      defined(__bsdi__) || defined(__DragonFly__) || \
+      defined(__FreeBSD_kernel__) || defined(__HAIKU__)
   #define BLIS_OS_BSD 1
 #elif defined(EMSCRIPTEN)
   #define BLIS_OS_EMSCRIPTEN
@@ -39302,7 +41658,8 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #elif BLIS_OS_OSX
 #include <mach/mach_time.h> // skipped
 #else
-#include <sys/time.h> // skipped
+  //#include <sys/time.h>
+
 #include <time.h> // skipped
 #endif
 
@@ -39330,6 +41687,7 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
 #define BLIS_CONFIG_PENRYN
+#define BLIS_CONFIG_ZEN2
 #define BLIS_CONFIG_ZEN
 #define BLIS_CONFIG_EXCAVATOR
 #define BLIS_CONFIG_STEAMROLLER
@@ -39343,6 +41701,7 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_KERNELS_KNL
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
+#define BLIS_KERNELS_ZEN2
 #define BLIS_KERNELS_HASWELL
 #define BLIS_KERNELS_ZEN
 #define BLIS_KERNELS_PILEDRIVER
@@ -39440,6 +41799,12 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #endif
 #endif
 
+#if 1
+#define BLIS_ENABLE_SUP_HANDLING
+#else
+#define BLIS_DISABLE_SUP_HANDLING
+#endif
+
 #if 0
 #define BLIS_ENABLE_MEMKIND
 #else
@@ -39464,24 +41829,6 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_DISABLE_SHARED
 #endif
 
-#if !defined(BLIS_ENABLE_SHARED)
-    #define BLIS_EXPORT
-#else
-    #if defined(_WIN32) || defined(__CYGWIN__)
-        #ifdef BLIS_IS_BUILDING_LIBRARY
-            #define BLIS_EXPORT __declspec(dllexport)
-        #else
-            #define BLIS_EXPORT __declspec(dllimport)
-        #endif
-    #elif defined(__GNUC__) && __GNUC__ >= 4
-        #define BLIS_EXPORT __attribute__ ((visibility ("default")))
-    #else
-        #define BLIS_EXPORT
-    #endif
-#endif
-
-#define BLIS_EXPORT_BLIS BLIS_EXPORT
-#define BLIS_EXPORT_BLAS BLIS_EXPORT
 
 #endif
 // end bli_config.h
@@ -39501,11 +41848,11 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 // internally within BLIS as well as those exposed in the native BLAS-like BLIS
 // interface.
 #ifndef BLIS_INT_TYPE_SIZE
-#ifdef BLIS_ARCH_64
-#define BLIS_INT_TYPE_SIZE               64
-#else
-#define BLIS_INT_TYPE_SIZE               32
-#endif
+  #ifdef BLIS_ARCH_64
+    #define BLIS_INT_TYPE_SIZE 64
+  #else
+    #define BLIS_INT_TYPE_SIZE 32
+  #endif
 #endif
 
 
@@ -39613,7 +41960,19 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 // C99 type "long int". Note that this ONLY affects integers used within the
 // BLAS compatibility layer.
 #ifndef BLIS_BLAS_INT_TYPE_SIZE
-#define BLIS_BLAS_INT_TYPE_SIZE     32
+  #define BLIS_BLAS_INT_TYPE_SIZE 32
+#endif
+
+// By default, the level-3 BLAS routines are implemented by directly calling
+// the BLIS object API. Alternatively, they may first call the typed BLIS
+// API, which will then call the object API.
+//#define BLIS_BLAS3_CALLS_TAPI
+#ifdef BLIS_BLAS3_CALLS_TAPI
+  #undef  BLIS_BLAS3_CALLS_OAPI
+#else
+  // Default behavior is to call object API directly.
+  #undef  BLIS_BLAS3_CALLS_OAPI // In case user explicitly enabled.
+  #define BLIS_BLAS3_CALLS_OAPI
 #endif
 
 
@@ -39630,6 +41989,42 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #else
   // Default behavior is disabled.
 #endif
+
+
+// -- SHARED LIBRARY SYMBOL EXPORT ---------------------------------------------
+
+// When building shared libraries, we can control which symbols are exported for
+// linking by external applications. BLIS annotates all function prototypes that
+// are meant to be "public" with BLIS_EXPORT_BLIS (with BLIS_EXPORT_BLAS playing
+// a similar role for BLAS compatibility routines). Which symbols are exported
+// is controlled by the default symbol visibility, as specifed by the gcc option
+// -fvisibility=[default|hidden]. The default for this option is 'default', or,
+// "public", which, if allowed to stand, causes all symbols in BLIS to be
+// linkable from the outside. But when compiling with -fvisibility=hidden, all
+// symbols start out hidden (that is, restricted only for internal use by BLIS),
+// with that setting overridden only for function prototypes or variable
+// declarations that are annotated with BLIS_EXPORT_BLIS.
+
+#ifndef BLIS_EXPORT
+  #if !defined(BLIS_ENABLE_SHARED)
+    #define BLIS_EXPORT
+  #else
+    #if defined(_WIN32) || defined(__CYGWIN__)
+      #ifdef BLIS_IS_BUILDING_LIBRARY
+        #define BLIS_EXPORT __declspec(dllexport)
+      #else
+        #define BLIS_EXPORT __declspec(dllimport)
+      #endif
+    #elif defined(__GNUC__) && __GNUC__ >= 4
+      #define BLIS_EXPORT __attribute__ ((visibility ("default")))
+    #else
+      #define BLIS_EXPORT
+    #endif
+  #endif
+#endif
+
+#define BLIS_EXPORT_BLIS BLIS_EXPORT
+#define BLIS_EXPORT_BLAS BLIS_EXPORT
 
 
 #endif
@@ -39800,6 +42195,16 @@ typedef float     f77_float;
 typedef double    f77_double;
 typedef scomplex  f77_scomplex;
 typedef dcomplex  f77_dcomplex;
+
+// -- Void function pointer types --
+
+// Note: This type should be used in any situation where the address of a
+// *function* will be conveyed or stored prior to it being typecast back
+// to the correct function type. It does not need to be used when conveying
+// or storing the address of *data* (such as an array of float or double).
+
+//typedef void (*void_fp)( void );
+typedef void* void_fp;
 
 
 //
@@ -40329,6 +42734,80 @@ typedef enum
 #if 0
 typedef enum
 {
+	// RV = row-stored, contiguous vector-loading
+	// RG = row-stored, non-contiguous gather-loading
+	// CV = column-stored, contiguous vector-loading
+	// CG = column-stored, non-contiguous gather-loading
+
+	// RD = row-stored, dot-based
+	// CD = col-stored, dot-based
+
+	// RC = row-stored, column-times-column
+	// CR = column-stored, row-times-row
+
+	// GX = general-stored generic implementation
+
+	BLIS_GEMMSUP_RV_UKR = 0,
+	BLIS_GEMMSUP_RG_UKR,
+	BLIS_GEMMSUP_CV_UKR,
+	BLIS_GEMMSUP_CG_UKR,
+
+	BLIS_GEMMSUP_RD_UKR,
+	BLIS_GEMMSUP_CD_UKR,
+
+	BLIS_GEMMSUP_RC_UKR,
+	BLIS_GEMMSUP_CR_UKR,
+
+	BLIS_GEMMSUP_GX_UKR,
+} l3sup_t;
+
+#define BLIS_NUM_LEVEL3_SUP_UKRS 9
+#endif
+
+
+typedef enum
+{
+	// 3-operand storage combinations
+	BLIS_RRR = 0,
+	BLIS_RRC, // 1
+	BLIS_RCR, // 2
+	BLIS_RCC, // 3
+	BLIS_CRR, // 4
+	BLIS_CRC, // 5
+	BLIS_CCR, // 6
+	BLIS_CCC, // 7
+	BLIS_XXX, // 8
+
+#if 0
+	BLIS_RRG,
+	BLIS_RCG,
+	BLIS_RGR,
+	BLIS_RGC,
+	BLIS_RGG,
+	BLIS_CRG,
+	BLIS_CCG,
+	BLIS_CGR,
+	BLIS_CGC,
+	BLIS_CGG,
+	BLIS_GRR,
+	BLIS_GRC,
+	BLIS_GRG,
+	BLIS_GCR,
+	BLIS_GCC,
+	BLIS_GCG,
+	BLIS_GGR,
+	BLIS_GGC,
+	BLIS_GGG,
+#endif
+} stor3_t;
+
+#define BLIS_NUM_3OP_RC_COMBOS 9
+//#define BLIS_NUM_3OP_RCG_COMBOS 27
+
+
+#if 0
+typedef enum
+{
 	BLIS_JC_IDX = 0,
 	BLIS_PC_IDX,
 	BLIS_IC_IDX,
@@ -40388,8 +42867,10 @@ typedef enum
 	BLIS_MC,
 	BLIS_KC,
 	BLIS_NC,
+
 	BLIS_M2, // level-2 blocksize in m dimension
 	BLIS_N2, // level-2 blocksize in n dimension
+
 	BLIS_AF, // level-1f axpyf fusing factor
 	BLIS_DF, // level-1f dotxf fusing factor
 	BLIS_XF, // level-1f dotxaxpyf fusing factor
@@ -40398,6 +42879,19 @@ typedef enum
 } bszid_t;
 
 #define BLIS_NUM_BLKSZS 11
+
+
+// -- Threshold ID type --
+
+typedef enum
+{
+	BLIS_MT = 0, // level-3 small/unpacked matrix threshold in m dimension
+	BLIS_NT,     // level-3 small/unpacked matrix threshold in n dimension
+	BLIS_KT      // level-3 small/unpacked matrix threshold in k dimension
+
+} threshid_t;
+
+#define BLIS_NUM_THRESH 3
 
 
 // -- Architecture ID type --
@@ -40418,6 +42912,7 @@ typedef enum
 	BLIS_ARCH_PENRYN,
 
 	// AMD
+	BLIS_ARCH_ZEN2,
 	BLIS_ARCH_ZEN,
 	BLIS_ARCH_EXCAVATOR,
 	BLIS_ARCH_STEAMROLLER,
@@ -40441,7 +42936,9 @@ typedef enum
 
 } arch_t;
 
-#define BLIS_NUM_ARCHS 20
+// NOTE: This value must be updated to reflect the number of enum values
+// listed above for arch_t!
+#define BLIS_NUM_ARCHS 21
 
 
 //
@@ -40792,6 +43289,7 @@ typedef struct
 
 	siz_t     block_size;
 	siz_t     align_size;
+	siz_t     offset_size;
 
 	malloc_ft malloc_fp;
 	free_ft   free_fp;
@@ -40856,7 +43354,7 @@ struct cntl_s
 	// Basic fields (usually required).
 	opid_t         family;
 	bszid_t        bszid;
-	void*          var_func;
+	void_fp        var_func;
 	struct cntl_s* sub_prenode;
 	struct cntl_s* sub_node;
 
@@ -40889,7 +43387,7 @@ typedef struct blksz_s
 typedef struct func_s
 {
 	// Kernel function address.
-	void*  ptr[BLIS_NUM_FP_TYPES];
+	void_fp ptr[BLIS_NUM_FP_TYPES];
 
 } func_t;
 
@@ -40923,6 +43421,13 @@ typedef struct
 	// The imaginary strides of A and B.
 	inc_t  is_a;
 	inc_t  is_b;
+
+	// The panel strides of A and B.
+	// NOTE: These are only used in situations where iteration over the
+	// micropanels takes place in part within the kernel code (e.g. sup
+	// millikernels).
+	inc_t  ps_a;
+	inc_t  ps_b;
 
 	// The type to convert to on output.
 	//num_t  dt_on_output;
@@ -40979,6 +43484,71 @@ typedef struct obj_s
 	dim_t         m_panel;  // m dimension of a "full" panel
 	dim_t         n_panel;  // n dimension of a "full" panel
 } obj_t;
+
+// Pre-initializors. Things that must be set afterwards:
+// - root object pointer
+// - info bitfields: dt, target_dt, exec_dt, comp_dt
+// - info2 bitfields: scalar_dt
+// - elem_size
+// - dims, strides
+// - buffer
+// - internal scalar buffer (must always set imaginary component)
+
+#define BLIS_OBJECT_INITIALIZER \
+{ \
+	.root      = NULL, \
+\
+	.off       = { 0, 0 }, \
+	.dim       = { 0, 0 }, \
+	.diag_off  = 0, \
+\
+	.info      = 0x0 | BLIS_BITVAL_DENSE      | \
+	                   BLIS_BITVAL_GENERAL, \
+	.info2     = 0x0, \
+	.elem_size = sizeof( float ),  \
+\
+	.buffer    = NULL, \
+	.rs        = 0, \
+	.cs        = 0, \
+	.is        = 1,  \
+\
+	.scalar    = { 0.0, 0.0 }, \
+\
+	.m_padded  = 0, \
+	.n_padded  = 0, \
+	.ps        = 0, \
+	.pd        = 0, \
+	.m_panel   = 0, \
+	.n_panel   = 0  \
+}
+
+#define BLIS_OBJECT_INITIALIZER_1X1 \
+{ \
+	.root      = NULL, \
+\
+	.off       = { 0, 0 }, \
+	.dim       = { 1, 1 }, \
+	.diag_off  = 0, \
+\
+	.info      = 0x0 | BLIS_BITVAL_DENSE      | \
+	                   BLIS_BITVAL_GENERAL, \
+	.info2     = 0x0, \
+	.elem_size = sizeof( float ),  \
+\
+	.buffer    = NULL, \
+	.rs        = 0, \
+	.cs        = 0, \
+	.is        = 1,  \
+\
+	.scalar    = { 0.0, 0.0 }, \
+\
+	.m_padded  = 0, \
+	.n_padded  = 0, \
+	.ps        = 0, \
+	.pd        = 0, \
+	.m_panel   = 0, \
+	.n_panel   = 0  \
+}
 
 // Define these macros here since they must be updated if contents of
 // obj_t changes.
@@ -41046,6 +43616,39 @@ static void bli_obj_init_subpart_from( obj_t* a, obj_t* b )
 	b->n_panel   = a->n_panel;
 }
 
+// Initializors for global scalar constants.
+// NOTE: These must remain cpp macros since they are initializor
+// expressions, not functions.
+
+#define bli_obj_init_const( buffer0 ) \
+{ \
+	.root      = NULL, \
+\
+	.off       = { 0, 0 }, \
+	.dim       = { 1, 1 }, \
+	.diag_off  = 0, \
+\
+	.info      = 0x0 | BLIS_BITVAL_CONST_TYPE | \
+	                   BLIS_BITVAL_DENSE      | \
+	                   BLIS_BITVAL_GENERAL, \
+	.info2     = 0x0, \
+	.elem_size = sizeof( constdata_t ), \
+\
+	.buffer    = buffer0, \
+	.rs        = 1, \
+	.cs        = 1, \
+	.is        = 1  \
+}
+
+#define bli_obj_init_constdata( val ) \
+{ \
+	.s =           ( float  )val, \
+	.d =           ( double )val, \
+	.c = { .real = ( float  )val, .imag = 0.0f }, \
+	.z = { .real = ( double )val, .imag = 0.0 }, \
+	.i =           ( gint_t )val, \
+}
+
 
 // -- Context type --
 
@@ -41057,6 +43660,12 @@ typedef struct cntx_s
 	func_t    l3_vir_ukrs[ BLIS_NUM_LEVEL3_UKRS ];
 	func_t    l3_nat_ukrs[ BLIS_NUM_LEVEL3_UKRS ];
 	mbool_t   l3_nat_ukrs_prefs[ BLIS_NUM_LEVEL3_UKRS ];
+
+	blksz_t   l3_sup_thresh[ BLIS_NUM_THRESH ];
+	void*     l3_sup_handlers[ BLIS_NUM_LEVEL3_OPS ];
+	blksz_t   l3_sup_blkszs[ BLIS_NUM_BLKSZS ];
+	func_t    l3_sup_kers[ BLIS_NUM_3OP_RC_COMBOS ];
+	mbool_t   l3_sup_kers_prefs[ BLIS_NUM_3OP_RC_COMBOS ];
 
 	func_t    l1f_kers[ BLIS_NUM_LEVEL1F_KERS ];
 	func_t    l1v_kers[ BLIS_NUM_LEVEL1V_KERS ];
@@ -41074,11 +43683,19 @@ typedef struct cntx_s
 
 // -- Runtime type --
 
+// NOTE: The order of these fields must be kept consistent with the definition
+// of the BLIS_RNTM_INITIALIZER macro in bli_rntm.h.
+
 typedef struct rntm_s
 {
 	// "External" fields: these may be queried by the end-user.
+	bool_t    auto_factor;
+
 	dim_t     num_threads;
 	dim_t     thrloop[ BLIS_NUM_LOOPS ];
+	bool_t    pack_a; // enable/disable packing of left-hand matrix A.
+	bool_t    pack_b; // enable/disable packing of right-hand matrix B.
+	bool_t    l3_sup; // enable/disable small matrix handling in level-3 ops.
 
 	// "Internal" fields: these should not be exposed to the end-user.
 
@@ -41747,7 +44364,7 @@ void BLIS_EXPORT_BLAS cblas_xerbla(f77_int p, const char *rout, const char *form
 
 
 //int  bli_setenv( const char *name, const char *value, int overwrite );
-void bli_sleep( unsigned int secs );
+BLIS_EXPORT_BLIS void bli_sleep( unsigned int secs );
 
 // end bli_winsys.h
 

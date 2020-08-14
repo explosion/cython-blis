@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -92,6 +92,20 @@ static void bli_pblk_set_block_size( siz_t block_size, pblk_t* pblk )
 	pblk->block_size = block_size;
 }
 
+//
+// -- pool block initialization ------------------------------------------------
+//
+
+// NOTE: This initializer macro must be updated whenever fields are added or
+// removed from the pblk_t type definition. An alternative to the initializer is
+// calling bli_pblk_clear() at runtime.
+
+#define BLIS_PBLK_INITIALIZER \
+        { \
+          .buf        = NULL, \
+          .block_size = 0, \
+        }  \
+
 static void bli_pblk_clear( pblk_t* pblk )
 {
 	bli_pblk_set_buf( NULL, pblk );
@@ -124,6 +138,11 @@ static siz_t bli_pool_block_size( pool_t* pool )
 static siz_t bli_pool_align_size( pool_t* pool )
 {
 	return pool->align_size;
+}
+
+static siz_t bli_pool_offset_size( pool_t* pool )
+{
+	return pool->offset_size;
 }
 
 static malloc_ft bli_pool_malloc_fp( pool_t* pool )
@@ -174,6 +193,11 @@ static void bli_pool_set_align_size( siz_t align_size, pool_t* pool ) \
 	pool->align_size = align_size;
 }
 
+static void bli_pool_set_offset_size( siz_t offset_size, pool_t* pool ) \
+{
+	pool->offset_size = offset_size;
+}
+
 static void bli_pool_set_malloc_fp( malloc_ft malloc_fp, pool_t* pool ) \
 {
 	pool->malloc_fp = malloc_fp;
@@ -197,6 +221,7 @@ void bli_pool_init
        siz_t            block_ptrs_len,
        siz_t            block_size,
        siz_t            align_size,
+       siz_t            offset_size,
        malloc_ft        malloc_fp,
        free_ft          free_fp,
        pool_t* restrict pool
@@ -211,6 +236,7 @@ void bli_pool_reinit
        siz_t            block_ptrs_len_new,
        siz_t            block_size_new,
        siz_t            align_size_new,
+       siz_t            offset_size_new,
        pool_t* restrict pool
      );
 
@@ -241,11 +267,13 @@ void bli_pool_alloc_block
      (
        siz_t            block_size,
        siz_t            align_size,
+       siz_t            offset_size,
        malloc_ft        malloc_fp,
        pblk_t* restrict block
      );
 void bli_pool_free_block
      (
+       siz_t            offset_size,
        free_ft          free_fp,
        pblk_t* restrict block
      );

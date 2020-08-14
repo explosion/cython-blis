@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -57,7 +57,7 @@ typedef void (*FUNCPTR_T)
        void*   p, inc_t rs_p, inc_t cs_p,
                   inc_t is_p,
                   dim_t pd_p, inc_t ps_p,
-       void*   packm_ker,
+       void_fp packm_ker,
        cntx_t* cntx,
        thrinfo_t* thread
      );
@@ -152,7 +152,7 @@ void bli_packm_blk_var1
 	void*     buf_kappa;
 
 	func_t*   packm_kers;
-	void*     packm_ker;
+	void_fp   packm_ker;
 
 	FUNCPTR_T f;
 
@@ -296,7 +296,7 @@ void PASTEMAC(ch,varname) \
        void*   p, inc_t rs_p, inc_t cs_p, \
                   inc_t is_p, \
                   dim_t pd_p, inc_t ps_p, \
-       void*   packm_ker, \
+       void_fp packm_ker, \
        cntx_t* cntx, \
        thrinfo_t* thread  \
      ) \
@@ -667,7 +667,7 @@ if ( col_stored ) { \
 	                      ( ctype* )p_use,         rs_p, cs_p, "%4.1f", "" ); \
 	fflush( stdout ); \
 	} \
-bli_thread_obarrier( thread ); \
+bli_thread_barrier( thread ); \
 	if ( bli_thread_work_id( thread ) == 1 ) \
 	{ \
 	printf( "packm_blk_var1: thread %lu  (a = %p, ap = %p)\n", bli_thread_work_id( thread ), c_use, p_use ); \
@@ -678,7 +678,7 @@ bli_thread_obarrier( thread ); \
 	                      ( ctype* )p_use,         rs_p, cs_p, "%4.1f", "" ); \
 	fflush( stdout ); \
 	} \
-bli_thread_obarrier( thread ); \
+bli_thread_barrier( thread ); \
 } \
 else { \
 	if ( bli_thread_work_id( thread ) == 0 ) \
@@ -691,7 +691,7 @@ else { \
 	                      ( ctype* )p_use,         rs_p, cs_p, "%4.1f", "" ); \
 	fflush( stdout ); \
 	} \
-bli_thread_obarrier( thread ); \
+bli_thread_barrier( thread ); \
 	if ( bli_thread_work_id( thread ) == 1 ) \
 	{ \
 	printf( "packm_blk_var1: thread %lu  (b = %p, bp = %p)\n", bli_thread_work_id( thread ), c_use, p_use ); \
@@ -702,7 +702,7 @@ bli_thread_obarrier( thread ); \
 	                      ( ctype* )p_use,         rs_p, cs_p, "%4.1f", "" ); \
 	fflush( stdout ); \
 	} \
-bli_thread_obarrier( thread ); \
+bli_thread_barrier( thread ); \
 } \
 */
 /*

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018-2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -74,12 +74,19 @@ void bli_arch_set_id_once( void )
 
 void bli_arch_set_id( void )
 {
+	// NOTE: Change this usage of getenv() to bli_env_get_var() after
+	// merging #351.
+	//bool_t do_logging = bli_env_get_var( "BLIS_ARCH_DEBUG", 0 );
+	bool_t do_logging = getenv( "BLIS_ARCH_DEBUG" ) != NULL;
+	bli_arch_set_logging( do_logging );
+
 	// Architecture families.
 #if defined BLIS_FAMILY_INTEL64 || \
     defined BLIS_FAMILY_AMD64   || \
     defined BLIS_FAMILY_X86_64  || \
     defined BLIS_FAMILY_ARM64   || \
-    defined BLIS_FAMILY_ARM32
+    defined BLIS_FAMILY_ARM32   || \
+    defined BLIS_FAMILY_X86_64_NO_SKX
 	id = bli_cpuid_query_id();
 #endif
 
@@ -104,6 +111,9 @@ void bli_arch_set_id( void )
 #endif
 
 	// AMD microarchitectures.
+#ifdef BLIS_FAMILY_ZEN2
+	id = BLIS_ARCH_ZEN2;
+#endif
 #ifdef BLIS_FAMILY_ZEN
 	id = BLIS_ARCH_ZEN;
 #endif
@@ -138,20 +148,24 @@ void bli_arch_set_id( void )
 #endif
 
 	// IBM microarchitectures.
+#ifdef BLIS_FAMILY_POWER9
+	id = BLIS_ARCH_POWER9;
+#endif
 #ifdef BLIS_FAMILY_POWER7
 	id = BLIS_ARCH_POWER7;
 #endif
 #ifdef BLIS_FAMILY_BGQ
 	id = BLIS_ARCH_BGQ;
 #endif
-#ifdef BLIS_FAMILY_POWER9
-        id = BLIS_ARCH_POWER9;
-#endif
 
 	// Generic microarchitecture.
 #ifdef BLIS_FAMILY_GENERIC
 	id = BLIS_ARCH_GENERIC;
 #endif
+
+	if ( bli_arch_get_logging() )
+		fprintf( stderr, "libblis: selecting sub-configuration '%s'.\n",
+				 bli_arch_string( id ) );
 
 	//printf( "blis_arch_query_id(): id = %u\n", id );
 	//exit(1);
@@ -172,6 +186,7 @@ static char* config_name[ BLIS_NUM_ARCHS ] =
     "sandybridge",
     "penryn",
 
+    "zen2",
     "zen",
     "excavator",
     "steamroller",
@@ -184,9 +199,9 @@ static char* config_name[ BLIS_NUM_ARCHS ] =
     "cortexa15",
     "cortexa9",
 
+    "power9",
     "power7",
     "bgq",
-    "power9",
 
     "generic"
 };
@@ -194,5 +209,39 @@ static char* config_name[ BLIS_NUM_ARCHS ] =
 char* bli_arch_string( arch_t id )
 {
 	return config_name[ id ];
+}
+
+// -----------------------------------------------------------------------------
+
+static bool_t arch_dolog = 0;
+
+void bli_arch_set_logging( bool_t dolog )
+{
+	arch_dolog = dolog;
+}
+
+bool_t bli_arch_get_logging( void )
+{
+	return arch_dolog;
+}
+
+void bli_arch_log( char* fmt, ... )
+{
+	char prefix[] = "libblis: ";
+	int  n_chars  = strlen( prefix ) + strlen( fmt ) + 1;
+
+	if ( bli_arch_get_logging() && fmt )
+	{
+		char* prefix_fmt = malloc( n_chars );
+
+		snprintf( prefix_fmt, n_chars, "%s%s", prefix, fmt );
+
+		va_list ap;
+		va_start( ap, fmt );
+		vfprintf( stderr, prefix_fmt, ap );
+		va_end( ap );
+
+		free( prefix_fmt );
+	}
 }
 

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -42,7 +42,7 @@ struct cntl_s
 	// Basic fields (usually required).
 	opid_t         family;
 	bszid_t        bszid;
-	void*          var_func;
+	void_fp        var_func;
 	struct cntl_s* sub_prenode;
 	struct cntl_s* sub_node;
 
@@ -65,7 +65,7 @@ BLIS_EXPORT_BLIS cntl_t* bli_cntl_create_node
        rntm_t* rntm,
        opid_t  family,
        bszid_t bszid,
-       void*   var_func,
+       void_fp var_func,
        void*   params,
        cntl_t* sub_node
      );
@@ -137,7 +137,7 @@ static bszid_t bli_cntl_bszid( cntl_t* cntl )
 	return cntl->bszid;
 }
 
-static void* bli_cntl_var_func( cntl_t* cntl )
+static void_fp bli_cntl_var_func( cntl_t* cntl )
 {
 	return cntl->var_func;
 }
@@ -200,7 +200,7 @@ static void bli_cntl_set_bszid( bszid_t bszid, cntl_t* cntl )
 	cntl->bszid = bszid;
 }
 
-static void bli_cntl_set_var_func( void* var_func, cntl_t* cntl )
+static void bli_cntl_set_var_func( void_fp var_func, cntl_t* cntl )
 {
 	cntl->var_func = var_func;
 }

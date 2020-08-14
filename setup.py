@@ -100,8 +100,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             subprocess.check_call([sys.executable, "bin/cythonize.py"], env=os.environ)
         compiler = self.get_compiler_name()
         arch = self.get_arch_name()
-        objects = self.compile_objects(compiler.split("-")[0], arch, OBJ_DIR)
-        print("Compiler", compiler)
+        objects = self.compile_objects(compiler, arch, OBJ_DIR)
         if sys.platform == "msvc":
             platform_name = "windows"
         elif sys.platform == "darwin":
@@ -134,29 +133,19 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
     def get_arch_name(self):
         if "BLIS_ARCH" in os.environ:
             return os.environ["BLIS_ARCH"]
-        machine = platform.uname()[4]
-        if machine == "aarch64":
-            # Check if this is a LITTLE core.
-            LITTLE_core = os.system("test 'Cortex-A53' = $(lscpu | grep 'Model name' | awk '{print $3}')")
-            if LITTLE_core == 0:
-                return "cortexa53"
-            else:
-                # Optimize for big cores.
-                return "cortexa57"
         else:
             return "x86_64"
-
+    
     def get_compiler_name(self):
         if "BLIS_COMPILER" in os.environ:
             return os.environ["BLIS_COMPILER"]
-        elif os.environ.get("TRAVIS_OS_NAME") == "linux":
-            return "gcc-6"
+        elif "CC" in os.environ:
+            return os.environ["CC"]
         name = self.compiler.compiler_type
-        print(name)
         if name.startswith("msvc"):
             return "msvc"
         elif name not in ("gcc", "clang", "icc"):
-            return "gcc"
+            return "gcc-9"
         else:
             return name
 
@@ -170,6 +159,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         else:
             platform_name = "linux" + "-" + py_arch
 
+        compiler = os.environ.get("BLIS_COMPILER", os.environ.get("CC"))
         with open(os.path.join(BLIS_DIR, "make", "%s.jsonl" % platform_name)) as file_:
             env = {}
             for line in file_:
@@ -191,9 +181,9 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
                 spec["target"] = os.path.join(obj_dir, target_name)
                 spec["source"] = os.path.join(BLIS_DIR, spec["source"])
-                if "BLIS_COMPILER" in os.environ:
-                    spec["compiler"] = os.environ["BLIS_COMPILER"]
-                spec["flags"] = [f for f in spec["flags"] if "avx512" not in f]
+                if compiler is not None:
+                    spec["compiler"] = compiler
+                spec["flags"] = [f for f in spec["flags"]]
                 objects.append(self.build_object(env=env, **spec))
         return objects
 

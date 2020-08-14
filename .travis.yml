@@ -1,0 +1,57 @@
+language: python
+sudo: required
+dist: focal
+env:
+  global:
+  - PLAT=x86_64
+  - UNICODE_WIDTH=32
+  - CC=gcc-9
+matrix:
+  include:
+  - os: osx
+    language: generic
+    env:
+      - MB_PYTHON_VERSION="3.7"
+      - BLIS_ARCH="generic"
+  - os: osx
+    language: generic
+    env:
+      - MB_PYTHON_VERSION="3.7"
+      - BLIS_ARCH="x86_64"
+  - os: linux
+    python: '3.7'
+    env:
+      - BLIS_ARCH="generic"
+  - os: linux
+    python: '3.7'
+    env:
+      - BLIS_ARCH="x86_64"
+ 
+ 
+before_install:
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source ./bin/travis/before_install_osx.sh;
+  fi
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then source ./bin/travis/before_install_linux.sh;
+  fi
+- before_install
+install:
+- python -m pip install -r requirements.txt
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./bin/generate-make-jsonl darwin $BLIS_ARCH --export;
+  fi
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/generate-make-jsonl linux $BLIS_ARCH --export;
+  fi
+notifications:
+  email: false
+  slack:
+    secure: VSqtxg7u4NTZRfoZqjxPRPVS92KTy/mp62egfDZ9ujTP4VPxNe15QZuTB6r/ICPgEYqBtdhLc/aetuBcemt0bHfentV0F7bz7iDY/AFQC1h1i4G0D0wKMufuqOJFw9MOp2tSpuvCVzhCxR+Ymx/F9SaeYBAiwBawce4wu+qu3lA=
+deploy:
+  skip_cleanup: true
+  provider: gcs
+  access_key_id: GOOGAYJSXD24MLFQGHMJ6TQC
+  secret_access_key:
+    secure: 8SbYhu799pawZfC0a/Jq7eQklvfRNn1hJRnuEEpRdBO6fnFNMeYtTaSb867dwNl00i4VuQAjfcE8RXleY3EeP18qtmqfknCnOLCrSHphqWCYo/nx2wx/zC0E1xC4pefB2sO9nHEuKQVsi5OziNXunWedTh7n6CANoLRJmiypflvlLcOYp5eCLUcsoDbOtb7m2DDYXiCe8NM3ymZ2k42GmXqV2pvx14b0kl6okmAZJ3IMqfRLMXow5TxXwZx/AwW/N3FpitbhOAM2t10MWEdP4egkZlS+b2QKKnwvkocXAXstjokLsYBei8/9/AA2+ldtzT4HiBv6osPy4Y3MB68uyy3x+Q/4PZv7plxP2UPspyUCUCeYeY8CU3S8+8EjQhZYRphx2CibBLCOOpC68GxDcxMjXAgdm0FW1MLpbp/1NJRHgPQrpFvnKjjt01ysha50UGppigX6ebvH5fz4IIhMTRzMEhchCZR4GZvfHx0RaVJz21M5ngLGBQaV7pp99wCy8g/vtztOzwIKVP0VuCl4n31/Cit8QzNIQOQ0YoHJO1alr3SGyXmwnxx0r4DtRsPB70cGq45d7TuMVi7qTe7/gvHCG5rwC1X5YNTYiUae92j9niMLBMeuD5bToAnJIMYIwllTgyDuyo+u1a+fN5jJTtWgK/dBhrXvPaBZovupsmU=
+  bucket: cython-blis-artifacts
+  local-dir: artifacts
+  on:
+    repo: explosion/cython-blis
+    branch: blis-0.7.0

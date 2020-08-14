@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -129,6 +129,36 @@ static bool_t bli_thread_am_ochief( thrinfo_t* t )
 
 // thrinfo_t modification
 
+static void bli_thrinfo_set_ocomm( thrcomm_t* ocomm, thrinfo_t* t )
+{
+	t->ocomm = ocomm;
+}
+
+static void bli_thrinfo_set_ocomm_id( dim_t ocomm_id, thrinfo_t* t )
+{
+	t->ocomm_id = ocomm_id;
+}
+
+static void bli_thrinfo_set_n_way( dim_t n_way, thrinfo_t* t )
+{
+	t->n_way = n_way;
+}
+
+static void bli_thrinfo_set_work_id( dim_t work_id, thrinfo_t* t )
+{
+	t->work_id = work_id;
+}
+
+static void bli_thrinfo_set_free_comm( bool_t free_comm, thrinfo_t* t )
+{
+	t->free_comm = free_comm;
+}
+
+static void bli_thrinfo_set_bszid( bszid_t bszid, thrinfo_t* t )
+{
+	t->bszid = bszid;
+}
+
 static void bli_thrinfo_set_sub_node( thrinfo_t* sub_node, thrinfo_t* t )
 {
 	t->sub_node = sub_node;
@@ -141,12 +171,12 @@ static void bli_thrinfo_set_sub_prenode( thrinfo_t* sub_prenode, thrinfo_t* t )
 
 // other thrinfo_t-related functions
 
-static void* bli_thread_obroadcast( thrinfo_t* t, void* p )
+static void* bli_thread_broadcast( thrinfo_t* t, void* p )
 {
 	return bli_thrcomm_bcast( t->ocomm_id, p, t->ocomm );
 }
 
-static void bli_thread_obarrier( thrinfo_t* t )
+static void bli_thread_barrier( thrinfo_t* t )
 {
 	bli_thrcomm_barrier( t->ocomm_id, t->ocomm );
 }

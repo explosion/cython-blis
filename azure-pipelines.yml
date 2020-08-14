@@ -79,7 +79,7 @@ jobs:
     condition: eq( variables['Agent.OS'], 'Windows_NT')
     displayName: 'Build wheel (Windows)'
 
-  - script: python setup.py bdist_wheel
+  - script: CC=gcc-9 python setup.py bdist_wheel
     condition: or(eq(variables['Agent.OS'], 'Linux'), eq(variables['Agent.OS'], 'Darwin'))
     displayName: 'Build wheel (Linux / Mac)'
 
