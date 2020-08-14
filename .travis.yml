@@ -21,9 +21,9 @@ before_install:
 - before_install
 install:
 - python -m pip install -r requirements.txt
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./bin/generate-make-jsonl darwin x86_64 --export;
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./bin/generate-make-jsonl darwin x86_64_no_skx --export;
   fi
-- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/generate-make-jsonl linux x86_64 --export;
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/generate-make-jsonl linux x86_64_no_skx --export;
   fi
 - python setup.py bdist_wheel
 notifications:
