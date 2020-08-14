@@ -145,7 +145,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         if name.startswith("msvc"):
             return "msvc"
         elif name not in ("gcc", "clang", "icc"):
-            return "gcc"
+            return "gcc-9"
         else:
             return name
 
