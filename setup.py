@@ -159,6 +159,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         else:
             platform_name = "linux" + "-" + py_arch
 
+        compiler = os.environ.get("BLIS_COMPILER", os.environ.get("CC"))
         with open(os.path.join(BLIS_DIR, "make", "%s.jsonl" % platform_name)) as file_:
             env = {}
             for line in file_:
@@ -180,7 +181,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
                 spec["target"] = os.path.join(obj_dir, target_name)
                 spec["source"] = os.path.join(BLIS_DIR, spec["source"])
-                if "BLIS_COMPILER" in os.environ:
+                if compiler is not None:
                     spec["compiler"] = os.environ["BLIS_COMPILER"]
                 spec["flags"] = [f for f in spec["flags"]]
                 objects.append(self.build_object(env=env, **spec))
