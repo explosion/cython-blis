@@ -100,8 +100,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             subprocess.check_call([sys.executable, "bin/cythonize.py"], env=os.environ)
         compiler = self.get_compiler_name()
         arch = self.get_arch_name()
-        objects = self.compile_objects(compiler.split("-")[0], arch, OBJ_DIR)
-        print("Compiler", compiler)
+        objects = self.compile_objects(compiler, arch, OBJ_DIR)
         if sys.platform == "msvc":
             platform_name = "windows"
         elif sys.platform == "darwin":
@@ -142,13 +141,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             return os.environ["BLIS_COMPILER"]
         elif "CC" in os.environ:
             return os.environ["CC"]
-        elif os.environ.get("TRAVIS_OS_NAME") == "linux":
-            return "gcc-6"
-        else:
-            # TODO: Unhack
-            return "gcc-9"
         name = self.compiler.compiler_type
-        print(name)
         if name.startswith("msvc"):
             return "msvc"
         elif name not in ("gcc", "clang", "icc"):
