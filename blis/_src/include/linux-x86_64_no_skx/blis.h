@@ -1,3 +1,5 @@
+
+
 #ifndef BLIS_H
 #define BLIS_H
 
@@ -134,22 +136,22 @@ extern "C" {
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
 #define BLIS_CONFIG_PENRYN
+#define BLIS_CONFIG_GENERIC
 #define BLIS_CONFIG_ZEN
 #define BLIS_CONFIG_EXCAVATOR
 #define BLIS_CONFIG_STEAMROLLER
 #define BLIS_CONFIG_PILEDRIVER
 #define BLIS_CONFIG_BULLDOZER
-#define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
+#define BLIS_KERNELS_GENERIC
 #define BLIS_KERNELS_HASWELL
 #define BLIS_KERNELS_ZEN
 #define BLIS_KERNELS_PILEDRIVER
 #define BLIS_KERNELS_BULLDOZER
-#define BLIS_KERNELS_GENERIC
 
 
 #if 0
@@ -186,9 +188,9 @@ extern "C" {
 #define BLIS_DISABLE_MEM_TRACING
 #endif
 
-#if 0 == 64
+#if 64 == 64
 #define BLIS_INT_TYPE_SIZE 64
-#elif 0 == 32
+#elif 64 == 32
 #define BLIS_INT_TYPE_SIZE 32
 #else
 // determine automatically
@@ -21774,6 +21776,20 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_x86_64.h" // skipped
 #endif
 
+#ifdef BLIS_FAMILY_X86_64_NO_SKX
+// begin bli_family_x86_64_no_skx.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+
+//#endif
+
+// end bli_family_x86_64_no_skx.h
+#endif
+
 // -- Intel64 architectures --
 #ifdef BLIS_FAMILY_SKX
 #include "bli_family_skx.h" // skipped
@@ -41399,22 +41415,22 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_CONFIG_HASWELL
 #define BLIS_CONFIG_SANDYBRIDGE
 #define BLIS_CONFIG_PENRYN
+#define BLIS_CONFIG_GENERIC
 #define BLIS_CONFIG_ZEN
 #define BLIS_CONFIG_EXCAVATOR
 #define BLIS_CONFIG_STEAMROLLER
 #define BLIS_CONFIG_PILEDRIVER
 #define BLIS_CONFIG_BULLDOZER
-#define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
 #define BLIS_KERNELS_SANDYBRIDGE
 #define BLIS_KERNELS_PENRYN
+#define BLIS_KERNELS_GENERIC
 #define BLIS_KERNELS_HASWELL
 #define BLIS_KERNELS_ZEN
 #define BLIS_KERNELS_PILEDRIVER
 #define BLIS_KERNELS_BULLDOZER
-#define BLIS_KERNELS_GENERIC
 
 
 #if 0
@@ -41451,9 +41467,9 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_DISABLE_MEM_TRACING
 #endif
 
-#if 0 == 64
+#if 64 == 64
 #define BLIS_INT_TYPE_SIZE 64
-#elif 0 == 32
+#elif 64 == 32
 #define BLIS_INT_TYPE_SIZE 32
 #else
 // determine automatically
@@ -44083,3 +44099,4 @@ BLIS_EXPORT_BLIS void bli_sleep( unsigned int secs );
 #endif
 
 #endif
+
