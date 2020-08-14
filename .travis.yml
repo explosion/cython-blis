@@ -11,9 +11,15 @@ matrix:
   - os: osx
     language: generic
     env:
-    - MB_PYTHON_VERSION="3.7"
+      - MB_PYTHON_VERSION="3.7"
+      - BLIS_ARCH="generic"
+      - BLIS_ARCH="x86_64"
   - os: linux
     python: '3.7'
+    env:
+      - BLIS_ARCH="generic"
+      - BLIS_ARCH="x86_64"
+ 
 before_install:
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source ./bin/travis/before_install_osx.sh;
   fi
@@ -22,11 +28,10 @@ before_install:
 - before_install
 install:
 - python -m pip install -r requirements.txt
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./bin/generate-make-jsonl darwin x86_64 --export;
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./bin/generate-make-jsonl darwin $BLIS_ARCH --export;
   fi
-- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/generate-make-jsonl linux x86_64 --export;
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/generate-make-jsonl linux $BLIS_ARCH --export;
   fi
-- python setup.py bdist_wheel
 notifications:
   email: false
   slack:
