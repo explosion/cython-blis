@@ -17,14 +17,14 @@ build_script:
 - cd %APPVEYOR_BUILD_FOLDER%
 - cd flame-blis
 - bash -lc "ln -s $APPVEYOR_BUILD_FOLDER /c/projects/cython-blis"
-- bash -lc "cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64_no_skx"
+- bash -lc "cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis x86_64"
 - bash -lc "cd /c/projects/cython-blis/flame-blis && mingw32-make -j4 > make.log"
-- bash -lc "mkdir -p /c/projects/cython-blis/blis/_src/include/windows-x86_64_no_skx"
-- bash -lc "cd /c/projects/cython-blis && cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64_no_skx > blis/_src/make/windows-x86_64_no_skx.jsonl"
-- bash -lc "cp /c/projects/cython-blis/flame-blis/include/x86_64_no_skx/blis.h /c/projects/cython-blis/blis/_src/include/windows-x86_64_no_skx/blis.h"
-- bash -lc "cp /c/projects/cython-blis/blis/_src/make/windows-x86_64_no_skx.jsonl $APPVEYOR_BUILD_FOLDER/blis/_src/make/windows-x86_64_no_skx.jsonl"
-- bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/blis/_src/include/windows-x86_64_no_skx"
-- bash -lc "cp /c/projects/cython-blis/blis/_src/include/windows-x86_64_no_skx/blis.h $APPVEYOR_BUILD_FOLDER/blis/_src/include/windows-x86_64_no_skx/blis.h"
+- bash -lc "mkdir -p /c/projects/cython-blis/blis/_src/include/windows-x86_64"
+- bash -lc "cd /c/projects/cython-blis && cat flame-blis/make.log | python bin/munge_make_log.py windows x86_64 > blis/_src/make/windows-x86_64.jsonl"
+- bash -lc "cp /c/projects/cython-blis/flame-blis/include/x86_64/blis.h /c/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h"
+- bash -lc "cp /c/projects/cython-blis/blis/_src/make/windows-x86_64.jsonl $APPVEYOR_BUILD_FOLDER/blis/_src/make/windows-x86_64.jsonl"
+- bash -lc "mkdir -p $APPVEYOR_BUILD_FOLDER/blis/_src/include/windows-x86_64"
+- bash -lc "cp /c/projects/cython-blis/blis/_src/include/windows-x86_64/blis.h $APPVEYOR_BUILD_FOLDER/blis/_src/include/windows-x86_64/blis.h"
 #- bash -lc "cd /c/projects/cython-blis/flame-blis && ./configure --disable-shared --disable-cblas --disable-blas --disable-threading --enable-verbose-make --enable-arg-max-hack --prefix=/c/blis-generic"
 #- bash -lc "cd /c/projects/cython-blis/flame-blis && mingw32-make -j4 > make.log"
 #- bash -lc "mkdir -p /c/projects/cython-blis/blis/_src/include/windows-generic"
@@ -46,6 +46,6 @@ build_script:
 
 artifacts:
   - path: blis/_src/make
-    name: windows-x86_64_no_skx.jsonl
-  - path: blis/_src/include/windows-x86_64_no_skx
+    name: windows-x86_64.jsonl
+  - path: blis/_src/include/windows-x86_64
     name: blis.h
