@@ -162,7 +162,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     print(env)
                     continue
                 _, target_name = os.path.split(spec["target"])
-                if py_compiler == "msvc":
+                if platform == "windows":
                     target_name = target_name.replace("/", "\\")
                     spec["source"] = spec["source"].replace("/", "\\")
                     spec["include"] = [
