@@ -100,8 +100,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         if use_cython:
             subprocess.check_call([sys.executable, "bin/cythonize.py"], env=os.environ)
         arch = self.get_arch_name()
-        print("Build extensions", sys.platform)
-        if sys.platform == "msvc":
+        if sys.platform in ("msvc", "win32"):
             platform_name = "windows"
         elif sys.platform == "darwin":
             platform_name = "darwin"
