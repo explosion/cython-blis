@@ -69,4 +69,4 @@ deploy:
   local-dir: artifacts
   on:
     repo: explosion/cython-blis
-    branch: blis-0.7.0
+    branch: master
