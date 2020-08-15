@@ -7,8 +7,8 @@ ARCH="$2"
 EXPORT="$3"
 JSONL="blis/_src/make/$OS-$ARCH.jsonl"
 
+cd flame-blis
 if [ ! -f $JSONL ]; then
-    cd flame-blis
     echo "Compile"
     if [[ "$OS" == "windows" ]]; then
         mingw32-make clean
