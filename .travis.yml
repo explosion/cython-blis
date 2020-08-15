@@ -33,7 +33,7 @@ matrix:
     env:
       - BLIS_ARCH="cortexa57"
   - os: linux
-    language: generic
+    language: shell
     arch: ppc64le
     dist: focal
     env:
