@@ -52,8 +52,9 @@ install:
 - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./bin/generate-make-jsonl linux $BLIS_ARCH --export;
   fi
 script:
-- python setup.py build_ext --inplace
+- python setup.py bdist_wheel
 - python -m pytest blis/
+- cp dist/*.whl ./artifacts
 
 notifications:
   email: false
