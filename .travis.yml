@@ -31,8 +31,9 @@ matrix:
     python: '3.7'
     env:
       - BLIS_ARCH="cortexa57"
-  - os: linux-ppc64le
+  - os: linux
     arch: ppc64le
+    dist: focal
     python: '3.7'
     env:
       - BLIS_ARCH="power9"
