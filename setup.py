@@ -76,6 +76,7 @@ class build_ext_options:
         if hasattr(self.compiler, "initialize"):
             self.compiler.initialize()
         self.compiler.platform = sys.platform[:6]
+        print("Build options", self.compiler.platform, self.compiler.compiler_type)
         if self.compiler.compiler_type == "msvc":
             include_dirs = list(self.compiler.include_dirs)
             library_dirs = list(self.compiler.library_dirs)
@@ -98,15 +99,14 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         build_ext_options.build_options(self)
         if use_cython:
             subprocess.check_call([sys.executable, "bin/cythonize.py"], env=os.environ)
-        compiler = self.get_compiler_name()
         arch = self.get_arch_name()
-        objects = self.compile_objects(compiler, arch, OBJ_DIR)
         if sys.platform == "msvc":
             platform_name = "windows"
         elif sys.platform == "darwin":
             platform_name = "darwin"
         else:
             platform_name = "linux"
+        objects = self.compile_objects(platform_name, arch, OBJ_DIR)
         # Work around max line length in Windows, by making a local directory
         # for the objects
         short_dir = "z"
@@ -149,18 +149,11 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         else:
             return name
 
-    def compile_objects(self, py_compiler, py_arch, obj_dir):
+    def compile_objects(self, platform, py_arch, obj_dir):
         objects = []
-        print("py_compiler", py_compiler)
-        if py_compiler == "msvc":
-            platform_name = "windows" + "-" + py_arch
-        elif sys.platform == "darwin":
-            platform_name = "darwin" + "-" + py_arch
-        else:
-            platform_name = "linux" + "-" + py_arch
-
-        compiler = os.environ.get("BLIS_COMPILER", os.environ.get("CC"))
-        with open(os.path.join(BLIS_DIR, "make", "%s.jsonl" % platform_name)) as file_:
+        platform_arch = platform + "-" + py_arch
+        compiler = self.get_compiler_name()
+        with open(os.path.join(BLIS_DIR, "make", "%s.jsonl" % platform_arch)) as file_:
             env = {}
             for line in file_:
                 spec = json.loads(line)
@@ -176,7 +169,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                         inc.replace("/", "\\") for inc in spec["include"]
                     ]
                 spec["include"].append(
-                    "-I" + os.path.join(INCLUDE, "%s" % platform_name)
+                    "-I" + os.path.join(INCLUDE, "%s" % platform_arch)
                 )
 
                 spec["target"] = os.path.join(obj_dir, target_name)
