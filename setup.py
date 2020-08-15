@@ -171,6 +171,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 spec["source"] = os.path.join(BLIS_DIR, spec["source"])
                 if compiler is not None:
                     spec["compiler"] = compiler
+                elif platform == "windows":
+                    spec["compiler"] = locate_windows_llvm()
                 spec["flags"] = [f for f in spec["flags"]]
                 objects.append(self.build_object(env=env, **spec))
         return objects
