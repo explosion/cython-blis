@@ -26,6 +26,12 @@ matrix:
     python: '3.7'
     env:
       - BLIS_ARCH="x86_64"
+  - os: linux
+    arch: arm64
+    python: '3.7'
+    env:
+      - BLIS_ARCH="cortexa57"
+ 
  
  
 before_install:
