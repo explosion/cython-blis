@@ -141,13 +141,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             return os.environ["BLIS_COMPILER"]
         elif "CC" in os.environ:
             return os.environ["CC"]
-        name = self.compiler.compiler_type
-        if name.startswith("msvc"):
-            return "gcc"
-        elif name not in ("gcc", "clang", "icc"):
-            return "gcc"
         else:
-            return name
+            return None
 
     def compile_objects(self, platform, py_arch, obj_dir):
         objects = []
