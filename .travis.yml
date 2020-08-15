@@ -34,7 +34,7 @@ matrix:
   - os: linux
     arch: ppc64le
     dist: focal
-    python: '3.7'
+    python: '3.8'
     env:
       - BLIS_ARCH="power9"
  
