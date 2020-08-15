@@ -143,7 +143,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             return os.environ["CC"]
         name = self.compiler.compiler_type
         if name.startswith("msvc"):
-            return "msvc"
+            return "gcc"
         elif name not in ("gcc", "clang", "icc"):
             return "gcc"
         else:
