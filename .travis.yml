@@ -53,7 +53,7 @@ install:
   fi
 script:
 - python setup.py bdist_wheel
-- python -m pytest blis/
+- PYTHONPATH=`pwd` python -m pytest blis/
 - cp dist/*.whl ./artifacts
 
 notifications:
