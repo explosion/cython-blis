@@ -1,4 +1,3 @@
-language: python
 sudo: required
 dist: focal
 env:
@@ -23,15 +22,18 @@ matrix:
     env:
       - BLIS_ARCH="generic"
   - os: linux
+    language: python
     python: '3.7'
     env:
       - BLIS_ARCH="x86_64"
   - os: linux
+    language: python
     arch: arm64
     python: '3.7'
     env:
       - BLIS_ARCH="cortexa57"
   - os: linux
+    language: generic
     arch: ppc64le
     dist: focal
     env:
