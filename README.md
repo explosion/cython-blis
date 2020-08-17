@@ -59,118 +59,13 @@ the `blis/_src/make/linux-cortexa57.jsonl` and
 BLIS_ARCH=cortexa57 pip install --no-binary=blis
 ```
 
-### Running the benchmark
-
-After installation, run a small matrix multiplication benchmark:
-
-```bash
-$ export OMP_NUM_THREADS=1 # Tell Numpy to only use one thread.
-$ python -m blis.benchmark
-Setting up data nO=384 nI=384 batch_size=2000. Running 1000 iterations
-Blis...
-Total: 11032014.6484
-7.35 seconds
-Numpy (Openblas)...
-Total: 11032016.6016
-16.81 seconds
-Blis einsum ab,cb->ca
-8.10 seconds
-Numpy einsum ab,cb->ca
-Total: 5510596.19141
-83.18 seconds
-```
-
-The low `numpy.einsum` performance is
-expected, but the low `numpy.dot` performance is surprising. Linking numpy
-against MKL gives better performance:
-
-```bash
-Numpy (mkl_rt) gemm...
-Total: 11032011.71875
-5.21 seconds
-```
-
-These figures refer to performance on a Dell XPS 13 i7-7500U. Running the
-same benchmark on a 2015 MacBook Air gives:
-
-```bash
-Blis...
-Total: 11032014.6484
-8.89 seconds
-Numpy (Accelerate)...
-Total: 11032012.6953
-6.68 seconds
-```
-
-Clearly the Dell's numpy+OpenBLAS performance is the outlier, so it's likely
-something has gone wrong in the compilation and architecture detection.
-
 ## Usage
 
 Two APIs are provided: a high-level Python API, and direct
-[Cython](http://cython.org) access. The best part of the Python API is the
-[einsum function](https://obilaniu6266h16.wordpress.com/2016/02/04/einstein-summation-in-numpy/),
-which works like numpy's, but with some restrictions that allow
-a direct mapping to Blis routines. Example usage:
-
-```python
-from blis.py import einsum
-from numpy import ndarray, zeros
-
-dim_a = 500
-dim_b = 128
-dim_c = 300
-arr1 = ndarray((dim_a, dim_b))
-arr2 = ndarray((dim_b, dim_c))
-out = zeros((dim_a, dim_c))
-
-einsum('ab,bc->ac', arr1, arr2, out=out)
-# Change dimension order of output
-out = einsum('ab,bc->ca', arr1, arr2)
-assert out.shape == (dim_a, dim_c)
-# Matrix vector product, with transposed output
-arr2 = ndarray((dim_b,))
-out = einsum('ab,b->ba', arr1, arr2)
-assert out.shape == (dim_b, dim_a)
-```
-
-The Einstein summation format is really awesome, so it's always been
-disappointing that it's so much slower than equivalent calls to `tensordot`
-in numpy. The `blis.einsum` function gives up the numpy version's generality,
-so that calls can be easily mapped to Blis:
-
-- Only two input tensors
-- Maximum two dimensions
-- Dimensions must be labelled `a`, `b` and `c`
-- The first argument's dimensions must be `'a'` (for 1d inputs) or `'ab'` (for 2d inputs).
-
-With these restrictions, there are ony 15 valid combinations – which
-correspond to all the things you would otherwise do with the `gemm`, `gemv`,
-`ger` and `axpy` functions. You can therefore forget about all the other
-functions and just use the `einsum`. Here are the valid einsum strings, the
-calls they correspond to, and the numpy equivalents:
-
-| Equation      | Maps to                                  | Numpy           |
-| ------------- | ---------------------------------------- | --------------- |
-| `'a,a->a'`    | `axpy(A, B)`                             | `A+B`           |
-| `'a,b->ab'`   | `ger(A, B)`                              | `outer(A, B)`   |
-| `'a,b->ba'`   | `ger(B, A)`                              | `outer(B, A)`   |
-| `'ab,a->ab'`  | `batch_axpy(A, B)`                       | `A*B`           |
-| `'ab,a->ba'`  | `batch_axpy(A, B, trans1=True)`          | `(A*B).T`       |
-| `'ab,b->a'`   | `gemv(A, B)`                             | `A*B`           |
-| `'ab,a->b'`   | `gemv(A, B, trans1=True)`                | `A.T*B`         |
-| `'ab,ac->cb'` | `gemm(B, A, trans1=True, trans2=True)`   | `dot(B.T, A)`   |
-| `'ab,ac->bc'` | `gemm(A, B, trans1=True, trans2=False)`  | `dot(A.T, B)`   |
-| `'ab,bc->ac'` | `gemm(A, B, trans1=False, trans2=False)` | `dot(A, B)`     |
-| `'ab,bc->ca'` | `gemm(B, A, trans1=False, trans2=True)`  | `dot(B.T, A.T)` |
-| `'ab,ca->bc'` | `gemm(A, B, trans1=True, trans2=True)`   | `dot(B, A.T)`   |
-| `'ab,ca->cb'` | `gemm(B, A, trans1=False, trans2=False)` | `dot(B, A)`     |
-| `'ab,cb->ac'` | `gemm(A, B, trans1=False, trans2=True)`  | `dot(A.T, B.T)` |
-| `'ab,cb->ca'` | `gemm(B, A, trans1=False, trans2=True)`  | `dot(B, A.T)`   |
-
-We also provide fused-type, nogil Cython bindings to the underlying
-Blis linear algebra library. Fused types are a simple template mechanism,
-allowing just a touch of compile-time generic programming:
+[Cython](http://cython.org) access, which provides fused-type, nogil
+Cython bindings to the underlying Blis linear algebra library. Fused
+types are a simple template mechanism, allowing just a touch of
+compile-time generic programming:
 
 ```python
 cimport blis.cy
