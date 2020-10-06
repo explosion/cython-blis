@@ -214,9 +214,11 @@ BLIS_REALLY_COMPILE = os.environ.get("BLIS_REALLY_COMPILE", 0)
 if not BLIS_REALLY_COMPILE:
     try:
         import pip
-        major = int(pip.__version__.split(".", 1)[0])
-        if major < 19:
-            print("WARNING: pip versions <19.0 (currently installed: " + pip.__version__ + ") are unable to detect binary wheel compatibility for blis. To avoid a source install with a very long compilation time, please upgrade pip with `pip install --upgrade pip`.\n\nIf you know what you're doing and you really want to compile blis from source, please set the environment variable BLIS_REALLY_COMPILE=1.")
+        version_parts = pip.__version__.split(".")
+        major = int(version_parts[0])
+        minor = int(version_parts[1])
+        if major < 19 or (major == 19 and minor < 3):
+            print("WARNING: pip versions <19.3 (currently installed: " + pip.__version__ + ") are unable to detect binary wheel compatibility for blis. To avoid a source install with a very long compilation time, please upgrade pip with `pip install --upgrade pip`.\n\nIf you know what you're doing and you really want to compile blis from source, please set the environment variable BLIS_REALLY_COMPILE=1.")
             sys.exit(1)
     except Exception:
         pass
