@@ -14,9 +14,11 @@ Currently, we only supports single-threaded execution, as this is actually best 
 
 ## Installation
 
-You can install the package via pip:
+You can install the package via pip, first making sure that `pip`, `setuptools`,
+and `wheel` are up-to-date:
 
 ```bash
+pip install -U pip setuptools wheel
 pip install blis
 ```
 
