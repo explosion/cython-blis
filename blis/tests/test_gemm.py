@@ -1,4 +1,4 @@
-# Copyright ExplsionAI GmbH, released under BSD.
+# Copyright ExplosionAI GmbH, released under BSD.
 from __future__ import division
 
 from hypothesis import given, assume

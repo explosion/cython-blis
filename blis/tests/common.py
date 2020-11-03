@@ -6,8 +6,8 @@ import numpy as np
 np.random.seed(0)
 from numpy.testing import assert_allclose
 
-from hypothesis import given, assume
-from hypothesis.strategies import tuples, lists, integers, floats
+from hypothesis import assume
+from hypothesis.strategies import tuples, integers, floats
 from hypothesis.extra.numpy import arrays
 
 
@@ -22,9 +22,7 @@ def shapes(min_rows=1, max_rows=100, min_cols=1, max_cols=100):
 def ndarrays_of_shape(shape, lo=-1000.0, hi=1000.0, dtype="float64"):
     width = 64 if dtype == "float64" else 32
     return arrays(
-        dtype,
-        shape=shape,
-        elements=floats(min_value=lo, max_value=hi, width=width)
+        dtype, shape=shape, elements=floats(min_value=lo, max_value=hi, width=width)
     )
 
 

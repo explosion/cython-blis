@@ -1,11 +1,9 @@
-# Copyright ExplsionAI GmbH, released under BSD.
+# Copyright ExplosionAI GmbH, released under BSD.
 from __future__ import division
 from hypothesis import given, assume
-from math import sqrt, floor
 
 from blis.tests.common import *
 from blis.py import dotv
-from blis.cy import NO_CONJUGATE, CONJUGATE
 
 
 @given(
@@ -37,4 +35,4 @@ def test_memoryview_float_noconj(A, B):
     assume(B is not None)
     numpy_result = A.dot(B)
     result = dotv(A, B)
-    assert_allclose([numpy_result], result, atol=1e-4, rtol=1e-4)
+    assert_allclose([numpy_result], result, atol=1e-4, rtol=1e-3)
