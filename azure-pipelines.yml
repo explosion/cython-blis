@@ -117,5 +117,6 @@ jobs:
     displayName: 'Install wheel'
 
   - script: |
+      pip install -r requirements.txt
       python -m pytest --pyargs blis
     displayName: 'Run tests'
