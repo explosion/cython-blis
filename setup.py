@@ -93,6 +93,9 @@ class build_ext_options:
             self.compiler.library_dirs.extend(library_dirs)
             self.compiler.include_dirs = include_dirs
 
+        import numpy
+        self.compiler.include_dirs.append(numpy.get_include())
+
 
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
     def build_extensions(self):
@@ -240,8 +243,11 @@ with chdir(root):
         readme = f.read()
 
 setup(
-    setup_requires=["numpy>=1.15.0"],
-    install_requires=["numpy>=1.15.0"],
+    setup_requires=[
+        "cython>=0.25",
+        "numpy>=1.15.4",
+    ],
+    install_requires=["numpy>=1.15.4"],
     ext_modules=[
         Extension(
             "blis.cy", [os.path.join("blis", "cy.c")], extra_compile_args=["-std=c99"]
