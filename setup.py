@@ -73,7 +73,7 @@ class build_ext_options:
         self.compiler.platform = sys.platform[:6]
         print("Build options", self.compiler.platform, self.compiler.compiler_type)
 
-        self.compiler.include_dirs.append(numpy.get_include())
+        self.compiler.include_dirs = [numpy.get_include()] + self.compiler.include_dirs
 
         if self.compiler.compiler_type == "msvc":
             include_dirs = list(self.compiler.include_dirs)
