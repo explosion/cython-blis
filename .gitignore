@@ -4,6 +4,7 @@ blis/blis.c
 *.so
 blis/cy.c
 blis/py.c
+.eggs
 .env/
 env3.6
 .hypothesis/

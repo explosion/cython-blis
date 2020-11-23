@@ -21,13 +21,8 @@ from distutils.ccompiler import new_compiler
 import subprocess
 import sys
 import platform
-
-try:
-    import cython
-
-    use_cython = True
-except ImportError:
-    use_cython = False
+import cython
+import numpy
 
 MOD_NAMES = ["blis.cy", "blis.py"]
 
@@ -77,6 +72,9 @@ class build_ext_options:
             self.compiler.initialize()
         self.compiler.platform = sys.platform[:6]
         print("Build options", self.compiler.platform, self.compiler.compiler_type)
+
+        self.compiler.include_dirs = [numpy.get_include()] + self.compiler.include_dirs
+
         if self.compiler.compiler_type == "msvc":
             include_dirs = list(self.compiler.include_dirs)
             library_dirs = list(self.compiler.library_dirs)
@@ -97,8 +95,7 @@ class build_ext_options:
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
     def build_extensions(self):
         build_ext_options.build_options(self)
-        if use_cython:
-            subprocess.check_call([sys.executable, "bin/cythonize.py"], env=os.environ)
+        subprocess.check_call([sys.executable, "bin/cythonize.py"], env=os.environ)
         arch = self.get_arch_name()
         if sys.platform in ("msvc", "win32"):
             platform_name = "windows"
@@ -223,8 +220,6 @@ if not BLIS_REALLY_COMPILE:
     except Exception:
         pass
 
-c_files = []  # get_c_sources(SRC)
-
 if len(sys.argv) > 1 and sys.argv[1] == "clean":
     clean(PWD)
 
@@ -240,7 +235,10 @@ with chdir(root):
         readme = f.read()
 
 setup(
-    setup_requires=["numpy>=1.15.0"],
+    setup_requires=[
+        "cython>=0.25",
+        "numpy>=1.15.0",
+    ],
     install_requires=["numpy>=1.15.0"],
     ext_modules=[
         Extension(
@@ -252,8 +250,7 @@ setup(
     ],
     cmdclass={"build_ext": ExtensionBuilder},
     package_data={
-        "": ["*.json", "*.jsonl", "*.pyx", "*.pxd", os.path.join(INCLUDE, "*.h")]
-        + c_files
+        "": ["*.json", "*.jsonl", "*.pyx", "*.pxd"]
     },
     name="blis",
     packages=["blis", "blis.tests"],
