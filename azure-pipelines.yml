@@ -50,6 +50,15 @@ jobs:
       Python38Windows:
         imageName: 'vs2017-win2016'
         python.version: '3.8'
+      Python39Linux:
+        imageName: 'ubuntu-16.04'
+        python.version: '3.9'
+      Python39Mac:
+        imageName: 'macos-10.14'
+        python.version: '3.9'
+      Python39Windows:
+        imageName: 'vs2017-win2016'
+        python.version: '3.9'
     maxParallel: 4
   pool:
     vmImage: $(imageName)
@@ -65,7 +74,7 @@ jobs:
     displayName: 'Preinstall (Windows)'
 
   - script: |
-      python -m pip install --upgrade pip wheel
+      python -m pip install --upgrade pip setuptools wheel
       pip install -r requirements.txt
     displayName: 'Install dependencies'
 
@@ -91,11 +100,13 @@ jobs:
         import os
         wheel_file = os.listdir('./dist')[0]
         wheel_path = os.path.join('./dist', wheel_file)
-        os.rename(wheel_path, wheel_path.replace("cp38m-win", "cp38-win"))
+        renamed_wheel_path = wheel_path.replace("cp38m-win", "cp38-win")
+        renamed_wheel_path = renamed_wheel_path.replace("cp39m-win", "cp39-win")
+        os.rename(wheel_path, renamed_wheel_path)
         print(os.listdir('./dist'))
       failOnStderr: true
-    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['python.version'], '3.8'))
-    displayName: Fix wheel name (Windows, Python 3.8)
+    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), or(eq(variables['python.version'], '3.8'), eq(variables['python.version'], '3.9'))
+    displayName: Fix wheel name (Windows, Python 3.8/3.9)
 
   - bash: |
       rm -rf blis*
