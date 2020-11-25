@@ -105,7 +105,7 @@ jobs:
         os.rename(wheel_path, renamed_wheel_path)
         print(os.listdir('./dist'))
       failOnStderr: true
-    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), or(eq(variables['python.version'], '3.8'), eq(variables['python.version'], '3.9'))
+    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), or(eq(variables['python.version'], '3.8'), eq(variables['python.version'], '3.9')))
     displayName: Fix wheel name (Windows, Python 3.8/3.9)
 
   - bash: |
