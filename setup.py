@@ -97,6 +97,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         build_ext_options.build_options(self)
         subprocess.check_call([sys.executable, "bin/cythonize.py"], env=os.environ)
         arch = self.get_arch_name()
+        print("BUILD ARCH:", arch)
         if sys.platform in ("msvc", "win32"):
             platform_name = "windows"
         elif sys.platform == "darwin":
@@ -128,10 +129,53 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         shutil.rmtree(short_dir)
 
     def get_arch_name(self):
+        # User-defined
         if "BLIS_ARCH" in os.environ:
             return os.environ["BLIS_ARCH"]
-        else:
+        # Not linux defaults to x86_64
+        elif sys.platform != "linux":
             return "x86_64"
+
+        # Linux
+        machine = platform.machine()
+        if machine == "aarch64":
+            return "cortexa57"
+        elif machine == "ppc64le":
+            return "power9"
+        elif machine != "x86_64":
+            return "generic"
+
+        ## Linux x86_64
+        # Try to detect which compiler flags are supported
+        supports_znver2 = True
+        try:
+            subprocess.check_call(
+                " ".join(self.compiler.compiler) + " -march=znver2 -E -xc - -o -",
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                shell=True
+            )
+        except:
+            supports_znver2 = False
+        supports_skx = True
+        try:
+            subprocess.check_call(
+                " ".join(self.compiler.compiler) + " -march=skylake-avx512 -E -xc - -o -",
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                shell=True
+            )
+        except:
+            supports_skx = False
+
+        if supports_znver2 and supports_skx:
+            return "x86_64"
+        elif not supports_znver2 and supports_skx:
+            return "x86_64_no_znver2"
+        else:
+            return "x86_64_no_skx"
     
     def get_compiler_name(self):
         if "BLIS_COMPILER" in os.environ:
