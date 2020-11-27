@@ -15,13 +15,11 @@ import io
 import os.path
 import json
 import tempfile
-import shutil
 import distutils.command.build_ext
 from distutils.ccompiler import new_compiler
 import subprocess
 import sys
 import platform
-import cython
 import numpy
 
 MOD_NAMES = ["blis.cy", "blis.py"]
@@ -145,7 +143,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         elif machine != "x86_64":
             return "generic"
 
-        ## Linux x86_64
+        # Linux x86_64
         # Try to detect which compiler flags are supported
         supports_znver2 = True
         try:
@@ -156,7 +154,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 stderr=subprocess.DEVNULL,
                 shell=True
             )
-        except:
+        except Exception:
             supports_znver2 = False
         supports_skx = True
         try:
@@ -167,7 +165,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 stderr=subprocess.DEVNULL,
                 shell=True
             )
-        except:
+        except Exception:
             supports_skx = False
 
         if supports_znver2 and supports_skx:
