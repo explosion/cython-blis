@@ -97,8 +97,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         build_ext_options.build_options(self)
         subprocess.check_call([sys.executable, "bin/cythonize.py"], env=os.environ)
         arch = self.get_arch_name()
-        print("FINAL ARCH:", arch)
-        sys.exit(1)
+        print("BUILD ARCH:", arch)
         if sys.platform in ("msvc", "win32"):
             platform_name = "windows"
         elif sys.platform == "darwin":
