@@ -17,6 +17,7 @@ import json
 import tempfile
 import distutils.command.build_ext
 from distutils.ccompiler import new_compiler
+from Cython.Build import cythonize
 import subprocess
 import sys
 import platform
@@ -93,7 +94,6 @@ class build_ext_options:
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
     def build_extensions(self):
         build_ext_options.build_options(self)
-        subprocess.check_call([sys.executable, "bin/cythonize.py"], env=os.environ)
         arch = self.get_arch_name()
         print("BUILD ARCH:", arch)
         if sys.platform in ("msvc", "win32"):
@@ -297,14 +297,14 @@ setup(
         "numpy>=1.15.0",
     ],
     install_requires=["numpy>=1.15.0"],
-    ext_modules=[
+    ext_modules=cythonize([
         Extension(
-            "blis.cy", [os.path.join("blis", "cy.c")], extra_compile_args=["-std=c99"]
+            "blis.cy", [os.path.join("blis", "cy.pyx")], extra_compile_args=["-std=c99"]
         ),
         Extension(
-            "blis.py", [os.path.join("blis", "py.c")], extra_compile_args=["-std=c99"]
+            "blis.py", [os.path.join("blis", "py.pyx")], extra_compile_args=["-std=c99"]
         ),
-    ],
+    ], language_level=2),
     cmdclass={"build_ext": ExtensionBuilder},
     package_data={
         "": ["*.json", "*.jsonl", "*.pyx", "*.pxd"]
