@@ -26,27 +26,27 @@ jobs:
       Python36Linux:
         imageName: 'ubuntu-16.04'
         python.version: '3.6'
-      Python36Mac:
-        imageName: 'macos-10.14'
-        python.version: '3.6'
-      Python36Windows:
-        imageName: 'vs2017-win2016'
-        python.version: '3.6'
-      Python37Linux:
-        imageName: 'ubuntu-16.04'
-        python.version: '3.7'
+#     Python36Mac:
+#        imageName: 'macos-10.14'
+#        python.version: '3.6'
+#      Python36Windows:
+#        imageName: 'vs2017-win2016'
+#        python.version: '3.6'
+#      Python37Linux:
+#        imageName: 'ubuntu-16.04'
+#        python.version: '3.7'
       Python37Mac:
         imageName: 'macos-10.14'
         python.version: '3.7'
-      Python37Windows:
-        imageName: 'vs2017-win2016'
-        python.version: '3.7'
-      Python38Linux:
-        imageName: 'ubuntu-16.04'
-        python.version: '3.8'
-      Python38Mac:
-        imageName: 'macos-10.14'
-        python.version: '3.8'
+#      Python37Windows:
+#        imageName: 'vs2017-win2016'
+#        python.version: '3.7'
+#      Python38Linux:
+#        imageName: 'ubuntu-16.04'
+#        python.version: '3.8'
+#      Python38Mac:
+#        imageName: 'macos-10.14'
+#        python.version: '3.8'
       Python38Windows:
         imageName: 'vs2017-win2016'
         python.version: '3.8'
@@ -100,10 +100,11 @@ jobs:
         import os
         wheel_file = os.listdir('./dist')[0]
         wheel_path = os.path.join('./dist', wheel_file)
-        os.rename(wheel_path, wheel_path.replace("cp38m-win", "cp38-win"))
+        renamed_wheel_path = wheel_path.replace("cp38m-win", "cp38-win")
+        renamed_wheel_path = renamed_wheel_path.replace("cp39m-win", "cp39-win")
         print(os.listdir('./dist'))
       failOnStderr: true
-    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['python.version'], '3.8'))
+    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), or(eq(variables['python.version'], '3.8'), eq(variables['python.version'], '3.9'))
     displayName: Fix wheel name (Windows, Python 3.8)
 
   - script: |
