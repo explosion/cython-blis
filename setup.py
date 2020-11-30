@@ -131,7 +131,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         if "BLIS_ARCH" in os.environ:
             return os.environ["BLIS_ARCH"]
         # Not linux defaults to x86_64
-        elif sys.platform != "linux":
+        elif not sys.platform.startswith("linux"):
             return "x86_64"
 
         # Linux
@@ -145,13 +145,14 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
         # Linux x86_64
         # Try to detect which compiler flags are supported
+        DEVNULL = os.open(os.devnull, os.O_RDWR)
         supports_znver2 = True
         try:
             subprocess.check_call(
                 " ".join(self.compiler.compiler) + " -march=znver2 -E -xc - -o -",
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdin=DEVNULL,
+                stdout=DEVNULL,
+                stderr=DEVNULL,
                 shell=True
             )
         except Exception:
@@ -160,9 +161,9 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         try:
             subprocess.check_call(
                 " ".join(self.compiler.compiler) + " -march=znver1 -E -xc - -o -",
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdin=DEVNULL,
+                stdout=DEVNULL,
+                stderr=DEVNULL,
                 shell=True
             )
         except Exception:
@@ -171,13 +172,14 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         try:
             subprocess.check_call(
                 " ".join(self.compiler.compiler) + " -march=skylake-avx512 -E -xc - -o -",
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdin=DEVNULL,
+                stdout=DEVNULL,
+                stderr=DEVNULL,
                 shell=True
             )
         except Exception:
             supports_skx = False
+        os.close(DEVNULL)
 
         if supports_znver2 and supports_skx:
             return "x86_64"
