@@ -156,6 +156,17 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             )
         except Exception:
             supports_znver2 = False
+        supports_znver1 = True
+        try:
+            subprocess.check_call(
+                " ".join(self.compiler.compiler) + " -march=znver1 -E -xc - -o -",
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                shell=True
+            )
+        except Exception:
+            supports_znver1 = False
         supports_skx = True
         try:
             subprocess.check_call(
@@ -170,10 +181,12 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
         if supports_znver2 and supports_skx:
             return "x86_64"
-        elif not supports_znver2 and supports_skx:
+        elif supports_znver1 and supports_skx:
             return "x86_64_no_znver2"
-        else:
+        elif supports_znver1 and not supports_skx
             return "x86_64_no_skx"
+        else:
+            return "generic"
     
     def get_compiler_name(self):
         if "BLIS_COMPILER" in os.environ:
