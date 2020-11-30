@@ -104,7 +104,7 @@ jobs:
         renamed_wheel_path = renamed_wheel_path.replace("cp39m-win", "cp39-win")
         print(os.listdir('./dist'))
       failOnStderr: true
-    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), or(eq(variables['python.version'], '3.8'), eq(variables['python.version'], '3.9'))
+    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), or(eq(variables['python.version'], '3.8'), eq(variables['python.version'], '3.9')))
     displayName: Fix wheel name (Windows, Python 3.8)
 
   - script: |
