@@ -184,7 +184,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         if supports_znver2 and supports_skx:
             return "x86_64"
         elif supports_znver1 and supports_skx:
-            return "x86_64_no_znver2"
+            return "x86_64_no_zen2"
         elif supports_znver1 and not supports_skx:
             return "x86_64_no_skx"
         else:
