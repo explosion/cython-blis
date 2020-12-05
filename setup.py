@@ -130,7 +130,13 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         # User-defined
         if "BLIS_ARCH" in os.environ:
             return os.environ["BLIS_ARCH"]
-        # Not linux defaults to x86_64
+        # Darwin: use "generic" (for now) for any non-x86_64
+        elif sys.platform == "darwin":
+            if platform.machine() == "x86_64":
+                return "x86_64"
+            else:
+                return "generic"
+        # Everything else other than linux defaults to x86_64
         elif not sys.platform.startswith("linux"):
             return "x86_64"
 
@@ -145,41 +151,9 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
         # Linux x86_64
         # Try to detect which compiler flags are supported
-        DEVNULL = os.open(os.devnull, os.O_RDWR)
-        supports_znver2 = True
-        try:
-            subprocess.check_call(
-                " ".join(self.compiler.compiler) + " -march=znver2 -E -xc - -o -",
-                stdin=DEVNULL,
-                stdout=DEVNULL,
-                stderr=DEVNULL,
-                shell=True
-            )
-        except Exception:
-            supports_znver2 = False
-        supports_znver1 = True
-        try:
-            subprocess.check_call(
-                " ".join(self.compiler.compiler) + " -march=znver1 -E -xc - -o -",
-                stdin=DEVNULL,
-                stdout=DEVNULL,
-                stderr=DEVNULL,
-                shell=True
-            )
-        except Exception:
-            supports_znver1 = False
-        supports_skx = True
-        try:
-            subprocess.check_call(
-                " ".join(self.compiler.compiler) + " -march=skylake-avx512 -E -xc - -o -",
-                stdin=DEVNULL,
-                stdout=DEVNULL,
-                stderr=DEVNULL,
-                shell=True
-            )
-        except Exception:
-            supports_skx = False
-        os.close(DEVNULL)
+        supports_znver1 = self.check_compiler_flag("znver1")
+        supports_znver2 = self.check_compiler_flag("znver2")
+        supports_skx = self.check_compiler_flag("skylake-avx512")
 
         if supports_znver2 and supports_skx:
             return "x86_64"
@@ -189,7 +163,23 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             return "x86_64_no_skx"
         else:
             return "generic"
-    
+
+    def check_compiler_flag(self, flag):
+        supports_flag = True
+        DEVNULL = os.open(os.devnull, os.O_RDWR)
+        try:
+            subprocess.check_call(
+                " ".join(self.compiler.compiler) + " -march={flag} -E -xc - -o -".format(flag=flag),
+                stdin=DEVNULL,
+                stdout=DEVNULL,
+                stderr=DEVNULL,
+                shell=True
+            )
+        except Exception:
+            supports_flag = False
+        os.close(DEVNULL)
+        return supports_flag
+
     def get_compiler_name(self):
         if "BLIS_COMPILER" in os.environ:
             return os.environ["BLIS_COMPILER"]
