@@ -33,7 +33,7 @@ jobs:
         imageName: 'vs2017-win2016'
         python.version: '3.6'
       Python37Linux:
-        imageName: 'ubuntu-16.04'
+        imageName: 'ubuntu-18.04'
         python.version: '3.7'
       Python37Mac:
         imageName: 'macos-10.14'
@@ -42,7 +42,7 @@ jobs:
         imageName: 'vs2017-win2016'
         python.version: '3.7'
       Python38Linux:
-        imageName: 'ubuntu-16.04'
+        imageName: 'ubuntu-20.04'
         python.version: '3.8'
       Python38Mac:
         imageName: 'macos-10.14'
@@ -51,7 +51,7 @@ jobs:
         imageName: 'vs2017-win2016'
         python.version: '3.8'
       Python39Linux:
-        imageName: 'ubuntu-16.04'
+        imageName: 'ubuntu-20.04'
         python.version: '3.9'
       Python39Mac:
         imageName: 'macos-10.14'
@@ -88,9 +88,39 @@ jobs:
     condition: eq( variables['Agent.OS'], 'Windows_NT')
     displayName: 'Build wheel (Windows)'
 
-  - script: CC=gcc-9 python setup.py bdist_wheel
-    condition: or(eq(variables['Agent.OS'], 'Linux'), eq(variables['Agent.OS'], 'Darwin'))
-    displayName: 'Build wheel (Linux / Mac)'
+  - script: python setup.py bdist_wheel
+    condition: eq(variables['Agent.OS'], 'Darwin')
+    displayName: 'Build wheel (Mac)'
+
+  - script: |
+      gcc --version
+      python setup.py bdist_wheel
+    condition: and(eq(variables['Agent.OS'], 'Linux'), or(eq(variables['python.version'], '2.7'), eq(variables['python.version'], '3.5')))
+    displayName: 'Build wheel (Linux)'
+
+  - script: |
+      clang --version
+      CC=clang python setup.py bdist_wheel
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.6'))
+    displayName: 'Build wheel (Linux / clang)'
+
+  - script: |
+      gcc-7 --version
+      CC=gcc-7 python setup.py bdist_wheel
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.7'))
+    displayName: 'Build wheel (Linux / gcc-7)'
+
+  - script: |
+      gcc-8 --version
+      CC=gcc-8 python setup.py bdist_wheel
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.8'))
+    displayName: 'Build wheel (Linux / gcc-8)'
+
+  - script: |
+      gcc-9 --version
+      CC=gcc-9 python setup.py bdist_wheel
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.9'))
+    displayName: 'Build wheel (Linux / gcc-9)'
 
   - task: PythonScript@0
     inputs:
