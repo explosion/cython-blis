@@ -26,7 +26,7 @@ Wheels should be available, so installation should be fast. If you want to insta
 
 ### Building BLIS for alternative architectures
 
-The provided wheels should work on x86_86 architectures. Unfortunately we do not currently know a way to provide different wheels for alternative architectures, and we cannot provide a single binary that works everywhere. So if the wheel doesn't work for your CPU, you'll need to specify source distribution, and tell Blis your CPU architecture using the `BLIS_ARCH` environment variable.
+The provided wheels should work on x86_64 architectures. Unfortunately we do not currently know a way to provide different wheels for alternative architectures, and we cannot provide a single binary that works everywhere. So if the wheel doesn't work for your CPU, you'll need to specify source distribution, and tell Blis your CPU architecture using the `BLIS_ARCH` environment variable.
 
 #### a) Installing with generic arch support
 
