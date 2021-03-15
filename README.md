@@ -88,7 +88,7 @@ the library is missing some functions you require.
 To build the source package, you should run the following command:
 
 ```bash
-./bin/copy-source-files.sh
+./bin/update-vendored-source
 ```
 
 This populates the `blis/_src` folder for the various architectures, using the
