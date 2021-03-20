@@ -189,7 +189,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             return None
 
     def compile_objects(self, platform, py_arch, obj_dir):
-        objects = []
+        jobs = []
         platform_arch = platform + "-" + py_arch
         compiler = self.get_compiler_name()
         with open(os.path.join(BLIS_DIR, "make", "%s.jsonl" % platform_arch)) as file_:
@@ -218,22 +218,40 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 if platform == "windows":
                     spec["compiler"] = locate_windows_llvm()
                 spec["flags"] = [f for f in spec["flags"]]
-                objects.append(self.build_object(env=env, **spec))
-        return objects
+                jobs.append(self.build_object_command(env=env, **spec))
 
-    def build_object(self, compiler, source, target, flags, macros, include, env=None):
+        pool = {}
+        def wait_for_completion(pool):
+            """Wait for a random subprocess, then clean out all completed subprocesses"""
+            list(pool.values())[0].wait()
+            for t, p in list(pool.items()):
+                retcode = p.poll()
+                if retcode == 0:
+                    del pool[t]
+                if retcode:
+                    raise Exception(f"{t} failed with {retcode}")
+
+        for target, command, kwargs in jobs:
+            if len(pool) >= os.cpu_count():
+                wait_for_completion(pool)
+            if command:
+                pool[target] = subprocess.Popen(command, **kwargs)
+
+        while pool:
+            wait_for_completion(pool)
+
+        return [j[0] for j in jobs]
+
+    def build_object_command(self, compiler, source, target, flags, macros, include, env=None):
         if os.path.exists(target):
-            return target
+            return target, None, None
         if not os.path.exists(source):
             raise IOError("Cannot find source file: %s" % source)
         command = [compiler, "-c", source, "-o", target]
         command.extend(flags)
         command.extend(macros)
         command.extend(include)
-        print("[COMMAND]", " ".join(command))
-        # TODO: change this to subprocess.run etc. once we drop 2.7
-        subprocess.check_call(command, cwd=BLIS_DIR)
-        return target
+        return target, command, {"cwd": BLIS_DIR}
 
 
 @contextlib.contextmanager
