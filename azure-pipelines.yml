@@ -9,13 +9,13 @@ jobs:
   strategy:
     matrix:
       Python27Linux:
-        imageName: 'ubuntu-16.04'
+        imageName: 'ubuntu-18.04'
         python.version: '2.7'
       Python27Mac:
         imageName: 'macos-10.14'
         python.version: '2.7'
       Python35Linux:
-        imageName: 'ubuntu-16.04'
+        imageName: 'ubuntu-18.04'
         python.version: '3.5'
       Python35Mac:
         imageName: 'macos-10.14'
@@ -24,7 +24,7 @@ jobs:
         imageName: 'vs2017-win2016'
         python.version: '3.5'
       Python36Linux:
-        imageName: 'ubuntu-16.04'
+        imageName: 'ubuntu-18.04'
         python.version: '3.6'
       Python36Mac:
         imageName: 'macos-10.14'
@@ -111,16 +111,16 @@ jobs:
     displayName: 'Build wheel (Linux / gcc-7)'
 
   - script: |
-      gcc-8 --version
-      CC=gcc-8 python setup.py bdist_wheel
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.8'))
-    displayName: 'Build wheel (Linux / gcc-8)'
-
-  - script: |
       gcc-9 --version
       CC=gcc-9 python setup.py bdist_wheel
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.9'))
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.8'))
     displayName: 'Build wheel (Linux / gcc-9)'
+
+  - script: |
+      gcc-10 --version
+      CC=gcc-9 python setup.py bdist_wheel
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.9'))
+    displayName: 'Build wheel (Linux / gcc-10)'
 
   - task: PythonScript@0
     inputs:
