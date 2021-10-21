@@ -127,9 +127,15 @@ jobs:
 
   - script: |
       gcc-10 --version
-      CC=gcc-9 python setup.py bdist_wheel
+      CC=gcc-10 python setup.py bdist_wheel
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.9'))
     displayName: 'Build wheel (Linux / gcc-10)'
+
+  - script: |
+      clang-12 --version
+      CC=clang-12 python setup.py bdist_wheel
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.10'))
+    displayName: 'Build wheel (Linux / clang-12)'
 
   - task: PythonScript@0
     inputs:
