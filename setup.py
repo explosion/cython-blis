@@ -226,7 +226,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             return target
         if not os.path.exists(source):
             raise IOError("Cannot find source file: %s" % source)
-        command = [compiler, "-c", source, "-o", target]
+        command = compiler.split()
+        command.extend(["-c", source, "-o", target])
         command.extend(flags)
         command.extend(macros)
         command.extend(include)
