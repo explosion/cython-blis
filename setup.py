@@ -320,7 +320,6 @@ setup(
         "Operating System :: MacOS :: MacOS X",
         "Programming Language :: Cython",
         "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
