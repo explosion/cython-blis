@@ -66,7 +66,13 @@ def gemm(const_reals2d_ft A, const_reals2d_ft B,
          double alpha=1., double beta=1.):
     cdef cy.dim_t nM = A.shape[0] if not trans1 else A.shape[1]
     cdef cy.dim_t nK = A.shape[1] if not trans1 else A.shape[0]
+    cdef cy.dim_t nK_b = B.shape[0] if not trans2 else B.shape[1]
     cdef cy.dim_t nN = B.shape[1] if not trans2 else B.shape[0]
+
+    if nK != nK_b:
+        msg = "Shape mismatch for blis.gemm: (%d, %d), (%d, %d)"
+        raise ValueError(msg % (nM, nK, nK_b, nN))
+
     if const_reals2d_ft is const_float2d_t:
         if out is None:
             out = numpy.zeros((nM, nN), dtype='f')

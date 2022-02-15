@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import numpy as np
+
 np.random.seed(0)
 from numpy.testing import assert_allclose
 
@@ -18,7 +19,7 @@ def shapes(min_rows=1, max_rows=100, min_cols=1, max_cols=100):
 
 
 def ndarrays_of_shape(shape, lo=-1000.0, hi=1000.0, dtype='float64'):
-    return arrays(dtype, shape=shape, elements=floats(min_value=lo, max_value=hi))
+    return arrays(dtype, shape=shape, elements=floats(min_value=lo, max_value=hi, width=32))
     
 
 def ndarrays(min_len=0, max_len=10, min_val=-10000000.0, max_val=1000000.0, dtype='float64'):

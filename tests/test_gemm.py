@@ -1,6 +1,8 @@
 from __future__ import division
 from hypothesis import given, assume
 from math import sqrt, floor
+import numpy as np
+import pytest
 
 from blis_tests_common import *
 from blis.py import gemm
@@ -28,6 +30,17 @@ def _reshape_for_gemm(A, B, a_rows, a_cols, out_cols, dtype, trans_a=False, tran
     if trans_a:
         A = np.ascontiguousarray(A.T, dtype=dtype)
     return A, B, C
+
+
+def test_incompatible_shape():
+    with pytest.raises(ValueError):
+        gemm(np.zeros((2, 2)), np.zeros((3, 2)))
+    with pytest.raises(ValueError):
+        gemm(np.zeros((3, 2)), np.zeros((2, 2)), trans1=True)
+    with pytest.raises(ValueError):
+        gemm(np.zeros((2, 2)), np.zeros((2, 3)), trans2=True)
+    with pytest.raises(ValueError):
+        gemm(np.zeros((3, 2)), np.zeros((3, 2)), trans1=True, trans2=True)
 
 
 @given(
