@@ -136,12 +136,13 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 return "x86_64"
             else:
                 return "generic"
-        # Windows: use "generic" (for now) for any non-x86_64
+        # Windows: use "generic" (for now) for ARM64 and x86_64 for other platforms
         elif platform_name == "windows":
-            if platform.machine() == "x86_64":
-                return "x86_64"
-            else:
+            if platform.machine() == "ARM64":
                 return "generic"
+            else:
+                return "x86_64"
+
         # Everything else other than linux defaults to x86_64
         elif not platform_name.startswith("linux"):
             return "x86_64"
