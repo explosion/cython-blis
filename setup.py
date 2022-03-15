@@ -94,14 +94,14 @@ class build_ext_options:
 class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
     def build_extensions(self):
         build_ext_options.build_options(self)
-        arch = self.get_arch_name()
-        print("BUILD ARCH:", arch)
         if sys.platform in ("msvc", "win32"):
             platform_name = "windows"
         elif sys.platform == "darwin":
             platform_name = "darwin"
         else:
             platform_name = "linux"
+        arch = self.get_arch_name(platform_name)
+        print("BUILD ARCH:", arch)
         objects = self.compile_objects(platform_name, arch, OBJ_DIR)
         # Work around max line length in Windows, by making a local directory
         # for the objects
@@ -126,18 +126,25 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         distutils.command.build_ext.build_ext.build_extensions(self)
         shutil.rmtree(short_dir)
 
-    def get_arch_name(self):
+    def get_arch_name(self, platform_name):
         # User-defined
         if "BLIS_ARCH" in os.environ:
             return os.environ["BLIS_ARCH"]
         # Darwin: use "generic" (for now) for any non-x86_64
-        elif sys.platform == "darwin":
+        elif platform_name == "darwin":
             if platform.machine() == "x86_64":
                 return "x86_64"
             else:
                 return "generic"
+        # Windows: use "generic" (for now) for ARM64 and x86_64 for other platforms
+        elif platform_name == "windows":
+            if platform.machine() == "ARM64":
+                return "generic"
+            else:
+                return "x86_64"
+
         # Everything else other than linux defaults to x86_64
-        elif not sys.platform.startswith("linux"):
+        elif not platform_name.startswith("linux"):
             return "x86_64"
 
         # Linux
