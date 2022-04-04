@@ -327,19 +327,19 @@ bool bli_cpuid_is_zen2
 	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
 
 	// All Zen2 cores have a family of 0x17.
-	if ( family != 0x17 ) return FALSE;
+	if ( family == 0x17 ) {
+		return 0x30 <= model && model <= 0xff;
+	}
 
-	// Finally, check for specific models:
-	// - 0x30 ~ 0xff
-	// NOTE: We must check model because the family 23 (0x17) is shared with
-	// zen.
-	const bool is_arch
-	=
-	( 0x30 <= model && model <= 0xff );
+#ifndef BLIS_CONFIG_ZEN3
+	// Fallback to Zen 2 kernels on Zen 3, when blis is compiled without
+	// Zen 3 support (e.g. because it requires a newer compiler).
+	if ( family == 0x19 ) {
+		return 0x00 <= model && model <= 0xff;
+	}
+#endif
 
-	if ( !is_arch ) return FALSE;
-
-	return TRUE;
+	return FALSE;
 }
 
 bool bli_cpuid_is_zen
