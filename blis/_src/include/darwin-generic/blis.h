@@ -28,15 +28,15 @@ extern "C" {
 #define BLIS_CONFIG_H
 
 // Enabled configuration "family" (config_name)
-#define BLIS_FAMILY_CORTEXA57
+#define BLIS_FAMILY_GENERIC
 
 
 // Enabled sub-configurations (config_list)
-#define BLIS_CONFIG_CORTEXA57
+#define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_ARMV8A
+#define BLIS_KERNELS_GENERIC
 
 
 #if 1
@@ -153,7 +153,7 @@ extern "C" {
 #define BLIS_DISABLE_TRSM_PREINVERSION
 #endif
 
-#if 1
+#if 0
 #define BLIS_ENABLE_PRAGMA_OMP_SIMD
 #else
 #define BLIS_DISABLE_PRAGMA_OMP_SIMD
@@ -20855,52 +20855,7 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_thunderx2.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_CORTEXA57
-// begin bli_family_cortexa57.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-// -- MEMORY ALLOCATION --------------------------------------------------------
-
-#define BLIS_SIMD_ALIGN_SIZE           16
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-#define BLIS_SGEMM_UKERNEL             bli_sgemm_opt_8x12
-#define BLIS_DEFAULT_MR_S              8
-#define BLIS_DEFAULT_NR_S              12
-#define BLIS_DEFAULT_MC_S              120 //1536 //336 //416 // 1280 //160 // 160 // 160 //2048 //336 
-#define BLIS_DEFAULT_KC_S              640 //1536 //336 //704 //1280 //672 //528 // 856 //2048 //528 
-#define BLIS_DEFAULT_NC_S              3072
-
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_6x8
-#define BLIS_DEFAULT_MR_D              6
-#define BLIS_DEFAULT_NR_D              8
-#define BLIS_DEFAULT_MC_D              120 //1536 //160 //80 //176 
-#define BLIS_DEFAULT_KC_D              240 //1536 //304 //336 //368 
-#define BLIS_DEFAULT_NC_D              3072
-
-#define BLIS_DEFAULT_MR_C              8
-#define BLIS_DEFAULT_NR_C              4
-#define BLIS_DEFAULT_MC_C              64
-#define BLIS_DEFAULT_KC_C              128
-#define BLIS_DEFAULT_NC_C              4096
-
-#define BLIS_DEFAULT_MR_Z              8
-#define BLIS_DEFAULT_NR_Z              4
-#define BLIS_DEFAULT_MC_Z              64
-#define BLIS_DEFAULT_KC_Z              128
-#define BLIS_DEFAULT_NC_Z              4096
-#endif
-
-
-//#endif
-
-// end bli_family_cortexa57.h
+#include "bli_family_cortexa57.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_CORTEXA53
 #include "bli_family_cortexa53.h" // skipped
@@ -20933,7 +20888,18 @@ CNTX_INIT_PROTS( generic )
 // -- Generic --
 
 #ifdef BLIS_FAMILY_GENERIC
-#include "bli_family_generic.h" // skipped
+// begin bli_family_generic.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+
+
+//#endif
+
+// end bli_family_generic.h
 #endif
 
 
@@ -20988,37 +20954,7 @@ CNTX_INIT_PROTS( generic )
 #include "bli_kernels_armsve.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_ARMV8A
-// begin bli_kernels_armv8a.h
-
-
-PACKM_KER_PROT( float,    s, packm_armv8a_int_8xk )
-PACKM_KER_PROT( float,    s, packm_armv8a_int_12xk )
-PACKM_KER_PROT( double,   d, packm_armv8a_int_6xk )
-PACKM_KER_PROT( double,   d, packm_armv8a_int_8xk )
-
-GEMM_UKR_PROT( float,    s, gemm_armv8a_asm_8x12 )
-GEMM_UKR_PROT( double,   d, gemm_armv8a_asm_6x8 )
-// GEMM_UKR_PROT( double,   d, gemm_armv8a_asm_6x8r )
-// GEMM_UKR_PROT( double,   d, gemm_armv8a_asm_8x4 )
-// GEMM_UKR_PROT( double,   d, gemm_armv8a_asm_4x4 )
-
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_asm_6x8n )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_asm_6x8m )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_asm_6x8n )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_asm_6x8m )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_asm_4x8n )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_asm_4x8m )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_asm_8x4m )
-
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_int_2x8 )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_int_3x4 )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_asm_3x4 )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_asm_6x3 )
-
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_int_6x4mn )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_int_3x8mn )
-
-// end bli_kernels_armv8a.h
+#include "bli_kernels_armv8a.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_ARMV7A
 #include "bli_kernels_armv7a.h" // skipped
@@ -39891,15 +39827,15 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_CONFIG_H
 
 // Enabled configuration "family" (config_name)
-#define BLIS_FAMILY_CORTEXA57
+#define BLIS_FAMILY_GENERIC
 
 
 // Enabled sub-configurations (config_list)
-#define BLIS_CONFIG_CORTEXA57
+#define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_ARMV8A
+#define BLIS_KERNELS_GENERIC
 
 
 #if 1
@@ -40016,7 +39952,7 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_DISABLE_TRSM_PREINVERSION
 #endif
 
-#if 1
+#if 0
 #define BLIS_ENABLE_PRAGMA_OMP_SIMD
 #else
 #define BLIS_DISABLE_PRAGMA_OMP_SIMD

@@ -28,15 +28,31 @@ extern "C" {
 #define BLIS_CONFIG_H
 
 // Enabled configuration "family" (config_name)
-#define BLIS_FAMILY_CORTEXA57
+#define BLIS_FAMILY_X86_64_NO_ZEN2
 
 
 // Enabled sub-configurations (config_list)
-#define BLIS_CONFIG_CORTEXA57
+#define BLIS_CONFIG_SKX
+#define BLIS_CONFIG_HASWELL
+#define BLIS_CONFIG_SANDYBRIDGE
+#define BLIS_CONFIG_PENRYN
+#define BLIS_CONFIG_ZEN
+#define BLIS_CONFIG_EXCAVATOR
+#define BLIS_CONFIG_STEAMROLLER
+#define BLIS_CONFIG_PILEDRIVER
+#define BLIS_CONFIG_BULLDOZER
+#define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_ARMV8A
+#define BLIS_KERNELS_SKX
+#define BLIS_KERNELS_SANDYBRIDGE
+#define BLIS_KERNELS_PENRYN
+#define BLIS_KERNELS_HASWELL
+#define BLIS_KERNELS_ZEN
+#define BLIS_KERNELS_PILEDRIVER
+#define BLIS_KERNELS_BULLDOZER
+#define BLIS_KERNELS_GENERIC
 
 
 #if 1
@@ -20780,7 +20796,17 @@ CNTX_INIT_PROTS( generic )
 #endif
 
 #ifdef BLIS_FAMILY_X86_64_NO_ZEN2
-#include "bli_family_x86_64_no_zen2.h" // skipped
+// begin bli_family_x86_64_no_zen2.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+
+//#endif
+
+// end bli_family_x86_64_no_zen2.h
 #endif
 
 #ifdef BLIS_FAMILY_X86_64_NO_ZEN3
@@ -20790,7 +20816,98 @@ CNTX_INIT_PROTS( generic )
 // -- Intel64 architectures --
 
 #ifdef BLIS_FAMILY_SKX
-#include "bli_family_skx.h" // skipped
+// begin bli_family_skx.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+// -- THREADING PARAMETERS -----------------------------------------------------
+
+#define BLIS_THREAD_RATIO_M     3
+#define BLIS_THREAD_RATIO_N     2
+
+#define BLIS_THREAD_MAX_IR      1
+#define BLIS_THREAD_MAX_JR      4
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE             64
+
+#define BLIS_SIMD_MAX_SIZE               64
+#define BLIS_SIMD_MAX_NUM_REGISTERS      32
+
+//#include <stdlib.h>
+
+//#define BLIS_MALLOC_POOL malloc
+//#define BLIS_FREE_POOL free
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
+
+// -- Cache and register blocksizes --
+
+//
+// Constraints:
+//
+// (1) MC must be a multiple of:
+//     (a) MR (for zero-padding purposes)
+//     (b) NR (for zero-padding purposes when MR and NR are "swapped")
+// (2) NC must be a multiple of
+//     (a) NR (for zero-padding purposes)
+//     (b) MR (for zero-padding purposes when MR and NR are "swapped")
+//
+
+#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_16x12_l2
+#define BLIS_DEFAULT_MC_D              144
+#define BLIS_DEFAULT_KC_D              336
+#define BLIS_DEFAULT_NC_D              5760
+#define BLIS_DEFAULT_MR_D              16
+#define BLIS_DEFAULT_NR_D              12
+#define BLIS_PACKDIM_MR_D              16
+#define BLIS_PACKDIM_NR_D              12
+
+// NOTE: If the micro-kernel, which is typically unrolled to a factor
+// of f, handles leftover edge cases (ie: when k % f > 0) then these
+// register blocksizes in the k dimension can be defined to 1.
+
+//#define BLIS_DEFAULT_KR_S              1
+//#define BLIS_DEFAULT_KR_D              1
+//#define BLIS_DEFAULT_KR_C              1
+//#define BLIS_DEFAULT_KR_Z              1
+
+// -- Maximum cache blocksizes (for optimizing edge cases) --
+
+// NOTE: These cache blocksize "extensions" have the same constraints as
+// the corresponding default blocksizes above. When these values are
+// larger than the default blocksizes, blocksizes used at edge cases are
+// enlarged if such an extension would encompass the remaining portion of
+// the matrix dimension.
+
+#define BLIS_MAXIMUM_MC_S              (BLIS_DEFAULT_MC_S + BLIS_DEFAULT_MC_S/4)
+#define BLIS_MAXIMUM_KC_S              (BLIS_DEFAULT_KC_S + BLIS_DEFAULT_KC_S/4)
+#define BLIS_MAXIMUM_NC_S              (BLIS_DEFAULT_NC_S +                   0)
+
+#define BLIS_MAXIMUM_MC_D              (BLIS_DEFAULT_MC_D + BLIS_DEFAULT_MC_D/4)
+#define BLIS_MAXIMUM_KC_D              (BLIS_DEFAULT_KC_D + BLIS_DEFAULT_KC_D/4)
+#define BLIS_MAXIMUM_NC_D              (BLIS_DEFAULT_NC_D +                   0)
+
+//#define BLIS_MAXIMUM_MC_C              (BLIS_DEFAULT_MC_C + BLIS_DEFAULT_MC_C/4)
+//#define BLIS_MAXIMUM_KC_C              (BLIS_DEFAULT_KC_C + BLIS_DEFAULT_KC_C/4)
+//#define BLIS_MAXIMUM_NC_C              (BLIS_DEFAULT_NC_C + BLIS_DEFAULT_NC_C/4)
+
+//#define BLIS_MAXIMUM_MC_Z              (BLIS_DEFAULT_MC_Z + BLIS_DEFAULT_MC_Z/4)
+//#define BLIS_MAXIMUM_KC_Z              (BLIS_DEFAULT_KC_Z + BLIS_DEFAULT_KC_Z/4)
+//#define BLIS_MAXIMUM_NC_Z              (BLIS_DEFAULT_NC_Z + BLIS_DEFAULT_NC_Z/4)
+
+
+#endif
+
+
+//#endif
+
+// end bli_family_skx.h
 #endif
 #ifdef BLIS_FAMILY_KNL
 #include "bli_family_knl.h" // skipped
@@ -20799,13 +20916,233 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_knc.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_HASWELL
-#include "bli_family_haswell.h" // skipped
+// begin bli_family_haswell.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS AND DEFINITIONS ---------------------------
+
+// -- sgemm micro-kernel --
+
+#if 0
+#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_4x24
+#define BLIS_DEFAULT_MC_S          256
+#define BLIS_DEFAULT_KC_S          256
+#define BLIS_DEFAULT_NC_S          4080
+#define BLIS_DEFAULT_MR_S          4
+#define BLIS_DEFAULT_NR_S          24
+
+#define BLIS_SGEMM_UKERNEL_PREFERS_CONTIG_ROWS
+#endif
+
+#if 1
+#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_6x16
+#define BLIS_DEFAULT_MC_S          144
+#define BLIS_DEFAULT_KC_S          256
+#define BLIS_DEFAULT_NC_S          4080
+#define BLIS_DEFAULT_MR_S          6
+#define BLIS_DEFAULT_NR_S          16
+
+#define BLIS_SGEMM_UKERNEL_PREFERS_CONTIG_ROWS
+#endif
+
+#if 0
+#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_16x6
+#define BLIS_DEFAULT_MC_S          144
+#define BLIS_DEFAULT_KC_S          256
+#define BLIS_DEFAULT_NC_S          4080
+#define BLIS_DEFAULT_MR_S          16
+#define BLIS_DEFAULT_NR_S          6
+#endif
+
+// -- dgemm micro-kernel --
+
+#if 0
+#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_4x12
+#define BLIS_DEFAULT_MC_D          152
+#define BLIS_DEFAULT_KC_D          160
+#define BLIS_DEFAULT_NC_D          4080
+#define BLIS_DEFAULT_MR_D          4
+#define BLIS_DEFAULT_NR_D          12
+
+#define BLIS_DGEMM_UKERNEL_PREFERS_CONTIG_ROWS
+#endif
+
+#if 1
+#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_6x8
+#define BLIS_DEFAULT_MC_D          72
+#define BLIS_DEFAULT_KC_D          256
+#define BLIS_DEFAULT_NC_D          4080
+#define BLIS_DEFAULT_MR_D          6
+#define BLIS_DEFAULT_NR_D          8
+
+#define BLIS_DGEMM_UKERNEL_PREFERS_CONTIG_ROWS
+#endif
+
+#if 0
+#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_8x6
+#define BLIS_DEFAULT_MC_D          72
+#define BLIS_DEFAULT_KC_D          256
+#define BLIS_DEFAULT_NC_D          4080
+#define BLIS_DEFAULT_MR_D          8
+#define BLIS_DEFAULT_NR_D          6
+#endif
+
+// -- cgemm micro-kernel --
+
+#if 1
+#define BLIS_CGEMM_UKERNEL         bli_cgemm_asm_3x8
+#define BLIS_DEFAULT_MC_C          144
+#define BLIS_DEFAULT_KC_C          256
+#define BLIS_DEFAULT_NC_C          4080
+#define BLIS_DEFAULT_MR_C          3
+#define BLIS_DEFAULT_NR_C          8
+
+#define BLIS_CGEMM_UKERNEL_PREFERS_CONTIG_ROWS
+#endif
+
+#if 0
+#define BLIS_CGEMM_UKERNEL         bli_cgemm_asm_8x3
+#define BLIS_DEFAULT_MC_C          144
+#define BLIS_DEFAULT_KC_C          256
+#define BLIS_DEFAULT_NC_C          4080
+#define BLIS_DEFAULT_MR_C          8
+#define BLIS_DEFAULT_NR_C          3
+#endif
+
+//  -- zgemm micro-kernel --
+
+#if 1
+#define BLIS_ZGEMM_UKERNEL         bli_zgemm_asm_3x4
+#define BLIS_DEFAULT_MC_Z          72
+#define BLIS_DEFAULT_KC_Z          256
+#define BLIS_DEFAULT_NC_Z          4080
+#define BLIS_DEFAULT_MR_Z          3
+#define BLIS_DEFAULT_NR_Z          4
+
+#define BLIS_ZGEMM_UKERNEL_PREFERS_CONTIG_ROWS
+#endif
+
+#if 0
+#define BLIS_ZGEMM_UKERNEL         bli_zgemm_asm_4x3
+#define BLIS_DEFAULT_MC_Z          72
+#define BLIS_DEFAULT_KC_Z          256
+#define BLIS_DEFAULT_NC_Z          4080
+#define BLIS_DEFAULT_MR_Z          4
+#define BLIS_DEFAULT_NR_Z          3
+#endif
+
+#endif
+
+
+//#endif
+
+// end bli_family_haswell.h
 #endif
 #ifdef BLIS_FAMILY_SANDYBRIDGE
-#include "bli_family_sandybridge.h" // skipped
+// begin bli_family_sandybridge.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS AND DEFINITIONS ---------------------------
+
+#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_8x8
+#define BLIS_DEFAULT_MC_S          128
+#define BLIS_DEFAULT_KC_S          384
+#define BLIS_DEFAULT_NC_S          4096
+#define BLIS_DEFAULT_MR_S          8
+#define BLIS_DEFAULT_NR_S          8
+
+#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_8x4
+#define BLIS_DEFAULT_MC_D          96
+#define BLIS_DEFAULT_KC_D          256
+#define BLIS_DEFAULT_NC_D          4096
+#define BLIS_DEFAULT_MR_D          8
+#define BLIS_DEFAULT_NR_D          4
+
+#define BLIS_CGEMM_UKERNEL         bli_cgemm_asm_8x4
+#define BLIS_DEFAULT_MC_C          96
+#define BLIS_DEFAULT_KC_C          256
+#define BLIS_DEFAULT_NC_C          4096
+#define BLIS_DEFAULT_MR_C          8
+#define BLIS_DEFAULT_NR_C          4
+
+#define BLIS_ZGEMM_UKERNEL         bli_zgemm_asm_4x4
+#define BLIS_DEFAULT_MC_Z          64 
+#define BLIS_DEFAULT_KC_Z          192
+#define BLIS_DEFAULT_NC_Z          4096
+#define BLIS_DEFAULT_MR_Z          4
+#define BLIS_DEFAULT_NR_Z          4
+#endif
+
+
+
+//#endif
+
+// end bli_family_sandybridge.h
 #endif
 #ifdef BLIS_FAMILY_PENRYN
-#include "bli_family_penryn.h" // skipped
+// begin bli_family_penryn.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE           16
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
+
+#define BLIS_SGEMM_UKERNEL             bli_sgemm_asm_8x4
+#define BLIS_DEFAULT_MR_S              8
+#define BLIS_DEFAULT_NR_S              4
+#define BLIS_DEFAULT_MC_S              768
+#define BLIS_DEFAULT_KC_S              384
+#define BLIS_DEFAULT_NC_S              4096
+
+#define BLIS_DGEMM_UKERNEL             bli_dgemm_asm_4x4
+#define BLIS_DEFAULT_MR_D              4
+#define BLIS_DEFAULT_NR_D              4
+#define BLIS_DEFAULT_MC_D              384
+#define BLIS_DEFAULT_KC_D              384
+#define BLIS_DEFAULT_NC_D              4096
+
+#define BLIS_DGEMMTRSM_L_UKERNEL       bli_dgemmtrsm_l_asm_4x4
+#define BLIS_DGEMMTRSM_U_UKERNEL       bli_dgemmtrsm_u_asm_4x4
+
+
+// -- LEVEL-1F KERNEL DEFINITIONS ----------------------------------------------
+
+#define BLIS_DAXPY2V_KERNEL     bli_daxpy2v_int_var1
+#define BLIS_DDOTAXPYV_KERNEL   bli_ddotaxpyv_int_var1
+#define BLIS_DAXPYF_KERNEL      bli_daxpyf_int_var1
+#define BLIS_DDOTXF_KERNEL      bli_ddotxf_int_var1
+#define BLIS_DDOTXAXPYF_KERNEL  bli_ddotxaxpyf_int_var1
+
+
+// -- LEVEL-1V KERNEL DEFINITIONS ----------------------------------------------
+
+#define BLIS_DAXPYV_KERNEL      bli_daxpyv_opt_var1
+#define BLIS_DDOTV_KERNEL       bli_ddotv_opt_var1
+#endif
+
+
+
+//#endif
+
+// end bli_family_penryn.h
 #endif
 
 // -- AMD64 architectures --
@@ -20817,19 +21154,218 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_zen2.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_ZEN
-#include "bli_family_zen.h" // skipped
+// begin bli_family_zen.h
+
+
+// By default, it is effective to parallelize the outer loops.
+// Setting these macros to 1 will force JR and IR inner loops
+// to be not paralleized.
+#define BLIS_THREAD_MAX_IR      1
+#define BLIS_THREAD_MAX_JR      1
+
+#define BLIS_ENABLE_ZEN_BLOCK_SIZES
+
+// Vanilla BLIS disables AMD's small matrix handling by default.
+#if 0
+#define BLIS_ENABLE_SMALL_MATRIX
+#define BLIS_ENABLE_SMALL_MATRIX_TRSM
+
+// This will select the threshold below which small matrix code will be called.
+#define BLIS_SMALL_MATRIX_THRES        700
+#define BLIS_SMALL_M_RECT_MATRIX_THRES 160
+#define BLIS_SMALL_K_RECT_MATRIX_THRES 128
+
+#define BLIS_SMALL_MATRIX_THRES_TRSM   32768 //128(128+128) => m*(m+n)
+#define BLIS_SMALL_MATRIX_A_THRES_TRSM	128
+#define BLIS_SMALL_MATRIX_A_THRES_M_GEMMT	96
+#define BLIS_SMALL_MATRIX_A_THRES_N_GEMMT	128
+
+//This macro will enable  BLIS DGEMM to choose block sizes for a  single instance mode
+#define BLIS_ENABLE_SINGLE_INSTANCE_BLOCK_SIZES 	0
+
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_NAPLES 250
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_ALXB_NAPLES 90
+
+#define D_BLIS_SMALL_MATRIX_THRES_TRSM_DIM_RATIO 22
+#endif
+
+
+#if 0
+// Allow the sup implementation to combine some small edge case iterations in
+// the 2nd loop of the panel-block algorithm (MR) and/or the 2nd loop of the
+// block-panel algorithm (NR) with the last full iteration that precedes it.
+// NOTE: These cpp macros need to be explicitly set to an integer since they
+// are used at compile-time to create unconditional branches or dead code
+// regions.
+#define BLIS_ENABLE_SUP_MR_EXT 1
+#define BLIS_ENABLE_SUP_NR_EXT 0
+#endif
+
+// end bli_family_zen.h
 #endif
 #ifdef BLIS_FAMILY_EXCAVATOR
-#include "bli_family_excavator.h" // skipped
+// begin bli_family_excavator.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE           16
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
+
+#define BLIS_SGEMM_UKERNEL             bli_sgemm_asm_16x3
+#define BLIS_DEFAULT_MR_S              16
+#define BLIS_DEFAULT_NR_S              3
+#define BLIS_DEFAULT_MC_S              528
+#define BLIS_DEFAULT_KC_S              256
+#define BLIS_DEFAULT_NC_S              8400
+
+#define BLIS_DGEMM_UKERNEL             bli_dgemm_asm_8x3
+#define BLIS_DEFAULT_MR_D              8
+#define BLIS_DEFAULT_NR_D              3
+#define BLIS_DEFAULT_MC_D              264
+#define BLIS_DEFAULT_KC_D              256
+#define BLIS_DEFAULT_NC_D              8400
+
+#define BLIS_CGEMM_UKERNEL             bli_cgemm_asm_4x2
+#define BLIS_DEFAULT_MR_C              4
+#define BLIS_DEFAULT_NR_C              2
+#define BLIS_DEFAULT_MC_C              264
+#define BLIS_DEFAULT_KC_C              256
+#define BLIS_DEFAULT_NC_C              8400
+
+#define BLIS_ZGEMM_UKERNEL             bli_zgemm_asm_2x2
+#define BLIS_DEFAULT_MR_Z              2
+#define BLIS_DEFAULT_NR_Z              2
+#define BLIS_DEFAULT_MC_Z              100
+#define BLIS_DEFAULT_KC_Z              320
+#define BLIS_DEFAULT_NC_Z              8400
+#endif
+
+
+//#endif
+
+// end bli_family_excavator.h
 #endif
 #ifdef BLIS_FAMILY_STEAMROLLER
-#include "bli_family_steamroller.h" // skipped
+// begin bli_family_steamroller.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE             16
+
+
+//#endif
+
+// end bli_family_steamroller.h
 #endif
 #ifdef BLIS_FAMILY_PILEDRIVER
-#include "bli_family_piledriver.h" // skipped
+// begin bli_family_piledriver.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE           16
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
+
+#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_16x3
+#define BLIS_DEFAULT_MC_S              2016
+#define BLIS_DEFAULT_KC_S              128
+#define BLIS_DEFAULT_NC_S              8400
+#define BLIS_DEFAULT_MR_S              16
+#define BLIS_DEFAULT_NR_S              3
+
+#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_8x3
+#define BLIS_DEFAULT_MC_D              1008
+#define BLIS_DEFAULT_KC_D              128
+#define BLIS_DEFAULT_NC_D              8400
+#define BLIS_DEFAULT_MR_D              8
+#define BLIS_DEFAULT_NR_D              3
+
+#define BLIS_CGEMM_UKERNEL         bli_cgemm_asm_4x2
+#define BLIS_DEFAULT_MC_C              512
+#define BLIS_DEFAULT_KC_C              256
+#define BLIS_DEFAULT_NC_C              8400
+#define BLIS_DEFAULT_MR_C              4
+#define BLIS_DEFAULT_NR_C              2
+
+#define BLIS_ZGEMM_UKERNEL         bli_zgemm_asm_2x2
+#define BLIS_DEFAULT_MC_Z              400
+#define BLIS_DEFAULT_KC_Z              160
+#define BLIS_DEFAULT_NC_Z              8400
+#define BLIS_DEFAULT_MR_Z              2
+#define BLIS_DEFAULT_NR_Z              2
+#endif
+
+
+//#endif
+
+// end bli_family_piledriver.h
 #endif
 #ifdef BLIS_FAMILY_BULLDOZER
-#include "bli_family_bulldozer.h" // skipped
+// begin bli_family_bulldozer.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
+
+#define BLIS_SGEMM_UKERNEL         bli_sgemm_asm_8x8_fma4
+#define BLIS_DEFAULT_MC_S          128
+#define BLIS_DEFAULT_KC_S          384
+#define BLIS_DEFAULT_NC_S          4096
+#define BLIS_DEFAULT_MR_S          8
+#define BLIS_DEFAULT_NR_S          8
+
+#define BLIS_DGEMM_UKERNEL         bli_dgemm_asm_4x6_fma4
+#define BLIS_DEFAULT_MC_D          1080
+#define BLIS_DEFAULT_KC_D          120
+#define BLIS_DEFAULT_NC_D          8400
+#define BLIS_DEFAULT_MR_D          4
+#define BLIS_DEFAULT_NR_D          6
+
+#define BLIS_CGEMM_UKERNEL         bli_cgemm_asm_8x4_fma4
+#define BLIS_DEFAULT_MC_C          96
+#define BLIS_DEFAULT_KC_C          256
+#define BLIS_DEFAULT_NC_C          4096
+#define BLIS_DEFAULT_MR_C          8
+#define BLIS_DEFAULT_NR_C          4
+
+#define BLIS_ZGEMM_UKERNEL         bli_zgemm_asm_4x4_fma4
+#define BLIS_DEFAULT_MC_Z          64 
+#define BLIS_DEFAULT_KC_Z          192
+#define BLIS_DEFAULT_NC_Z          4096
+#define BLIS_DEFAULT_MR_Z          4
+#define BLIS_DEFAULT_NR_Z          4
+#endif
+
+
+
+//#endif
+
+// end bli_family_bulldozer.h
 #endif
 
 // -- ARM families --
@@ -20855,52 +21391,7 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_thunderx2.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_CORTEXA57
-// begin bli_family_cortexa57.h
-
-
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
-
-// -- MEMORY ALLOCATION --------------------------------------------------------
-
-#define BLIS_SIMD_ALIGN_SIZE           16
-
-
-#if 0
-// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
-
-#define BLIS_SGEMM_UKERNEL             bli_sgemm_opt_8x12
-#define BLIS_DEFAULT_MR_S              8
-#define BLIS_DEFAULT_NR_S              12
-#define BLIS_DEFAULT_MC_S              120 //1536 //336 //416 // 1280 //160 // 160 // 160 //2048 //336 
-#define BLIS_DEFAULT_KC_S              640 //1536 //336 //704 //1280 //672 //528 // 856 //2048 //528 
-#define BLIS_DEFAULT_NC_S              3072
-
-#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_6x8
-#define BLIS_DEFAULT_MR_D              6
-#define BLIS_DEFAULT_NR_D              8
-#define BLIS_DEFAULT_MC_D              120 //1536 //160 //80 //176 
-#define BLIS_DEFAULT_KC_D              240 //1536 //304 //336 //368 
-#define BLIS_DEFAULT_NC_D              3072
-
-#define BLIS_DEFAULT_MR_C              8
-#define BLIS_DEFAULT_NR_C              4
-#define BLIS_DEFAULT_MC_C              64
-#define BLIS_DEFAULT_KC_C              128
-#define BLIS_DEFAULT_NC_C              4096
-
-#define BLIS_DEFAULT_MR_Z              8
-#define BLIS_DEFAULT_NR_Z              4
-#define BLIS_DEFAULT_MC_Z              64
-#define BLIS_DEFAULT_KC_Z              128
-#define BLIS_DEFAULT_NC_Z              4096
-#endif
-
-
-//#endif
-
-// end bli_family_cortexa57.h
+#include "bli_family_cortexa57.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_CORTEXA53
 #include "bli_family_cortexa53.h" // skipped
@@ -20933,7 +21424,18 @@ CNTX_INIT_PROTS( generic )
 // -- Generic --
 
 #ifdef BLIS_FAMILY_GENERIC
-#include "bli_family_generic.h" // skipped
+// begin bli_family_generic.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+
+
+//#endif
+
+// end bli_family_generic.h
 #endif
 
 
@@ -20943,7 +21445,17 @@ CNTX_INIT_PROTS( generic )
 
 // -- Intel64 architectures --
 #ifdef BLIS_KERNELS_SKX
-#include "bli_kernels_skx.h" // skipped
+// begin bli_kernels_skx.h
+
+
+GEMM_UKR_PROT( float ,   s, gemm_skx_asm_32x12_l2 )
+GEMM_UKR_PROT( float ,   s, gemm_skx_asm_12x32_l2 )
+
+GEMM_UKR_PROT( double,   d, gemm_skx_asm_16x12_l2 )
+GEMM_UKR_PROT( double,   d, gemm_skx_asm_16x14 )
+
+
+// end bli_kernels_skx.h
 #endif
 #ifdef BLIS_KERNELS_KNL
 #include "bli_kernels_knl.h" // skipped
@@ -20952,13 +21464,299 @@ CNTX_INIT_PROTS( generic )
 #include "bli_kernels_knc.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_HASWELL
-#include "bli_kernels_haswell.h" // skipped
+// begin bli_kernels_haswell.h
+
+
+// -- level-1m -----------------------------------------------------------------
+
+// packm (asm)
+PACKM_KER_PROT( float,    s, packm_haswell_asm_6xk )
+PACKM_KER_PROT( float,    s, packm_haswell_asm_16xk )
+
+PACKM_KER_PROT( double,   d, packm_haswell_asm_6xk )
+PACKM_KER_PROT( double,   d, packm_haswell_asm_8xk )
+
+PACKM_KER_PROT( scomplex, c, packm_haswell_asm_3xk )
+PACKM_KER_PROT( scomplex, c, packm_haswell_asm_8xk )
+
+PACKM_KER_PROT( dcomplex, z, packm_haswell_asm_3xk )
+PACKM_KER_PROT( dcomplex, z, packm_haswell_asm_4xk )
+
+
+// -- level-3 ------------------------------------------------------------------
+
+// gemm (asm d6x8)
+GEMM_UKR_PROT( float,    s, gemm_haswell_asm_6x16 )
+GEMM_UKR_PROT( double,   d, gemm_haswell_asm_6x8 )
+GEMM_UKR_PROT( scomplex, c, gemm_haswell_asm_3x8 )
+GEMM_UKR_PROT( dcomplex, z, gemm_haswell_asm_3x4 )
+
+// gemm (asm d8x6)
+GEMM_UKR_PROT( float,    s, gemm_haswell_asm_16x6 )
+GEMM_UKR_PROT( double,   d, gemm_haswell_asm_8x6 )
+GEMM_UKR_PROT( scomplex, c, gemm_haswell_asm_8x3 )
+GEMM_UKR_PROT( dcomplex, z, gemm_haswell_asm_4x3 )
+
+// gemmtrsm_l (asm d6x8)
+GEMMTRSM_UKR_PROT( float,    s, gemmtrsm_l_haswell_asm_6x16 )
+GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_l_haswell_asm_6x8 )
+
+// gemmtrsm_u (asm d6x8)
+GEMMTRSM_UKR_PROT( float,    s, gemmtrsm_u_haswell_asm_6x16 )
+GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_u_haswell_asm_6x8 )
+
+
+// gemm (asm d8x6)
+//GEMM_UKR_PROT( float,    s, gemm_haswell_asm_16x6 )
+//GEMM_UKR_PROT( double,   d, gemm_haswell_asm_8x6 )
+//GEMM_UKR_PROT( scomplex, c, gemm_haswell_asm_8x3 )
+//GEMM_UKR_PROT( dcomplex, z, gemm_haswell_asm_4x3 )
+
+
+// -- level-3 sup --------------------------------------------------------------
+
+// -- single real --
+
+// gemmsup_r
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_r_haswell_ref_6x1 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_r_haswell_ref_5x1 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_r_haswell_ref_4x1 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_r_haswell_ref_3x1 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_r_haswell_ref_2x1 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_r_haswell_ref_1x1 )
+
+// gemmsup_rv
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x16 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_5x16 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_4x16 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_3x16 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_2x16 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_1x16 )
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x12 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_5x12 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_4x12 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_3x12 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_2x12 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_1x12 )
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x8 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_5x8 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_4x8 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_3x8 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_2x8 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_1x8 )
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x6 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_5x6 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_4x6 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_3x6 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_2x6 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_1x6 )
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x4 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_5x4 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_4x4 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_3x4 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_2x4 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_1x4 )
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x2 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_5x2 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_4x2 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_3x2 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_2x2 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_1x2 )
+
+// gemmsup_rv (mkernel in m dim)
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x16m )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x12m )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x8m )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x6m )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x4m )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x2m )
+
+// gemmsup_rv (mkernel in n dim)
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_6x16n )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_5x16n )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_4x16n )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_3x16n )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_2x16n )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rv_haswell_asm_1x16n )
+
+// gemmsup_rd
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x16 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_2x16 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_1x16 )
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x12 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_2x12 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_1x12 )
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x8 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_2x8 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_1x8 )
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x4 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_2x4 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_1x4 )
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x2 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_3x2 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_2x2 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_1x2 )
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x1 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_3x1 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_2x1 )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_1x1 )
+
+// gemmsup_rd (mkernel in m dim)
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x16m )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x12m )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x8m )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x4m )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x2m )
+
+// gemmsup_rd (mkernel in n dim)
+
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_6x16n )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_3x16n )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_2x16n )
+GEMMSUP_KER_PROT( float,    s, gemmsup_rd_haswell_asm_1x16n )
+
+
+
+// -- double real --
+
+// gemmsup_r
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_6x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_5x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_4x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_3x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_2x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_r_haswell_ref_1x1 )
+
+// gemmsup_rv
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_5x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_4x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_3x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_2x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_1x8 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x6 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_5x6 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_4x6 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_3x6 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_2x6 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_1x6 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_5x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_4x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_3x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_2x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_1x4 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_5x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_4x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_3x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_2x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_1x2 )
+
+// gemmsup_rv (mkernel in m dim)
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x8m )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x6m )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x4m )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x2m )
+
+// gemmsup_rv (mkernel in n dim)
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_6x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_5x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_4x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_3x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_2x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rv_haswell_asm_1x8n )
+
+// gemmsup_rd
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_2x8 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_1x8 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_2x4 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_1x4 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_3x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_2x2 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_1x2 )
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_3x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_2x1 )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_1x1 )
+
+// gemmsup_rd (mkernel in m dim)
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x8m )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x4m )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x2m )
+
+// gemmsup_rd (mkernel in n dim)
+
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_3x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_2x8n )
+GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_1x8n )
+
+// end bli_kernels_haswell.h
 #endif
 #ifdef BLIS_KERNELS_SANDYBRIDGE
-#include "bli_kernels_sandybridge.h" // skipped
+// begin bli_kernels_sandybridge.h
+
+
+// d8x4 (assembly)
+GEMM_UKR_PROT( float,    s, gemm_sandybridge_asm_8x8 )
+GEMM_UKR_PROT( double,   d, gemm_sandybridge_asm_8x4 )
+GEMM_UKR_PROT( scomplex, c, gemm_sandybridge_asm_8x4 )
+GEMM_UKR_PROT( dcomplex, z, gemm_sandybridge_asm_4x4 )
+
+// d8x4 (intrinsics)
+GEMM_UKR_PROT( float,    s, gemm_sandybridge_int_8x8 )
+GEMM_UKR_PROT( double,   d, gemm_sandybridge_int_8x4 )
+GEMM_UKR_PROT( scomplex, c, gemm_sandybridge_int_8x4 )
+GEMM_UKR_PROT( dcomplex, z, gemm_sandybridge_int_4x4 )
+
+// end bli_kernels_sandybridge.h
 #endif
 #ifdef BLIS_KERNELS_PENRYN
-#include "bli_kernels_penryn.h" // skipped
+// begin bli_kernels_penryn.h
+
+
+GEMM_UKR_PROT( float,    s, gemm_penryn_asm_8x4 )
+GEMM_UKR_PROT( double,   d, gemm_penryn_asm_4x4 )
+
+GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_l_penryn_asm_4x4 )
+GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_u_penryn_asm_4x4 )
+
+TRSM_UKR_PROT( double,   d, trsm_l_penryn_asm_4x4 )
+TRSM_UKR_PROT( double,   d, trsm_u_penryn_asm_4x4 )
+
+// end bli_kernels_penryn.h
 #endif
 
 // -- AMD64 architectures --
@@ -20967,7 +21765,188 @@ CNTX_INIT_PROTS( generic )
 #include "bli_kernels_zen2.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_ZEN
-#include "bli_kernels_zen.h" // skipped
+// begin bli_kernels_zen.h
+
+
+// -- level-1m --
+PACKM_KER_PROT(double, d, packm_8xk_gen_zen)
+PACKM_KER_PROT(double, d, packm_6xk_gen_zen)
+PACKM_KER_PROT(double, d, packm_8xk_nn_zen)
+PACKM_KER_PROT(double, d, packm_6xk_nn_zen)
+
+
+// -- level-1v --
+
+// amaxv (intrinsics)
+AMAXV_KER_PROT( float,    s, amaxv_zen_int )
+AMAXV_KER_PROT( double,   d, amaxv_zen_int )
+
+// axpyv (intrinsics)
+AXPYV_KER_PROT( float,    s, axpyv_zen_int )
+AXPYV_KER_PROT( double,   d, axpyv_zen_int )
+
+// axpyv (intrinsics unrolled x10)
+AXPYV_KER_PROT( float,    s, axpyv_zen_int10 )
+AXPYV_KER_PROT( double,   d, axpyv_zen_int10 )
+
+// dotv (intrinsics)
+DOTV_KER_PROT( float,    s, dotv_zen_int )
+DOTV_KER_PROT( double,   d, dotv_zen_int )
+
+// dotv (intrinsics, unrolled x10)
+DOTV_KER_PROT( float,    s, dotv_zen_int10 )
+DOTV_KER_PROT( double,   d, dotv_zen_int10 )
+
+// dotxv (intrinsics)
+DOTXV_KER_PROT( float,    s, dotxv_zen_int )
+DOTXV_KER_PROT( double,   d, dotxv_zen_int )
+
+// scalv (intrinsics)
+SCALV_KER_PROT( float,    s, scalv_zen_int )
+SCALV_KER_PROT( double,   d, scalv_zen_int )
+
+// scalv (intrinsics unrolled x10)
+SCALV_KER_PROT( float,    s, scalv_zen_int10 )
+SCALV_KER_PROT( double,   d, scalv_zen_int10 )
+SCALV_KER_PROT( scomplex, c, scalv_zen_int10 )
+
+// swapv (intrinsics)
+SWAPV_KER_PROT(float,    s, swapv_zen_int8 )
+SWAPV_KER_PROT(double,   d, swapv_zen_int8 )
+
+// copyv (intrinsics)
+COPYV_KER_PROT( float,    s, copyv_zen_int )
+COPYV_KER_PROT( double,   d, copyv_zen_int )
+
+//
+SETV_KER_PROT(float,    s, setv_zen_int)
+SETV_KER_PROT(double,   d, setv_zen_int)
+
+// swapv (intrinsics)
+SWAPV_KER_PROT(float, 	s, swapv_zen_int8 )
+SWAPV_KER_PROT(double,	d, swapv_zen_int8 )
+
+
+// -- level-1f --
+
+// axpyf (intrinsics)
+AXPYF_KER_PROT( float,    s, axpyf_zen_int_8 )
+AXPYF_KER_PROT( double,   d, axpyf_zen_int_8 )
+AXPYF_KER_PROT( float,    s, axpyf_zen_int_5 )
+AXPYF_KER_PROT( double,   d, axpyf_zen_int_5 )
+
+AXPYF_KER_PROT( double,   d, axpyf_zen_int_16x4 )
+AXPYF_KER_PROT( scomplex, c, axpyf_zen_int_4 )
+
+// dotxf (intrinsics)
+DOTXF_KER_PROT( float,    s, dotxf_zen_int_8 )
+DOTXF_KER_PROT( double,   d, dotxf_zen_int_8 )
+
+// -- level-3 sup --------------------------------------------------------------
+
+// semmsup_rv
+
+//GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_6x16 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_5x16 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_4x16 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_3x16 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_2x16 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_1x16 )
+
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_6x8 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_5x8 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_4x8 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_3x8 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_2x8 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_1x8 )
+
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_6x4 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_5x4 ) 
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_4x4 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_3x4 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_2x4 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_1x4 )
+
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_6x2 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_5x2 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_4x2 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_3x2 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_2x2 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_1x2 )
+
+GEMMSUP_KER_PROT( float,   s, gemmsup_r_zen_ref_6x1 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_r_zen_ref_5x1 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_r_zen_ref_4x1 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_r_zen_ref_3x1 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_r_zen_ref_2x1 )
+GEMMSUP_KER_PROT( float,   s, gemmsup_r_zen_ref_1x1 )
+
+// gemmsup_rv (mkernel in m dim)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_6x16m )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_6x8m )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_6x4m )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_6x2m )
+// gemmsup_rv (mkernel in n dim)
+
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_6x16n )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_5x16n )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_4x16n )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_3x16n )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_2x16n )
+GEMMSUP_KER_PROT( float,   s, gemmsup_rv_zen_asm_1x16n )
+
+// gemmsup_rd
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_2x8)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_2x16)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_1x8)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_1x16)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_6x4)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_2x4)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_1x4)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_6x2)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_3x2)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_2x2)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_1x2)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_6x16m)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_6x8m)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_6x4m)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_6x2m)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_6x16n)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_3x16n)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_2x16n)
+GEMMSUP_KER_PROT( float,   s, gemmsup_rd_zen_asm_1x16n)
+
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_3x8m )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_3x4m )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_3x2m )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_2x8 )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_1x8 )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_2x4 )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_1x4 )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_2x2 )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_1x2 )
+GEMMSUP_KER_PROT( dcomplex,   z, gemmsup_rv_zen_asm_3x4m )
+GEMMSUP_KER_PROT( dcomplex,   z, gemmsup_rv_zen_asm_3x2m )
+GEMMSUP_KER_PROT( dcomplex,   z, gemmsup_rv_zen_asm_2x4 )
+GEMMSUP_KER_PROT( dcomplex,   z, gemmsup_rv_zen_asm_1x4 )
+GEMMSUP_KER_PROT( dcomplex,   z, gemmsup_rv_zen_asm_2x2 )
+GEMMSUP_KER_PROT( dcomplex,   z, gemmsup_rv_zen_asm_1x2 )
+
+// gemmsup_rv (mkernel in n dim)
+
+
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_3x8n )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_2x8n )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_1x8n )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_3x4 )
+GEMMSUP_KER_PROT( scomplex,   c, gemmsup_rv_zen_asm_3x2 )
+GEMMSUP_KER_PROT( dcomplex,   z, gemmsup_rv_zen_asm_3x4n )
+GEMMSUP_KER_PROT( dcomplex,   z, gemmsup_rv_zen_asm_2x4n )
+GEMMSUP_KER_PROT( dcomplex,   z, gemmsup_rv_zen_asm_1x4n )
+GEMMSUP_KER_PROT( dcomplex,   z, gemmsup_rv_zen_asm_3x2 )
+GEMMSUP_KER_PROT( dcomplex,   z, gemmsup_rv_zen_asm_3x1 )
+
+// end bli_kernels_zen.h
 #endif
 //#ifdef BLIS_KERNELS_EXCAVATOR
 //#include "bli_kernels_excavator.h"
@@ -20976,10 +21955,27 @@ CNTX_INIT_PROTS( generic )
 //#include "bli_kernels_steamroller.h"
 //#endif
 #ifdef BLIS_KERNELS_PILEDRIVER
-#include "bli_kernels_piledriver.h" // skipped
+// begin bli_kernels_piledriver.h
+
+
+// d8x4 (assembly)
+GEMM_UKR_PROT( float,    s, gemm_piledriver_asm_16x3 )
+GEMM_UKR_PROT( double,   d, gemm_piledriver_asm_8x3 )
+GEMM_UKR_PROT( scomplex, c, gemm_piledriver_asm_4x2 )
+GEMM_UKR_PROT( dcomplex, z, gemm_piledriver_asm_2x2 )
+
+// end bli_kernels_piledriver.h
 #endif
 #ifdef BLIS_KERNELS_BULLDOZER
-#include "bli_kernels_bulldozer.h" // skipped
+// begin bli_kernels_bulldozer.h
+
+
+GEMM_UKR_PROT( float,    s, gemm_bulldozer_asm_8x8_fma4 )
+GEMM_UKR_PROT( double,   d, gemm_bulldozer_asm_4x6_fma4 )
+GEMM_UKR_PROT( scomplex, c, gemm_bulldozer_asm_8x4_fma4 )
+GEMM_UKR_PROT( dcomplex, z, gemm_bulldozer_asm_4x4_fma4 )
+
+// end bli_kernels_bulldozer.h
 #endif
 
 // -- ARM architectures --
@@ -20988,37 +21984,7 @@ CNTX_INIT_PROTS( generic )
 #include "bli_kernels_armsve.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_ARMV8A
-// begin bli_kernels_armv8a.h
-
-
-PACKM_KER_PROT( float,    s, packm_armv8a_int_8xk )
-PACKM_KER_PROT( float,    s, packm_armv8a_int_12xk )
-PACKM_KER_PROT( double,   d, packm_armv8a_int_6xk )
-PACKM_KER_PROT( double,   d, packm_armv8a_int_8xk )
-
-GEMM_UKR_PROT( float,    s, gemm_armv8a_asm_8x12 )
-GEMM_UKR_PROT( double,   d, gemm_armv8a_asm_6x8 )
-// GEMM_UKR_PROT( double,   d, gemm_armv8a_asm_6x8r )
-// GEMM_UKR_PROT( double,   d, gemm_armv8a_asm_8x4 )
-// GEMM_UKR_PROT( double,   d, gemm_armv8a_asm_4x4 )
-
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_asm_6x8n )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_asm_6x8m )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_asm_6x8n )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_asm_6x8m )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_asm_4x8n )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_asm_4x8m )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_asm_8x4m )
-
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_int_2x8 )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_int_3x4 )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_asm_3x4 )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rd_armv8a_asm_6x3 )
-
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_int_6x4mn )
-GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armv8a_int_3x8mn )
-
-// end bli_kernels_armv8a.h
+#include "bli_kernels_armv8a.h" // skipped
 #endif
 #ifdef BLIS_KERNELS_ARMV7A
 #include "bli_kernels_armv7a.h" // skipped
@@ -39891,15 +40857,31 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_CONFIG_H
 
 // Enabled configuration "family" (config_name)
-#define BLIS_FAMILY_CORTEXA57
+#define BLIS_FAMILY_X86_64_NO_ZEN2
 
 
 // Enabled sub-configurations (config_list)
-#define BLIS_CONFIG_CORTEXA57
+#define BLIS_CONFIG_SKX
+#define BLIS_CONFIG_HASWELL
+#define BLIS_CONFIG_SANDYBRIDGE
+#define BLIS_CONFIG_PENRYN
+#define BLIS_CONFIG_ZEN
+#define BLIS_CONFIG_EXCAVATOR
+#define BLIS_CONFIG_STEAMROLLER
+#define BLIS_CONFIG_PILEDRIVER
+#define BLIS_CONFIG_BULLDOZER
+#define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
-#define BLIS_KERNELS_ARMV8A
+#define BLIS_KERNELS_SKX
+#define BLIS_KERNELS_SANDYBRIDGE
+#define BLIS_KERNELS_PENRYN
+#define BLIS_KERNELS_HASWELL
+#define BLIS_KERNELS_ZEN
+#define BLIS_KERNELS_PILEDRIVER
+#define BLIS_KERNELS_BULLDOZER
+#define BLIS_KERNELS_GENERIC
 
 
 #if 1
