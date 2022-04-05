@@ -48,9 +48,9 @@ void PASTEMAC(ch,varname) \
        dim_t            cdim, \
        dim_t            n, \
        dim_t            n_max, \
-       void*   restrict kappa, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       void*   restrict p,             inc_t ldp, \
+       ctype*  restrict kappa, \
+       ctype*  restrict a, inc_t inca, inc_t lda, \
+       ctype*  restrict p,             inc_t ldp, \
        cntx_t* restrict cntx  \
      );
 
@@ -63,61 +63,9 @@ void PASTEMAC(ch,varname) \
      ( \
        conj_t           conja, \
        dim_t            n, \
-       void*   restrict kappa, \
-       void*   restrict p,             inc_t ldp, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       cntx_t* restrict cntx  \
-     );
-
-
-// 3mis packm kernels
-
-#define PACKM_3MIS_KER_PROT( ctype, ch, varname ) \
-\
-void PASTEMAC(ch,varname) \
-     ( \
-       conj_t           conja, \
-       dim_t            cdim, \
-       dim_t            n, \
-       dim_t            n_max, \
-       void*   restrict kappa, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       void*   restrict p, inc_t is_p, inc_t ldp, \
-       cntx_t* restrict cntx  \
-     );
-
-
-// 4mi packm kernels
-
-#define PACKM_4MI_KER_PROT( ctype, ch, varname ) \
-\
-void PASTEMAC(ch,varname) \
-     ( \
-       conj_t           conja, \
-       dim_t            cdim, \
-       dim_t            n, \
-       dim_t            n_max, \
-       void*   restrict kappa, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       void*   restrict p, inc_t is_p, inc_t ldp, \
-       cntx_t* restrict cntx  \
-     );
-
-
-// rih packm kernels
-
-#define PACKM_RIH_KER_PROT( ctype, ch, varname ) \
-\
-void PASTEMAC(ch,varname) \
-     ( \
-       conj_t           conja, \
-       pack_t           schema, \
-       dim_t            cdim, \
-       dim_t            n, \
-       dim_t            n_max, \
-       void*   restrict kappa, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       void*   restrict p,             inc_t ldp, \
+       ctype*  restrict kappa, \
+       ctype*  restrict p,             inc_t ldp, \
+       ctype*  restrict a, inc_t inca, inc_t lda, \
        cntx_t* restrict cntx  \
      );
 
@@ -133,9 +81,9 @@ void PASTEMAC(ch,varname) \
        dim_t            cdim, \
        dim_t            n, \
        dim_t            n_max, \
-       void*   restrict kappa, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       void*   restrict p,             inc_t ldp, \
+       ctype*  restrict kappa, \
+       ctype*  restrict a, inc_t inca, inc_t lda, \
+       ctype*  restrict p,             inc_t ldp, \
        cntx_t* restrict cntx  \
      );
 

@@ -57,27 +57,27 @@ void bli_pack_finalize( void )
 
 // -----------------------------------------------------------------------------
 
-dim_t bli_pack_get_pack_a( void )
+void bli_pack_get_pack_a( bool* pack_a )
 {
 	// We must ensure that global_rntm has been initialized.
 	bli_init_once();
 
-	return bli_rntm_pack_a( &global_rntm );
+	*pack_a = bli_rntm_pack_a( &global_rntm );
 }
 
 // -----------------------------------------------------------------------------
 
-dim_t bli_pack_get_pack_b( void )
+void bli_pack_get_pack_b( bool* pack_b )
 {
 	// We must ensure that global_rntm has been initialized.
 	bli_init_once();
 
-	return bli_rntm_pack_b( &global_rntm );
+	*pack_b = bli_rntm_pack_b( &global_rntm );
 }
 
 // ----------------------------------------------------------------------------
 
-void bli_pack_set_pack_a( bool_t pack_a )
+void bli_pack_set_pack_a( bool pack_a )
 {
 	// We must ensure that global_rntm has been initialized.
 	bli_init_once();
@@ -93,7 +93,7 @@ void bli_pack_set_pack_a( bool_t pack_a )
 
 // ----------------------------------------------------------------------------
 
-void bli_pack_set_pack_b( bool_t pack_b )
+void bli_pack_set_pack_b( bool pack_b )
 {
 	// We must ensure that global_rntm has been initialized.
 	bli_init_once();
@@ -101,7 +101,7 @@ void bli_pack_set_pack_b( bool_t pack_b )
 	// Acquire the mutex protecting global_rntm.
 	bli_pthread_mutex_lock( &global_rntm_mutex );
 
-	bli_rntm_set_pack_a( pack_b, &global_rntm );
+	bli_rntm_set_pack_b( pack_b, &global_rntm );
 
 	// Release the mutex protecting global_rntm.
 	bli_pthread_mutex_unlock( &global_rntm_mutex );
@@ -118,25 +118,25 @@ void bli_pack_init_rntm_from_env
 	// function is only called from bli_pack_init(), which is only called
 	// by bli_init_once().
 
-	bool_t pack_a;
-	bool_t pack_b;
+	bool pack_a;
+	bool pack_b;
 
 #if 1 //def BLIS_ENABLE_SELECTIVE_PACKING
 
 	// Try to read BLIS_PACK_A and BLIS_PACK_B. For each variable, default to
 	// -1 if it is unset.
-	pack_a = bli_env_get_var( "BLIS_PACK_A", -1 );
-	pack_b = bli_env_get_var( "BLIS_PACK_B", -1 );
+	gint_t pack_a_env = bli_env_get_var( "BLIS_PACK_A", -1 );
+	gint_t pack_b_env = bli_env_get_var( "BLIS_PACK_B", -1 );
 
 	// Enforce the default behavior first, then check for affirmative FALSE, and
 	// finally assume anything else is TRUE.
-	if      ( pack_a == -1 ) pack_a = FALSE; // default behavior
-	else if ( pack_a ==  0 ) pack_a = FALSE; // zero is FALSE
-	else                     pack_a = TRUE;  // anything else is TRUE
+	if      ( pack_a_env == -1 ) pack_a = FALSE; // default behavior
+	else if ( pack_a_env ==  0 ) pack_a = FALSE; // zero is FALSE
+	else                         pack_a = TRUE;  // anything else is TRUE
 
-	if      ( pack_b == -1 ) pack_b = FALSE; // default behavior
-	else if ( pack_b ==  0 ) pack_b = FALSE; // zero is FALSE
-	else                     pack_b = TRUE;  // anything else is TRUE
+	if      ( pack_b_env == -1 ) pack_b = FALSE; // default behavior
+	else if ( pack_b_env ==  0 ) pack_b = FALSE; // zero is FALSE
+	else                         pack_b = TRUE;  // anything else is TRUE
 
 #else
 

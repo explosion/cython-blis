@@ -36,7 +36,7 @@
 #include "blis.h"
 
 // Internal array to hold error strings.
-static char bli_error_string[BLIS_MAX_NUM_ERR_MSGS][BLIS_MAX_ERR_MSG_LENGTH] =
+static char *bli_error_string[-BLIS_ERROR_CODE_MAX] =
 {
 	[-BLIS_INVALID_ERROR_CHECKING_LEVEL]         = "Invalid error checking level.",
 	[-BLIS_UNDEFINED_ERROR_CODE]                 = "Undefined error code.",
@@ -104,6 +104,7 @@ static char bli_error_string[BLIS_MAX_NUM_ERR_MSGS][BLIS_MAX_ERR_MSG_LENGTH] =
 	[-BLIS_EXPECTED_OBJECT_ALIAS]                = "Expected object to be alias.",
 
 	[-BLIS_INVALID_ARCH_ID]                      = "Invalid architecture id value.",
+	[-BLIS_UNINITIALIZED_GKS_CNTX]               = "Accessed uninitialized context in gks; BLIS_ARCH_TYPE is probably set to an invalid architecture id.",
 
 	[-BLIS_MC_DEF_NONMULTIPLE_OF_MR]             = "Default MC is non-multiple of MR for one or more datatypes.",
 	[-BLIS_MC_MAX_NONMULTIPLE_OF_MR]             = "Maximum MC is non-multiple of MR for one or more datatypes.",
@@ -132,11 +133,8 @@ void bli_abort( void )
 
 // -----------------------------------------------------------------------------
 
-// A mutex to allow synchronous access to bli_err_chk_level.
-static bli_pthread_mutex_t err_mutex = BLIS_PTHREAD_MUTEX_INITIALIZER;
-
 // Current error checking level.
-static errlev_t bli_err_chk_level = BLIS_FULL_ERROR_CHECKING;
+static BLIS_THREAD_LOCAL errlev_t bli_err_chk_level = BLIS_FULL_ERROR_CHECKING;
 
 errlev_t bli_error_checking_level( void )
 {
@@ -150,20 +148,10 @@ void bli_error_checking_level_set( errlev_t new_level )
 	e_val = bli_check_valid_error_level( new_level );
 	bli_check_error_code( e_val );
 
-	// Acquire the mutex protecting bli_err_chk_level.
-	bli_pthread_mutex_lock( &err_mutex );
-
-	// BEGIN CRITICAL SECTION
-	{
-		bli_err_chk_level = new_level;
-	}
-	// END CRITICAL SECTION
-
-	// Release the mutex protecting bli_err_chk_level.
-	bli_pthread_mutex_unlock( &err_mutex );
+	bli_err_chk_level = new_level;
 }
 
-bool_t bli_error_checking_is_enabled( void )
+bool bli_error_checking_is_enabled( void )
 {
 	return bli_error_checking_level() != BLIS_NO_ERROR_CHECKING;
 }

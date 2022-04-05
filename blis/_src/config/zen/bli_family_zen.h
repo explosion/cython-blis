@@ -33,9 +33,6 @@
 
 */
 
-//#ifndef BLIS_FAMILY_H
-//#define BLIS_FAMILY_H
-
 // By default, it is effective to parallelize the outer loops.
 // Setting these macros to 1 will force JR and IR inner loops
 // to be not paralleized.
@@ -43,9 +40,11 @@
 #define BLIS_THREAD_MAX_JR      1
 
 #define BLIS_ENABLE_ZEN_BLOCK_SIZES
+
+// Vanilla BLIS disables AMD's small matrix handling by default.
+#if 0
 #define BLIS_ENABLE_SMALL_MATRIX
 #define BLIS_ENABLE_SMALL_MATRIX_TRSM
-
 
 // This will select the threshold below which small matrix code will be called.
 #define BLIS_SMALL_MATRIX_THRES        700
@@ -54,8 +53,8 @@
 
 #define BLIS_SMALL_MATRIX_THRES_TRSM   32768 //128(128+128) => m*(m+n)
 #define BLIS_SMALL_MATRIX_A_THRES_TRSM	128
-#define BLIS_SMALL_MATRIX_A_THRES_M_SYRK	96
-#define BLIS_SMALL_MATRIX_A_THRES_N_SYRK	128
+#define BLIS_SMALL_MATRIX_A_THRES_M_GEMMT	96
+#define BLIS_SMALL_MATRIX_A_THRES_N_GEMMT	128
 
 //This macro will enable  BLIS DGEMM to choose block sizes for a  single instance mode
 #define BLIS_ENABLE_SINGLE_INSTANCE_BLOCK_SIZES 	0
@@ -64,7 +63,17 @@
 #define D_BLIS_SMALL_MATRIX_THRES_TRSM_ALXB_NAPLES 90
 
 #define D_BLIS_SMALL_MATRIX_THRES_TRSM_DIM_RATIO 22
+#endif
 
 
-//#endif
+#if 0
+// Allow the sup implementation to combine some small edge case iterations in
+// the 2nd loop of the panel-block algorithm (MR) and/or the 2nd loop of the
+// block-panel algorithm (NR) with the last full iteration that precedes it.
+// NOTE: These cpp macros need to be explicitly set to an integer since they
+// are used at compile-time to create unconditional branches or dead code
+// regions.
+#define BLIS_ENABLE_SUP_MR_EXT 1
+#define BLIS_ENABLE_SUP_NR_EXT 0
+#endif
 

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2020, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -47,7 +47,7 @@
 
 // -- Level-3 native micro-kernel prototype redefinitions ----------------------
 
-// -- prototypes for completely generic level-3 microkernels --
+// -- Prototypes for completely generic level-3 microkernels --
 
 #undef  gemm_ukr_name
 #define gemm_ukr_name       GENARNAME(gemm)
@@ -66,46 +66,7 @@
 
 // -- Level-3 virtual micro-kernel prototype redefinitions ---------------------
 
-// -- 3mh --
-
-#undef  gemm3mh_ukr_name
-#define gemm3mh_ukr_name       GENARNAME(gemm3mh)
-
-// -- 3m1 --
-
-#undef  gemm3m1_ukr_name
-#define gemm3m1_ukr_name       GENARNAME(gemm3m1)
-#undef  gemmtrsm3m1_l_ukr_name
-#define gemmtrsm3m1_l_ukr_name GENARNAME(gemmtrsm3m1_l)
-#undef  gemmtrsm3m1_u_ukr_name
-#define gemmtrsm3m1_u_ukr_name GENARNAME(gemmtrsm3m1_u)
-#undef  trsm3m1_l_ukr_name
-#define trsm3m1_l_ukr_name     GENARNAME(trsm3m1_l)
-#undef  trsm3m1_u_ukr_name
-#define trsm3m1_u_ukr_name     GENARNAME(trsm3m1_u)
-
-// -- 4mh --
-
-#undef  gemm4mh_ukr_name
-#define gemm4mh_ukr_name       GENARNAME(gemm4mh)
-
-// -- 4mb --
-
-#undef  gemm4mb_ukr_name
-#define gemm4mb_ukr_name       GENARNAME(gemm4mb)
-
-// -- 4m1 --
-
-#undef  gemm4m1_ukr_name
-#define gemm4m1_ukr_name       GENARNAME(gemm4m1)
-#undef  gemmtrsm4m1_l_ukr_name
-#define gemmtrsm4m1_l_ukr_name GENARNAME(gemmtrsm4m1_l)
-#undef  gemmtrsm4m1_u_ukr_name
-#define gemmtrsm4m1_u_ukr_name GENARNAME(gemmtrsm4m1_u)
-#undef  trsm4m1_l_ukr_name
-#define trsm4m1_l_ukr_name     GENARNAME(trsm4m1_l)
-#undef  trsm4m1_u_ukr_name
-#define trsm4m1_u_ukr_name     GENARNAME(trsm4m1_u)
+// -- Prototypes for induced method level-3 microkernels --
 
 // -- 1m --
 
@@ -183,59 +144,6 @@
 #define unpackm_14xk_ker_name GENARNAME(unpackm_14xk)
 #undef  unpackm_16xk_ker_name
 #define unpackm_16xk_ker_name GENARNAME(unpackm_16xk)
-
-#undef  packm_2xk_3mis_ker_name
-#define packm_2xk_3mis_ker_name  GENARNAME(packm_2xk_3mis)
-#undef  packm_4xk_3mis_ker_name
-#define packm_4xk_3mis_ker_name  GENARNAME(packm_4xk_3mis)
-#undef  packm_6xk_3mis_ker_name
-#define packm_6xk_3mis_ker_name  GENARNAME(packm_6xk_3mis)
-#undef  packm_8xk_3mis_ker_name
-#define packm_8xk_3mis_ker_name  GENARNAME(packm_8xk_3mis)
-#undef  packm_10xk_3mis_ker_name
-#define packm_10xk_3mis_ker_name GENARNAME(packm_10xk_3mis)
-#undef  packm_12xk_3mis_ker_name
-#define packm_12xk_3mis_ker_name GENARNAME(packm_12xk_3mis)
-#undef  packm_14xk_3mis_ker_name
-#define packm_14xk_3mis_ker_name GENARNAME(packm_14xk_3mis)
-#undef  packm_16xk_3mis_ker_name
-#define packm_16xk_3mis_ker_name GENARNAME(packm_16xk_3mis)
-
-#undef  packm_2xk_4mi_ker_name
-#define packm_2xk_4mi_ker_name  GENARNAME(packm_2xk_4mi)
-#undef  packm_3xk_4mi_ker_name
-#define packm_3xk_4mi_ker_name  GENARNAME(packm_3xk_4mi)
-#undef  packm_4xk_4mi_ker_name
-#define packm_4xk_4mi_ker_name  GENARNAME(packm_4xk_4mi)
-#undef  packm_6xk_4mi_ker_name
-#define packm_6xk_4mi_ker_name  GENARNAME(packm_6xk_4mi)
-#undef  packm_8xk_4mi_ker_name
-#define packm_8xk_4mi_ker_name  GENARNAME(packm_8xk_4mi)
-#undef  packm_10xk_4mi_ker_name
-#define packm_10xk_4mi_ker_name GENARNAME(packm_10xk_4mi)
-#undef  packm_12xk_4mi_ker_name
-#define packm_12xk_4mi_ker_name GENARNAME(packm_12xk_4mi)
-#undef  packm_14xk_4mi_ker_name
-#define packm_14xk_4mi_ker_name GENARNAME(packm_14xk_4mi)
-#undef  packm_16xk_4mi_ker_name
-#define packm_16xk_4mi_ker_name GENARNAME(packm_16xk_4mi)
-
-#undef  packm_2xk_rih_ker_name
-#define packm_2xk_rih_ker_name  GENARNAME(packm_2xk_rih)
-#undef  packm_4xk_rih_ker_name
-#define packm_4xk_rih_ker_name  GENARNAME(packm_4xk_rih)
-#undef  packm_6xk_rih_ker_name
-#define packm_6xk_rih_ker_name  GENARNAME(packm_6xk_rih)
-#undef  packm_8xk_rih_ker_name
-#define packm_8xk_rih_ker_name  GENARNAME(packm_8xk_rih)
-#undef  packm_10xk_rih_ker_name
-#define packm_10xk_rih_ker_name GENARNAME(packm_10xk_rih)
-#undef  packm_12xk_rih_ker_name
-#define packm_12xk_rih_ker_name GENARNAME(packm_12xk_rih)
-#undef  packm_14xk_rih_ker_name
-#define packm_14xk_rih_ker_name GENARNAME(packm_14xk_rih)
-#undef  packm_16xk_rih_ker_name
-#define packm_16xk_rih_ker_name GENARNAME(packm_16xk_rih)
 
 #undef  packm_2xk_1er_ker_name
 #define packm_2xk_1er_ker_name  GENARNAME(packm_2xk_1er)
@@ -334,7 +242,14 @@
 	                        PASTEMAC(c,opname), PASTEMAC(z,opname) ); \
 }
 
+// -- Helper function for 1m ---------------------------------------------------
 
+void GENBAINAME(cntx_init_blkszs)
+     (
+       ind_t   method,
+       num_t   dt,
+       cntx_t* cntx
+     );
 
 // -----------------------------------------------------------------------------
 
@@ -398,8 +313,8 @@ void GENBARNAME(cntx_init)
 	// NOTE: We set the virtual micro-kernel slots to contain the addresses
 	// of the native micro-kernels. In general, the ukernels in the virtual
 	// ukernel slots are always called, and if the function called happens to
-	// be a virtual micro-kernel, it will then know to find its native
-	// ukernel in the native ukernel slots.
+	// be a virtual micro-kernel, it will then know to find its native ukernel
+	// (i.e., in the native ukernel slots).
 	gen_func_init( &funcs[ BLIS_GEMM_UKR ],       gemm_ukr_name       );
 	gen_func_init( &funcs[ BLIS_GEMMTRSM_L_UKR ], gemmtrsm_l_ukr_name );
 	gen_func_init( &funcs[ BLIS_GEMMTRSM_U_UKR ], gemmtrsm_u_ukr_name );
@@ -418,7 +333,8 @@ void GENBARNAME(cntx_init)
 	gen_func_init( &funcs[ BLIS_TRSM_L_UKR ],     trsm_l_ukr_name     );
 	gen_func_init( &funcs[ BLIS_TRSM_U_UKR ],     trsm_u_ukr_name     );
 
-	bli_mbool_init( &mbools[ BLIS_GEMM_UKR ],       TRUE,  TRUE,  TRUE,  TRUE  );
+	//                                                  s      d      c      z
+	bli_mbool_init( &mbools[ BLIS_GEMM_UKR ],        TRUE,  TRUE,  TRUE,  TRUE );
 	bli_mbool_init( &mbools[ BLIS_GEMMTRSM_L_UKR ], FALSE, FALSE, FALSE, FALSE );
 	bli_mbool_init( &mbools[ BLIS_GEMMTRSM_U_UKR ], FALSE, FALSE, FALSE, FALSE );
 	bli_mbool_init( &mbools[ BLIS_TRSM_L_UKR ],     FALSE, FALSE, FALSE, FALSE );
@@ -427,11 +343,14 @@ void GENBARNAME(cntx_init)
 
 	// -- Set level-3 small/unpacked thresholds --------------------------------
 
-	// NOTE: The default thresholds are set very low so that the sup framework
-	// only actives for exceedingly small dimensions. If a sub-configuration
-	// registers optimized sup kernels, then that sub-configuration should also
-	// register new (probably larger) thresholds that are almost surely more
-	// appropriate that these default values.
+	// NOTE: The default thresholds are set to zero so that the sup framework
+	// does not activate by default. Note that the semantic meaning of the
+	// thresholds is that the sup code path is executed if a dimension is
+	// strictly less than its corresponding threshold. So actually, the
+	// thresholds specify the minimum dimension size that will still dispatch
+	// the non-sup/large code path. This "strictly less than" behavior was
+	// chosen over "less than or equal to" so that threshold values of 0 would
+	// effectively disable sup (even for matrix dimensions of 0).
 	//                                          s     d     c     z
 	bli_blksz_init_easy( &thresh[ BLIS_MT ],    0,    0,    0,    0 );
 	bli_blksz_init_easy( &thresh[ BLIS_NT ],    0,    0,    0,    0 );
@@ -459,7 +378,8 @@ void GENBARNAME(cntx_init)
 	// operation.
 
 	// Set the gemm slot to the default gemm sup handler.
-	vfuncs[ BLIS_GEMM ] = bli_gemmsup_ref;
+	vfuncs[ BLIS_GEMM ]  = bli_gemmsup_ref;
+	vfuncs[ BLIS_GEMMT ] = bli_gemmtsup_ref;
 
 
 	// -- Set level-3 small/unpacked micro-kernels and preferences -------------
@@ -486,10 +406,10 @@ void GENBARNAME(cntx_init)
 	gen_func_init( &funcs[ BLIS_RRC ], gemmsup_rv_ukr_name );
 	gen_func_init( &funcs[ BLIS_RCR ], gemmsup_rv_ukr_name );
 	gen_func_init( &funcs[ BLIS_RCC ], gemmsup_rv_ukr_name );
-	gen_func_init( &funcs[ BLIS_CRR ], gemmsup_cv_ukr_name );
-	gen_func_init( &funcs[ BLIS_CRC ], gemmsup_cv_ukr_name );
-	gen_func_init( &funcs[ BLIS_CCR ], gemmsup_cv_ukr_name );
-	gen_func_init( &funcs[ BLIS_CCC ], gemmsup_cv_ukr_name );
+	gen_func_init( &funcs[ BLIS_CRR ], gemmsup_rv_ukr_name );
+	gen_func_init( &funcs[ BLIS_CRC ], gemmsup_rv_ukr_name );
+	gen_func_init( &funcs[ BLIS_CCR ], gemmsup_rv_ukr_name );
+	gen_func_init( &funcs[ BLIS_CCC ], gemmsup_rv_ukr_name );
 
 	// Register the general-stride/generic ukernel to the "catch-all" slot
 	// associated with the BLIS_XXX enum value. This slot will be queried if
@@ -498,16 +418,17 @@ void GENBARNAME(cntx_init)
 
 
 	// Set the l3 sup ukernel storage preferences.
-	bli_mbool_init( &mbools[ BLIS_RRR ], TRUE,  TRUE,  TRUE,  TRUE  );
-	bli_mbool_init( &mbools[ BLIS_RRC ], TRUE,  TRUE,  TRUE,  TRUE  );
-	bli_mbool_init( &mbools[ BLIS_RCR ], TRUE,  TRUE,  TRUE,  TRUE  );
-	bli_mbool_init( &mbools[ BLIS_RCC ], TRUE,  TRUE,  TRUE,  TRUE  );
-	bli_mbool_init( &mbools[ BLIS_CRR ], FALSE, FALSE, FALSE, FALSE );
-	bli_mbool_init( &mbools[ BLIS_CRC ], FALSE, FALSE, FALSE, FALSE );
-	bli_mbool_init( &mbools[ BLIS_CCR ], FALSE, FALSE, FALSE, FALSE );
-	bli_mbool_init( &mbools[ BLIS_CCC ], FALSE, FALSE, FALSE, FALSE );
+	//                                       s      d      c      z
+	bli_mbool_init( &mbools[ BLIS_RRR ],  TRUE,  TRUE,  TRUE,  TRUE );
+	bli_mbool_init( &mbools[ BLIS_RRC ],  TRUE,  TRUE,  TRUE,  TRUE );
+	bli_mbool_init( &mbools[ BLIS_RCR ],  TRUE,  TRUE,  TRUE,  TRUE );
+	bli_mbool_init( &mbools[ BLIS_RCC ],  TRUE,  TRUE,  TRUE,  TRUE );
+	bli_mbool_init( &mbools[ BLIS_CRR ],  TRUE,  TRUE,  TRUE,  TRUE );
+	bli_mbool_init( &mbools[ BLIS_CRC ],  TRUE,  TRUE,  TRUE,  TRUE );
+	bli_mbool_init( &mbools[ BLIS_CCR ],  TRUE,  TRUE,  TRUE,  TRUE );
+	bli_mbool_init( &mbools[ BLIS_CCC ],  TRUE,  TRUE,  TRUE,  TRUE );
 
-	bli_mbool_init( &mbools[ BLIS_XXX ], FALSE, FALSE, FALSE, FALSE );
+	bli_mbool_init( &mbools[ BLIS_XXX ],  TRUE,  TRUE,  TRUE,  TRUE );
 
 
 	// -- Set level-1f kernels -------------------------------------------------
@@ -583,14 +504,6 @@ void GENBARNAME(cntx_init)
 	// -- Set miscellaneous fields ---------------------------------------------
 
 	bli_cntx_set_method( BLIS_NAT, cntx );
-
-	bli_cntx_set_schema_a_block( BLIS_PACKED_ROW_PANELS, cntx );
-	bli_cntx_set_schema_b_panel( BLIS_PACKED_COL_PANELS, cntx );
-	bli_cntx_set_schema_c_panel( BLIS_NOT_PACKED,        cntx );
-
-	//bli_cntx_set_anti_pref( FALSE, cntx );
-
-	//bli_cntx_set_membrk( bli_membrk_query(), cntx );
 }
 
 // -----------------------------------------------------------------------------
@@ -598,7 +511,6 @@ void GENBARNAME(cntx_init)
 void GENBAINAME(cntx_init)
      (
        ind_t   method,
-       num_t   dt,
        cntx_t* cntx
      )
 {
@@ -615,41 +527,7 @@ void GENBAINAME(cntx_init)
 
 	funcs = bli_cntx_l3_vir_ukrs_buf( cntx );
 
-	// 3mh, 4mh, and 4mb do not not support trsm.
-	bli_func_init_null( &funcs[ BLIS_GEMMTRSM_L_UKR ] );
-	bli_func_init_null( &funcs[ BLIS_GEMMTRSM_U_UKR ] );
-	bli_func_init_null( &funcs[ BLIS_TRSM_L_UKR ] );
-	bli_func_init_null( &funcs[ BLIS_TRSM_U_UKR ] );
-
-	if      ( method == BLIS_3MH )
-	{
-		gen_func_init_co( &funcs[ BLIS_GEMM_UKR ],       gemm3mh_ukr_name       );
-	}
-	else if ( method == BLIS_3M1 )
-	{
-		gen_func_init_co( &funcs[ BLIS_GEMM_UKR ],       gemm3m1_ukr_name       );
-		gen_func_init_co( &funcs[ BLIS_GEMMTRSM_L_UKR ], gemmtrsm3m1_l_ukr_name );
-		gen_func_init_co( &funcs[ BLIS_GEMMTRSM_U_UKR ], gemmtrsm3m1_u_ukr_name );
-		gen_func_init_co( &funcs[ BLIS_TRSM_L_UKR ],     trsm3m1_l_ukr_name     );
-		gen_func_init_co( &funcs[ BLIS_TRSM_U_UKR ],     trsm3m1_u_ukr_name     );
-	}
-	else if ( method == BLIS_4MH )
-	{
-		gen_func_init_co( &funcs[ BLIS_GEMM_UKR ],       gemm4mh_ukr_name       );
-	}
-	else if ( method == BLIS_4M1B )
-	{
-		gen_func_init_co( &funcs[ BLIS_GEMM_UKR ],       gemm4mb_ukr_name       );
-	}
-	else if ( method == BLIS_4M1A )
-	{
-		gen_func_init_co( &funcs[ BLIS_GEMM_UKR ],       gemm4m1_ukr_name       );
-		gen_func_init_co( &funcs[ BLIS_GEMMTRSM_L_UKR ], gemmtrsm4m1_l_ukr_name );
-		gen_func_init_co( &funcs[ BLIS_GEMMTRSM_U_UKR ], gemmtrsm4m1_u_ukr_name );
-		gen_func_init_co( &funcs[ BLIS_TRSM_L_UKR ],     trsm4m1_l_ukr_name     );
-		gen_func_init_co( &funcs[ BLIS_TRSM_U_UKR ],     trsm4m1_u_ukr_name     );
-	}
-	else if ( method == BLIS_1M )
+	if ( method == BLIS_1M )
 	{
 		gen_func_init_co( &funcs[ BLIS_GEMM_UKR ],       gemm1m_ukr_name       );
 		gen_func_init_co( &funcs[ BLIS_GEMMTRSM_L_UKR ], gemmtrsm1m_l_ukr_name );
@@ -668,7 +546,14 @@ void GENBAINAME(cntx_init)
 
 	// For 1m, we employ an optimization which requires that we copy the native
 	// real domain gemm ukernel function pointers to the corresponding real
-	// domain slots in the virtual gemm ukernel func_t.
+	// domain slots in the virtual gemm ukernel func_t. This optimization allows
+	// us to, under certain conditions, adjust various parameters within the gemm
+	// macrokernel so that the real-domain macrokernel (which will query and use
+	// the real-domain virtual gemm ukernel) can be called instead of calling the
+	// complex-domain macrokernel and the corresponding complex-domain virtual
+	// microkernel. The non-optimized code path would require an extra level of
+	// function call overhead, which can be avoided in most cases (i.e., when
+	// beta has a zero imaginary component and C is either row- or column-stored).
 	if ( method == BLIS_1M )
 	{
 		func_t* gemm_nat_ukrs = bli_cntx_get_l3_nat_ukrs( BLIS_GEMM_UKR, cntx );
@@ -689,40 +574,7 @@ void GENBAINAME(cntx_init)
 		bli_func_init_null( &funcs[ i ] );
 	}
 
-	if ( method == BLIS_3MH || method == BLIS_4MH )
-	{
-		gen_func_init_co( &funcs[ BLIS_PACKM_2XK_KER ],  packm_2xk_rih_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_4XK_KER ],  packm_4xk_rih_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_6XK_KER ],  packm_6xk_rih_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_8XK_KER ],  packm_8xk_rih_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_10XK_KER ], packm_10xk_rih_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_12XK_KER ], packm_12xk_rih_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_14XK_KER ], packm_14xk_rih_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_16XK_KER ], packm_16xk_rih_ker_name );
-	}
-	else if ( method == BLIS_3M1 )
-	{
-		gen_func_init_co( &funcs[ BLIS_PACKM_2XK_KER ],  packm_2xk_3mis_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_4XK_KER ],  packm_4xk_3mis_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_6XK_KER ],  packm_6xk_3mis_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_8XK_KER ],  packm_8xk_3mis_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_10XK_KER ], packm_10xk_3mis_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_12XK_KER ], packm_12xk_3mis_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_14XK_KER ], packm_14xk_3mis_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_16XK_KER ], packm_16xk_3mis_ker_name );
-	}
-	else if ( method == BLIS_4M1A || method == BLIS_4M1B )
-	{
-		gen_func_init_co( &funcs[ BLIS_PACKM_2XK_KER ],  packm_2xk_4mi_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_4XK_KER ],  packm_4xk_4mi_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_6XK_KER ],  packm_6xk_4mi_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_8XK_KER ],  packm_8xk_4mi_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_10XK_KER ], packm_10xk_4mi_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_12XK_KER ], packm_12xk_4mi_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_14XK_KER ], packm_14xk_4mi_ker_name );
-		gen_func_init_co( &funcs[ BLIS_PACKM_16XK_KER ], packm_16xk_4mi_ker_name );
-	}
-	else if ( method == BLIS_1M )
+	if ( method == BLIS_1M )
 	{
 		gen_func_init_co( &funcs[ BLIS_PACKM_2XK_KER ],  packm_2xk_1er_ker_name );
 		gen_func_init_co( &funcs[ BLIS_PACKM_4XK_KER ],  packm_4xk_1er_ker_name );
@@ -752,191 +604,75 @@ void GENBAINAME(cntx_init)
 
 	// Modify the context with cache and register blocksizes (and multiples)
 	// appropriate for the current induced method.
-	if      ( method == BLIS_3MH )
+	if ( method == BLIS_1M )
 	{
-		bli_cntx_set_ind_blkszs
-		(
-		  method, 6,
-		  BLIS_NC, 1.0, 1.0,
-		  BLIS_KC, 1.0, 1.0,
-		  BLIS_MC, 1.0, 1.0,
-		  BLIS_NR, 1.0, 1.0,
-		  BLIS_MR, 1.0, 1.0,
-		  BLIS_KR, 1.0, 1.0,
-		  cntx
-		);
-	}
-	else if ( method == BLIS_3M1 )
-	{
-		bli_cntx_set_ind_blkszs
-		(
-		  method, 6,
-		  BLIS_NC, 1.0, 1.0,
-		  BLIS_KC, 3.0, 3.0,
-		  BLIS_MC, 1.0, 1.0,
-		  BLIS_NR, 1.0, 1.0,
-		  BLIS_MR, 1.0, 1.0,
-		  BLIS_KR, 1.0, 1.0,
-		  cntx
-		);
-	}
-	else if ( method == BLIS_4MH )
-	{
-		bli_cntx_set_ind_blkszs
-		(
-		  method, 6,
-		  BLIS_NC, 1.0, 1.0,
-		  BLIS_KC, 1.0, 1.0,
-		  BLIS_MC, 1.0, 1.0,
-		  BLIS_NR, 1.0, 1.0,
-		  BLIS_MR, 1.0, 1.0,
-		  BLIS_KR, 1.0, 1.0,
-		  cntx
-		);
-	}
-	else if ( method == BLIS_4M1B )
-	{
-		bli_cntx_set_ind_blkszs
-		(
-		  method, 6,
-		  BLIS_NC, 2.0, 2.0,
-		  BLIS_KC, 1.0, 1.0,
-		  BLIS_MC, 2.0, 2.0,
-		  BLIS_NR, 1.0, 1.0,
-		  BLIS_MR, 1.0, 1.0,
-		  BLIS_KR, 1.0, 1.0,
-		  cntx
-		);
-	}
-	else if ( method == BLIS_4M1A )
-	{
-		bli_cntx_set_ind_blkszs
-		(
-		  method, 6,
-		  BLIS_NC, 1.0, 1.0,
-		  BLIS_KC, 2.0, 2.0,
-		  BLIS_MC, 1.0, 1.0,
-		  BLIS_NR, 1.0, 1.0,
-		  BLIS_MR, 1.0, 1.0,
-		  BLIS_KR, 1.0, 1.0,
-		  cntx
-		);
-	}
-	else if ( method == BLIS_1M )
-	{
-		const bool_t is_pb = FALSE;
+		//const bool is_pb = FALSE;
 
-		// We MUST set the induced method in the context prior to calling
-		// bli_cntx_l3_ukr_prefers_cols_dt() because that function queries
-		// the induced method. It needs the induced method value in order
-		// to determine whether to evaluate the "prefers column storage"
-		// predicate using the storage preference of the kernel for dt, or
-		// the storage preference of the kernel for the real projection of
-		// dt. Failing to set the induced method here can lead to strange
-		// undefined behavior at runtime if the native complex kernel's
-		// storage preference happens to not equal that of the native real
-		// kernel.
-		bli_cntx_set_method( method, cntx );
-
-		// Initialize the blocksizes according to the micro-kernel preference as
-		// well as the algorithm.
-		if ( bli_cntx_l3_vir_ukr_prefers_cols_dt( dt, BLIS_GEMM_UKR, cntx ) )
-		{
-			// This branch is used for algorithms 1m_c_bp, 1m_r_pb.
-
-			// Set the pack_t schemas for the c_bp or r_pb algorithms.
-			if ( !is_pb )
-			{
-				bli_cntx_set_schema_a_block( BLIS_PACKED_ROW_PANELS_1E, cntx );
-				bli_cntx_set_schema_b_panel( BLIS_PACKED_COL_PANELS_1R, cntx );
-			}
-			else // if ( is_pb )
-			{
-				bli_cntx_set_schema_b_panel( BLIS_PACKED_ROW_PANELS_1R, cntx );
-				bli_cntx_set_schema_a_block( BLIS_PACKED_COL_PANELS_1E, cntx );
-			}
-
-			bli_cntx_set_ind_blkszs
-			(
-			  method, 6,
-			  BLIS_NC, 1.0, 1.0,
-			  BLIS_KC, 2.0, 2.0, // halve kc...
-			  BLIS_MC, 2.0, 2.0, // halve mc...
-			  BLIS_NR, 1.0, 1.0,
-			  BLIS_MR, 2.0, 1.0, // ...and mr (but NOT packmr)
-			  BLIS_KR, 1.0, 1.0,
-			  cntx
-			);
-		}
-		else // if ( bli_cntx_l3_vir_ukr_prefers_rows_dt( dt, BLIS_GEMM_UKR, cntx ) )
-		{
-			// This branch is used for algorithms 1m_r_bp, 1m_c_pb.
-
-			// Set the pack_t schemas for the r_bp or c_pb algorithms.
-			if ( !is_pb )
-			{
-			    bli_cntx_set_schema_a_block( BLIS_PACKED_ROW_PANELS_1R, cntx );
-			    bli_cntx_set_schema_b_panel( BLIS_PACKED_COL_PANELS_1E, cntx );
-			}
-			else // if ( is_pb )
-			{
-			    bli_cntx_set_schema_b_panel( BLIS_PACKED_ROW_PANELS_1E, cntx );
-			    bli_cntx_set_schema_a_block( BLIS_PACKED_COL_PANELS_1R, cntx );
-			}
-
-			bli_cntx_set_ind_blkszs
-			(
-			  method, 6,
-			  BLIS_NC, 2.0, 2.0, // halve nc...
-			  BLIS_KC, 2.0, 2.0, // halve kc...
-			  BLIS_MC, 1.0, 1.0,
-			  BLIS_NR, 2.0, 1.0, // ...and nr (but NOT packnr)
-			  BLIS_MR, 1.0, 1.0,
-			  BLIS_KR, 1.0, 1.0,
-			  cntx
-			);
-		}
+		// Call a helper function to initialize blocksizes for each complex
+		// datatype.
+		GENBAINAME(cntx_init_blkszs)( method, BLIS_SCOMPLEX, cntx );
+		GENBAINAME(cntx_init_blkszs)( method, BLIS_DCOMPLEX, cntx );
 	}
 	else // if ( method == BLIS_NAT )
 	{
 		// No change in blocksizes needed for native execution.
 	}
+}
 
+// -----------------------------------------------------------------------------
 
-	// -- Set misc. other fields -----------------------------------------------
+void GENBAINAME(cntx_init_blkszs)
+     (
+       ind_t   method,
+       num_t   dt,
+       cntx_t* cntx
+     )
+{
+	// We MUST set the induced method in the context prior to calling
+	// bli_cntx_l3_vir_ukr_prefers_cols_dt() because that function queries
+	// the induced method. That function needs the induced method value in
+	// order to determine whether to evaluate the "prefers column storage"
+	// predicate using the storage preference of the kernel for dt, or
+	// the storage preference of the kernel for the real projection of
+	// dt. Failing to set the induced method here can lead to strange
+	// undefined behavior at runtime if the native complex kernel's
+	// storage preference happens to not equal that of the native real
+	// kernel.
+	bli_cntx_set_method( method, cntx );
 
-	if      ( method == BLIS_3MH )
+	// Initialize the blocksizes according to the micro-kernel preference as
+	// well as the algorithm.
+	if ( bli_cntx_l3_vir_ukr_prefers_cols_dt( dt, BLIS_GEMM_UKR, cntx ) )
 	{
-		// Schemas vary with _stage().
-	}
-	else if ( method == BLIS_3M1 )
-	{
-		bli_cntx_set_schema_a_block( BLIS_PACKED_ROW_PANELS_3MI, cntx );
-		bli_cntx_set_schema_b_panel( BLIS_PACKED_COL_PANELS_3MI, cntx );
-	}
-	else if ( method == BLIS_4MH )
-	{
-		// Schemas vary with _stage().
-	}
-	else if ( method == BLIS_4M1A || method == BLIS_4M1B )
-	{
-		bli_cntx_set_schema_a_block( BLIS_PACKED_ROW_PANELS_4MI, cntx );
-		bli_cntx_set_schema_b_panel( BLIS_PACKED_COL_PANELS_4MI, cntx );
-	}
-	else if ( method == BLIS_1M )
-	{
-		//const bool_t is_pb = FALSE;
+		// This branch is used for algorithm 1m_c_bp.
 
-		// Set the anti-preference field to TRUE when executing a panel-block
-		// algorithm, and FALSE otherwise. This will cause higher-level generic
-		// code to establish (if needed) disagreement between the storage of C and
-		// the micro-kernel output preference so that the two will come back into
-		// agreement in the panel-block macro-kernel (which implemented in terms
-		// of the block-panel macro-kernel with some induced transpositions).
-		//bli_cntx_set_anti_pref( is_pb, cntx );
+		bli_cntx_set_ind_blkszs
+		(
+		  method, dt, 6,
+		  BLIS_NC, 1.0, 1.0,
+		  BLIS_KC, 2.0, 2.0, // halve kc...
+		  BLIS_MC, 2.0, 2.0, // halve mc...
+		  BLIS_NR, 1.0, 1.0,
+		  BLIS_MR, 2.0, 1.0, // ...and mr (but NOT packmr)
+		  BLIS_KR, 1.0, 1.0,
+		  cntx
+		);
 	}
-	else // if ( method == BLIS_NAT )
+	else // if ( bli_cntx_l3_vir_ukr_prefers_rows_dt( dt, BLIS_GEMM_UKR, cntx ) )
 	{
+		// This branch is used for algorithm 1m_r_bp.
+
+		bli_cntx_set_ind_blkszs
+		(
+		  method, dt, 6,
+		  BLIS_NC, 2.0, 2.0, // halve nc...
+		  BLIS_KC, 2.0, 2.0, // halve kc...
+		  BLIS_MC, 1.0, 1.0,
+		  BLIS_NR, 2.0, 1.0, // ...and nr (but NOT packnr)
+		  BLIS_MR, 1.0, 1.0,
+		  BLIS_KR, 1.0, 1.0,
+		  cntx
+		);
 	}
 }
 

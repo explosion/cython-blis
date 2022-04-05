@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2020, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -34,23 +35,23 @@
 
 
 //
-// Prototype object-based interfaces.
+// Prototype object-based interfaces (basic).
 //
 
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
        obj_t*  b, \
        obj_t*  beta, \
        obj_t*  c  \
-       BLIS_OAPI_EX_PARAMS  \
      );
 
 GENPROT( gemm )
+GENPROT( gemmt )
 GENPROT( her2k )
 GENPROT( syr2k )
 
@@ -58,7 +59,7 @@ GENPROT( syr2k )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        side_t  side, \
        obj_t*  alpha, \
@@ -66,7 +67,6 @@ BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
        obj_t*  b, \
        obj_t*  beta, \
        obj_t*  c  \
-       BLIS_OAPI_EX_PARAMS  \
      );
 
 GENPROT( hemm )
@@ -77,13 +77,12 @@ GENPROT( trmm3 )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        obj_t*  alpha, \
        obj_t*  a, \
        obj_t*  beta, \
        obj_t*  c  \
-       BLIS_OAPI_EX_PARAMS  \
      );
 
 GENPROT( herk )
@@ -93,13 +92,12 @@ GENPROT( syrk )
 #undef  GENPROT
 #define GENPROT( opname ) \
 \
-BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
      ( \
        side_t  side, \
        obj_t*  alpha, \
        obj_t*  a, \
        obj_t*  b  \
-       BLIS_OAPI_EX_PARAMS  \
      );
 
 GENPROT( trmm )

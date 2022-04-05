@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018-2019, Advanced Micro Devices, Inc.
+   Copyright (C) 2018-2020, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -50,7 +50,7 @@ static void_fp  cntx_ref_init[ BLIS_NUM_ARCHS ];
 // Define a function pointer type for context initialization functions.
 typedef void (*nat_cntx_init_ft)( cntx_t* cntx );
 typedef void (*ref_cntx_init_ft)( cntx_t* cntx );
-typedef void (*ind_cntx_init_ft)( ind_t method, num_t dt, cntx_t* cntx );
+typedef void (*ind_cntx_init_ft)( ind_t method, cntx_t* cntx );
 
 // -----------------------------------------------------------------------------
 
@@ -97,6 +97,11 @@ void bli_gks_init( void )
 #endif
 
 		// AMD architectures
+#ifdef BLIS_CONFIG_ZEN3
+		bli_gks_register_cntx( BLIS_ARCH_ZEN3,        bli_cntx_init_zen3,
+		                                              bli_cntx_init_zen3_ref,
+		                                              bli_cntx_init_zen3_ind );
+#endif
 #ifdef BLIS_CONFIG_ZEN2
 		bli_gks_register_cntx( BLIS_ARCH_ZEN2,        bli_cntx_init_zen2,
 		                                              bli_cntx_init_zen2_ref,
@@ -129,6 +134,11 @@ void bli_gks_init( void )
 #endif
 
 		// ARM architectures
+#ifdef BLIS_CONFIG_A64FX
+		bli_gks_register_cntx( BLIS_ARCH_A64FX,   bli_cntx_init_a64fx,
+		                                              bli_cntx_init_a64fx_ref,
+		                                              bli_cntx_init_a64fx_ind );
+#endif
 #ifdef BLIS_CONFIG_THUNDERX2
 		bli_gks_register_cntx( BLIS_ARCH_THUNDERX2,   bli_cntx_init_thunderx2,
 		                                              bli_cntx_init_thunderx2_ref,
@@ -144,6 +154,21 @@ void bli_gks_init( void )
 		                                              bli_cntx_init_cortexa53_ref,
 		                                              bli_cntx_init_cortexa53_ind );
 #endif
+#ifdef BLIS_CONFIG_ARMSVE
+		bli_gks_register_cntx( BLIS_ARCH_ARMSVE,      bli_cntx_init_armsve,
+		                                              bli_cntx_init_armsve_ref,
+		                                              bli_cntx_init_armsve_ind );
+#endif
+#ifdef BLIS_CONFIG_A64FX
+		bli_gks_register_cntx( BLIS_ARCH_A64FX,       bli_cntx_init_a64fx,
+		                                              bli_cntx_init_a64fx_ref,
+		                                              bli_cntx_init_a64fx_ind );
+#endif
+#ifdef BLIS_CONFIG_FIRESTORM
+		bli_gks_register_cntx( BLIS_ARCH_FIRESTORM,   bli_cntx_init_firestorm,
+		                                              bli_cntx_init_firestorm_ref,
+		                                              bli_cntx_init_firestorm_ind );
+#endif
 #ifdef BLIS_CONFIG_CORTEXA15
 		bli_gks_register_cntx( BLIS_ARCH_CORTEXA15,   bli_cntx_init_cortexa15,
 		                                              bli_cntx_init_cortexa15_ref,
@@ -156,6 +181,11 @@ void bli_gks_init( void )
 #endif
 
 		// IBM architectures
+#ifdef BLIS_CONFIG_POWER10
+		bli_gks_register_cntx( BLIS_ARCH_POWER10,     bli_cntx_init_power10,
+		                                              bli_cntx_init_power10_ref,
+		                                              bli_cntx_init_power10_ind );
+#endif													  
 #ifdef BLIS_CONFIG_POWER9
 		bli_gks_register_cntx( BLIS_ARCH_POWER9,      bli_cntx_init_power9,
 		                                              bli_cntx_init_power9_ref,
@@ -295,6 +325,25 @@ cntx_t* bli_gks_lookup_ind_cntx
 
 // -----------------------------------------------------------------------------
 
+cntx_t** bli_gks_lookup_id
+     (
+       arch_t id
+     )
+{
+	// Return the address of the array of context pointers for a given
+	// architecture id. This function is only used for sanity check purposes
+	// to ensure that the underlying data structures for a particular id are
+	// initialized.
+
+	// Index into the array of context pointers for the given architecture id.
+	cntx_t** restrict gks_id = gks[ id ];
+
+	// Return the context pointer at gks_id_ind.
+	return gks_id;
+}
+
+// -----------------------------------------------------------------------------
+
 void bli_gks_register_cntx
      (
        arch_t  id,
@@ -303,6 +352,8 @@ void bli_gks_register_cntx
        void_fp ind_fp
      )
 {
+	err_t r_val;
+
 	// This function is called by bli_gks_init() for each architecture that
 	// will be supported by BLIS. It takes an architecture id and three
 	// function pointers, one to a function that initializes a native context
@@ -351,7 +402,7 @@ void bli_gks_register_cntx
 	// needs to be allocated. Allocate the memory and initialize it to
 	// zeros/NULL, storing the address of the alloacted memory at the element
 	// for the current architecture id.
-	gks[ id ] = bli_calloc_intl( sizeof( cntx_t* ) * BLIS_NUM_IND_METHODS );
+	gks[ id ] = bli_calloc_intl( sizeof( cntx_t* ) * BLIS_NUM_IND_METHODS, &r_val );
 
 	// Alias the allocated array for readability.
 	cntx_t** restrict gks_id = gks[ id ];
@@ -363,7 +414,7 @@ void bli_gks_register_cntx
 	// Allocate memory for a single context and store the address at
 	// the element in the gks[ id ] array that is reserved for native
 	// execution.
-	gks_id[ BLIS_NAT ] = bli_calloc_intl( sizeof( cntx_t ) );
+	gks_id[ BLIS_NAT ] = bli_calloc_intl( sizeof( cntx_t ), &r_val );
 
 	// Alias the allocated context address for readability.
 	cntx_t* restrict gks_id_nat = gks_id[ BLIS_NAT ];
@@ -403,6 +454,11 @@ void bli_gks_register_cntx
 	e_val = bli_check_valid_mc_mod_mult( mc, nr ); bli_check_error_code( e_val );
 	e_val = bli_check_valid_nc_mod_mult( nc, mr ); bli_check_error_code( e_val );
 #endif
+
+	// Verify that the register blocksizes in the context are sufficiently large
+	// relative to the maximum stack buffer size defined at configure-time.
+	e_val = bli_check_sufficient_stack_buf_size( gks_id_nat );
+	bli_check_error_code( e_val );
 }
 
 // -----------------------------------------------------------------------------
@@ -460,6 +516,7 @@ cntx_t* bli_gks_query_ind_cntx
 	bli_init_once();
 
 	cntx_t* gks_id_ind;
+	err_t r_val;
 
 	// Return the address of a context that will be suited for executing a
 	// level-3 operation via the requested induced method (and datatype) for
@@ -518,7 +575,7 @@ cntx_t* bli_gks_query_ind_cntx
 			// If gks_id_ind is NULL, then we know we must allocate and then
 			// initialize the context, storing its address back to
 			// gks_id[ ind ].
-			gks_id_ind    = bli_calloc_intl( sizeof( cntx_t ) );
+			gks_id_ind    = bli_calloc_intl( sizeof( cntx_t ), &r_val );
 			gks_id[ ind ] = gks_id_ind;
 
 			// Before we can call the induced method context initialization
@@ -535,7 +592,7 @@ cntx_t* bli_gks_query_ind_cntx
 			// function for the current induced method. (That function assumes
 			// that the context is pre- initialized with values for native
 			// execution.)
-			f( ind, dt, gks_id_ind );
+			f( ind, gks_id_ind );
 		}
 	}
 	// END CRITICAL SECTION
@@ -575,7 +632,7 @@ void bli_gks_init_ref_cntx
 
 // -----------------------------------------------------------------------------
 
-bool_t bli_gks_cntx_l3_nat_ukr_is_ref
+bool bli_gks_cntx_l3_nat_ukr_is_ref
      (
        num_t   dt,
        l3ukr_t ukr_id,

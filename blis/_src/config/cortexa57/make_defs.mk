@@ -57,15 +57,19 @@ endif
 ifeq ($(DEBUG_TYPE),noopt)
 COPTFLAGS      := -O0
 else
-COPTFLAGS      := -O3 -ftree-vectorize -mtune=cortex-a57
+COPTFLAGS      := -O2 -mcpu=cortex-a57
 endif
 
 # Flags specific to optimized kernels.
-CKOPTFLAGS     := $(COPTFLAGS)
+CKOPTFLAGS     := $(COPTFLAGS) -O3 -ftree-vectorize
 ifeq ($(CC_VENDOR),gcc)
-CKVECFLAGS     := -march=armv8-a+fp+simd -mcpu=cortex-a57
+CKVECFLAGS     := -mcpu=cortex-a57
 else
-$(error gcc is required for this configuration.)
+ifeq ($(CC_VENDOR),clang)
+CKVECFLAGS     := -mcpu=cortex-a57
+else
+$(error gcc or clang is required for this configuration.)
+endif
 endif
 
 # Flags specific to reference kernels.

@@ -37,15 +37,16 @@
 
 mbool_t* bli_mbool_create
      (
-       bool_t b_s,
-       bool_t b_d,
-       bool_t b_c,
-       bool_t b_z
+       bool b_s,
+       bool b_d,
+       bool b_c,
+       bool b_z
      )
 {
 	mbool_t* b;
+	err_t r_val;
 
-	b = ( mbool_t* ) bli_malloc_intl( sizeof(mbool_t) );
+	b = ( mbool_t* ) bli_malloc_intl( sizeof( mbool_t ), &r_val );
 
 	bli_mbool_init
 	(
@@ -62,10 +63,10 @@ mbool_t* bli_mbool_create
 void bli_mbool_init
      (
        mbool_t* b,
-       bool_t   b_s,
-       bool_t   b_d,
-       bool_t   b_c,
-       bool_t   b_z
+       bool     b_s,
+       bool     b_d,
+       bool     b_c,
+       bool     b_z
      )
 {
 	bli_mbool_set_dt( b_s, BLIS_FLOAT,    b );

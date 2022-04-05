@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2017 - 2019, Advanced Micro Devices, Inc.
+   Copyright (C) 2017 - 2022, Advanced Micro Devices, Inc.
    Copyright (C) 2018, The University of Texas at Austin
 
    Redistribution and use in source and binary forms, with or without
@@ -80,9 +80,11 @@ void bli_sscalv_zen_int10
 	// If alpha is zero, use setv.
 	if ( PASTEMAC(s,eq0)( *alpha ) )
 	{
-		float*       zero = bli_s0;
-		ssetv_ker_ft f    = bli_cntx_get_l1v_ker_dt( BLIS_FLOAT, BLIS_SETV_KER, cntx );
+		float* zero = bli_s0;
 
+		if ( cntx == NULL ) cntx = bli_gks_query_cntx();
+
+		ssetv_ker_ft f = bli_cntx_get_l1v_ker_dt( BLIS_FLOAT, BLIS_SETV_KER, cntx );
 		f
 		(
 		  BLIS_NO_CONJUGATE,
@@ -91,6 +93,7 @@ void bli_sscalv_zen_int10
 		  x, incx,
 		  cntx
 		);
+		
 		return;
 	}
 
@@ -270,8 +273,11 @@ void bli_dscalv_zen_int10
 	// If alpha is zero, use setv.
 	if ( PASTEMAC(d,eq0)( *alpha ) )
 	{
-		double*      zero = bli_d0;
-		dsetv_ker_ft f    = bli_cntx_get_l1v_ker_dt( BLIS_DOUBLE, BLIS_SETV_KER, cntx );
+		double* zero = bli_d0;
+
+		if( cntx == NULL ) cntx = bli_gks_query_cntx();
+
+		dsetv_ker_ft f = bli_cntx_get_l1v_ker_dt( BLIS_DOUBLE, BLIS_SETV_KER, cntx );
 
 		f
 		(
@@ -281,6 +287,7 @@ void bli_dscalv_zen_int10
 		  x, incx,
 		  cntx
 		);
+		
 		return;
 	}
 
@@ -431,5 +438,35 @@ void bli_dscalv_zen_int10
 			x0 += incx;
 		}
 	}
+}
+
+// -----------------------------------------------------------------------------
+
+//
+// NOTE: This function definition is provided as a placeholder in order to allow
+// function names of scalv kernels to be hard-coded in bli_gemv_unf_var2_amd.c.
+//
+
+void bli_cscalv_zen_int10
+     (
+       conj_t             conjalpha,
+       dim_t              n,
+       scomplex* restrict alpha,
+       scomplex* restrict x, inc_t incx,
+       cntx_t*   restrict cntx
+     )
+{
+	const num_t dt = BLIS_SCOMPLEX;
+
+	cscalv_ker_ft f = bli_cntx_get_l1v_ker_dt( dt, BLIS_SCALV_KER, cntx );
+
+	f
+	(
+	  conjalpha,
+	  n,
+	  alpha,
+	  x, incx,
+	  cntx
+	);
 }
 

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2020, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -53,6 +53,22 @@ void bli_gemm_front
 	obj_t   b_local;
 	obj_t   c_local;
 
+	// If C has a zero dimension, return early.
+	if ( bli_obj_has_zero_dim( c ) )
+	{
+		return;
+	}
+
+	// If alpha is zero, or if A or B has a zero dimension, scale C by beta
+	// and return early.
+	if ( bli_obj_equals( alpha, &BLIS_ZERO ) ||
+	     bli_obj_has_zero_dim( a ) ||
+	     bli_obj_has_zero_dim( b ) )
+	{
+		bli_scalm( beta, c );
+		return;
+	}
+
 #if 0
 #ifdef BLIS_ENABLE_SMALL_MATRIX
 	// Only handle small problems separately for homogeneous datatypes.
@@ -60,27 +76,40 @@ void bli_gemm_front
 	     bli_obj_dt( a ) == bli_obj_dt( c ) &&
 	     bli_obj_comp_prec( c ) == bli_obj_prec( c ) )
 	{
-		gint_t status = bli_gemm_small( alpha, a, b, beta, c, cntx, cntl );
+		err_t status = bli_gemm_small( alpha, a, b, beta, c, cntx, cntl );
 		if ( status == BLIS_SUCCESS ) return;
 	}
 #endif
 #endif
 
-	// Check parameters.
-	if ( bli_error_checking_is_enabled() )
-		bli_gemm_check( alpha, a, b, beta, c, cntx );
-
-	// If alpha is zero, scale by beta and return.
-	if ( bli_obj_equals( alpha, &BLIS_ZERO ) )
-	{
-		bli_scalm( beta, c );
-		return;
-	}
-
 	// Alias A, B, and C in case we need to apply transformations.
 	bli_obj_alias_to( a, &a_local );
 	bli_obj_alias_to( b, &b_local );
 	bli_obj_alias_to( c, &c_local );
+
+	// Set the obj_t buffer field to the location currently implied by the row
+	// and column offsets and then zero the offsets. If any of the original
+	// obj_t's were views into larger matrices, this step effectively makes
+	// those obj_t's "forget" their lineage.
+	bli_obj_reset_origin( &a_local );
+	bli_obj_reset_origin( &b_local );
+	bli_obj_reset_origin( &c_local );
+
+	// An optimization: If C is stored by rows and the micro-kernel prefers
+	// contiguous columns, or if C is stored by columns and the micro-kernel
+	// prefers contiguous rows, transpose the entire operation to allow the
+	// micro-kernel to access elements of C in its preferred manner.
+	if ( bli_cntx_l3_vir_ukr_dislikes_storage_of( &c_local, BLIS_GEMM_UKR, cntx ) )
+	{
+		bli_obj_swap( &a_local, &b_local );
+
+		bli_obj_induce_trans( &a_local );
+		bli_obj_induce_trans( &b_local );
+		bli_obj_induce_trans( &c_local );
+	}
+
+	// Set the pack schemas within the objects.
+	bli_l3_set_schemas( &a_local, &b_local, &c_local, cntx );
 
 #ifdef BLIS_ENABLE_GEMM_MD
 	cntx_t cntx_local;
@@ -101,23 +130,7 @@ void bli_gemm_front
 		// is adjusted to point to cntx_local.)
 		bli_gemm_md( &a_local, &b_local, beta, &c_local, &cntx_local, &cntx );
 	}
-	//else // homogeneous datatypes
 #endif
-
-	// Load the pack schemas from the context and embed them into the objects
-	// for A and B. (Native contexts are initialized with the correct pack
-	// schemas, as are contexts for 1m, and if necessary bli_gemm_md() would
-	// have made a copy and modified the schemas, so reading them from the
-	// context should be a safe bet at this point.) This is a sort of hack for
-	// communicating the desired pack schemas to bli_gemm_cntl_create() (via
-	// bli_l3_thread_decorator() and bli_l3_cntl_create_if()). This allows us
-	// to subsequently access the schemas from the control tree, which
-	// hopefully reduces some confusion, particularly in bli_packm_init().
-	const pack_t schema_a = bli_cntx_schema_a_block( cntx );
-	const pack_t schema_b = bli_cntx_schema_b_panel( cntx );
-
-	bli_obj_set_pack_schema( schema_a, &a_local );
-	bli_obj_set_pack_schema( schema_b, &b_local );
 
 	// Next, we handle the possibility of needing to typecast alpha to the
 	// computation datatype and/or beta to the storage datatype of C.
@@ -136,30 +149,6 @@ void bli_gemm_front
 	// now been typecast and attached to the matrices above.
 	alpha = &BLIS_ONE;
 	beta  = &BLIS_ONE;
-
-#ifdef BLIS_ENABLE_GEMM_MD
-	// Don't perform the following optimization for ccr or crc cases, as
-	// those cases are sensitive to the ukernel storage preference (ie:
-	// transposing the operation would break them).
-	if ( !bli_gemm_md_is_ccr( &a_local, &b_local, &c_local ) &&
-	     !bli_gemm_md_is_crc( &a_local, &b_local, &c_local ) )
-#endif
-	// An optimization: If C is stored by rows and the micro-kernel prefers
-	// contiguous columns, or if C is stored by columns and the micro-kernel
-	// prefers contiguous rows, transpose the entire operation to allow the
-	// micro-kernel to access elements of C in its preferred manner.
-	if ( bli_cntx_l3_vir_ukr_dislikes_storage_of( &c_local, BLIS_GEMM_UKR, cntx ) )
-	{
-		bli_obj_swap( &a_local, &b_local );
-
-		bli_obj_induce_trans( &a_local );
-		bli_obj_induce_trans( &b_local );
-		bli_obj_induce_trans( &c_local );
-
-		// We must also swap the pack schemas, which were set by bli_gemm_md()
-		// or the inlined code above.
-		bli_obj_swap_pack_schemas( &a_local, &b_local );
-	}
 
 	// Parse and interpret the contents of the rntm_t object to properly
 	// set the ways of parallelism for each loop, and then make any
@@ -187,15 +176,15 @@ void bli_gemm_front
 	//   of the ccr or crc cases.
 	// Then, after the computation is complete, this matrix will be copied
 	// or accumulated back to C.
-	const bool_t is_ccr_mismatch =
+	const bool is_ccr_mismatch =
 	             ( bli_gemm_md_is_ccr( &a_local, &b_local, &c_local ) &&
                    !bli_obj_is_col_stored( &c_local ) );
-	const bool_t is_crc_mismatch =
+	const bool is_crc_mismatch =
 	             ( bli_gemm_md_is_crc( &a_local, &b_local, &c_local ) &&
                    !bli_obj_is_row_stored( &c_local ) );
 
-	obj_t  ct;
-	bool_t use_ct = FALSE;
+	obj_t ct;
+	bool  use_ct = FALSE;
 
 	// FGVZ: Consider adding another guard here that only creates and uses a
 	// temporary matrix for accumulation if k < c * kc, where c is some small
@@ -263,7 +252,7 @@ void bli_gemm_front
 	// Invoke the internal back-end via the thread handler.
 	bli_l3_thread_decorator
 	(
-	  bli_gemm_int,
+	  bli_l3_int,
 	  BLIS_GEMM, // operation family id
 	  alpha,
 	  &a_local,
@@ -293,91 +282,4 @@ void bli_gemm_front
 #endif
 #endif
 }
-
-// -----------------------------------------------------------------------------
-
-#if 0
-	if ( bli_obj_dt( a ) != bli_obj_dt( b ) ||
-	     bli_obj_dt( a ) != bli_obj_dt( c ) ||
-	     bli_obj_comp_prec( c ) != bli_obj_prec( c ) )
-	{
-		const bool_t a_is_real = bli_obj_is_real( a );
-		const bool_t a_is_comp = bli_obj_is_complex( a );
-		const bool_t b_is_real = bli_obj_is_real( b );
-		const bool_t b_is_comp = bli_obj_is_complex( b );
-		const bool_t c_is_real = bli_obj_is_real( c );
-		const bool_t c_is_comp = bli_obj_is_complex( c );
-
-		const bool_t a_is_single = bli_obj_is_single_prec( a );
-		const bool_t a_is_double = bli_obj_is_double_prec( a );
-		const bool_t b_is_single = bli_obj_is_single_prec( b );
-		const bool_t b_is_double = bli_obj_is_double_prec( b );
-		const bool_t c_is_single = bli_obj_is_single_prec( c );
-		const bool_t c_is_double = bli_obj_is_double_prec( c );
-
-		const bool_t comp_single = bli_obj_comp_prec( c ) == BLIS_SINGLE_PREC;
-		const bool_t comp_double = bli_obj_comp_prec( c ) == BLIS_DOUBLE_PREC;
-
-		const bool_t mixeddomain = bli_obj_domain( c ) != bli_obj_domain( a ) ||
-		                           bli_obj_domain( c ) != bli_obj_domain( b );
-
-		( void )a_is_real; ( void )a_is_comp;
-		( void )b_is_real; ( void )b_is_comp;
-		( void )c_is_real; ( void )c_is_comp;
-		( void )a_is_single; ( void )a_is_double;
-		( void )b_is_single; ( void )b_is_double;
-		( void )c_is_single; ( void )c_is_double;
-		( void )comp_single; ( void )comp_double;
-
-		if (
-		     //( c_is_comp && a_is_comp && b_is_real ) ||
-		     //( c_is_comp && a_is_real && b_is_comp ) ||
-		     //( c_is_real && a_is_comp && b_is_comp ) ||
-		     //( c_is_comp && a_is_real && b_is_real ) ||
-		     //( c_is_real && a_is_comp && b_is_real ) ||
-		     //( c_is_real && a_is_real && b_is_comp ) ||
-		     //FALSE
-		     TRUE
-		   )
-		{
-			if (
-			     ( c_is_single && a_is_single && b_is_single && mixeddomain ) ||
-			     ( c_is_single && a_is_single && b_is_single && comp_single ) ||
-			     ( c_is_single && a_is_single && b_is_single && comp_double ) ||
-			     ( c_is_single && a_is_single && b_is_double                ) ||
-			     ( c_is_single && a_is_double && b_is_single                ) ||
-			     ( c_is_double && a_is_single && b_is_single                ) ||
-			     ( c_is_single && a_is_double && b_is_double                ) ||
-			     ( c_is_double && a_is_single && b_is_double                ) ||
-			     ( c_is_double && a_is_double && b_is_single                ) ||
-			     ( c_is_double && a_is_double && b_is_double && comp_single ) ||
-			     ( c_is_double && a_is_double && b_is_double && comp_double ) ||
-			     ( c_is_double && a_is_double && b_is_double && mixeddomain ) ||
-			     FALSE
-			   )
-				bli_gemm_md_front( alpha, a, b, beta, c, cntx, cntl );
-			else
-				bli_gemm_md_zgemm( alpha, a, b, beta, c, cntx, cntl );
-		}
-		else
-			bli_gemm_md_zgemm( alpha, a, b, beta, c, cntx, cntl );
-		return;
-	}
-#else
-#if 0
-	// If any of the storage datatypes differ, or if the execution precision
-	// differs from the storage precision of C, utilize the mixed datatype
-	// code path.
-	// NOTE: We could check the exec dt against the storage dt of C, but for
-	// now we don't support the caller setting the execution domain
-	// explicitly.
-	if ( bli_obj_dt( a ) != bli_obj_dt( b ) ||
-	     bli_obj_dt( a ) != bli_obj_dt( c ) ||
-	     bli_obj_comp_prec( c ) != bli_obj_prec( c ) )
-	{
-		bli_gemm_md_front( alpha, a, b, beta, c, cntx, cntl );
-		return;
-	}
-#endif
-#endif
 

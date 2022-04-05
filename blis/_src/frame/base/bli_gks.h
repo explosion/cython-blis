@@ -42,6 +42,7 @@ void    bli_gks_init_index( void );
 
 cntx_t* bli_gks_lookup_nat_cntx( arch_t id );
 cntx_t* bli_gks_lookup_ind_cntx( arch_t id, ind_t ind );
+cntx_t** bli_gks_lookup_id( arch_t id );
 void    bli_gks_register_cntx( arch_t id, void_fp nat_fp, void_fp ref_fp, void_fp ind_fp );
 
 BLIS_EXPORT_BLIS cntx_t* bli_gks_query_cntx( void );
@@ -53,7 +54,7 @@ BLIS_EXPORT_BLIS cntx_t* bli_gks_query_ind_cntx( ind_t ind, num_t dt );
 
 BLIS_EXPORT_BLIS void    bli_gks_init_ref_cntx( cntx_t* cntx );
 
-bool_t   bli_gks_cntx_l3_nat_ukr_is_ref( num_t dt, l3ukr_t ukr_id, cntx_t* cntx );
+bool    bli_gks_cntx_l3_nat_ukr_is_ref( num_t dt, l3ukr_t ukr_id, cntx_t* cntx );
 
 BLIS_EXPORT_BLIS char*    bli_gks_l3_ukr_impl_string( l3ukr_t ukr, ind_t method, num_t dt );
 BLIS_EXPORT_BLIS kimpl_t bli_gks_l3_ukr_impl_type( l3ukr_t ukr, ind_t method, num_t dt );

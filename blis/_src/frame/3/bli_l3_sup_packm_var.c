@@ -94,8 +94,8 @@ void PASTEMAC(ch,varname) \
 	   schema bit that encodes row or column is describing the form of
 	   micro-panel, not the storage in the micro-panel. Hence the
 	   mismatch in "row" and "column" semantics. */ \
-	bool_t row_stored = bli_is_col_packed( schema ); \
-	/*bool_t col_stored = bli_is_row_packed( schema );*/ \
+	bool row_stored = bli_is_col_packed( schema ); \
+	/*bool col_stored = bli_is_row_packed( schema );*/ \
 \
 	/* If the row storage flag indicates row storage, then we are packing
 	   to column panels; otherwise, if the strides indicate column storage,
@@ -276,29 +276,6 @@ bli_thread_barrier( thread ); \
 } \
 */
 /*
-		if ( bli_is_4mi_packed( schema ) ) { \
-		printf( "packm_var2: is_p_use = %lu\n", is_p_use ); \
-		if ( col_stored ) { \
-		if ( 0 ) \
-		PASTEMAC(chr,fprintm)( stdout, "packm_var2: a_r", *m_panel_use, *n_panel_use, \
-		                       ( ctype_r* )c_use,         2*rs_c, 2*cs_c, "%4.1f", "" ); \
-		PASTEMAC(chr,fprintm)( stdout, "packm_var2: ap_r", *m_panel_max, *n_panel_max, \
-		                       ( ctype_r* )p_use,            rs_p, cs_p, "%4.1f", "" ); \
-		PASTEMAC(chr,fprintm)( stdout, "packm_var2: ap_i", *m_panel_max, *n_panel_max, \
-		                       ( ctype_r* )p_use + is_p_use, rs_p, cs_p, "%4.1f", "" ); \
-		} \
-		if ( row_stored ) { \
-		if ( 0 ) \
-		PASTEMAC(chr,fprintm)( stdout, "packm_var2: b_r", *m_panel_use, *n_panel_use, \
-		                       ( ctype_r* )c_use,         2*rs_c, 2*cs_c, "%4.1f", "" ); \
-		PASTEMAC(chr,fprintm)( stdout, "packm_var2: bp_r", *m_panel_max, *n_panel_max, \
-		                       ( ctype_r* )p_use,            rs_p, cs_p, "%4.1f", "" ); \
-		PASTEMAC(chr,fprintm)( stdout, "packm_var2: bp_i", *m_panel_max, *n_panel_max, \
-		                       ( ctype_r* )p_use + is_p_use, rs_p, cs_p, "%4.1f", "" ); \
-		} \
-		} \
-*/
-/*
 		PASTEMAC(chr,fprintm)( stdout, "packm_var2: bp_rpi", *m_panel_max, *n_panel_max, \
 		                       ( ctype_r* )p_use,         rs_p, cs_p, "%4.1f", "" ); \
 */
@@ -372,8 +349,8 @@ void PASTEMAC(ch,varname) \
 	   schema bit that encodes row or column is describing the form of
 	   micro-panel, not the storage in the micro-panel. Hence the
 	   mismatch in "row" and "column" semantics. */ \
-	bool_t col_stored = bli_is_col_packed( schema ); \
-	/*bool_t row_stored = bli_is_row_packed( schema );*/ \
+	bool col_stored = bli_is_col_packed( schema ); \
+	/*bool row_stored = bli_is_row_packed( schema );*/ \
 \
 	if ( col_stored ) \
 	{ \

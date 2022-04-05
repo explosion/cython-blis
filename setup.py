@@ -160,13 +160,16 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         # Try to detect which compiler flags are supported
         supports_znver1 = self.check_compiler_flag("znver1")
         supports_znver2 = self.check_compiler_flag("znver2")
+        supports_znver3 = self.check_compiler_flag("znver3")
         supports_skx = self.check_compiler_flag("skylake-avx512")
 
-        if supports_znver2 and supports_skx:
+        if supports_znver3 and supports_skx:
             return "x86_64"
+        elif supports_znver2 and supports_skx:
+            return "x86_64_no_zen3"
         elif supports_znver1 and supports_skx:
             return "x86_64_no_zen2"
-        elif supports_znver1 and not supports_skx:
+        elif not supports_znver1 or not supports_skx:
             return "x86_64_no_skx"
         else:
             return "generic"
