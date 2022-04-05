@@ -5,6 +5,68 @@ trigger:
     - '*'
 
 jobs:
+- job: 'JSONL'
+  # Manually enable for generating JSONL
+  condition: false
+  strategy:
+    matrix:
+      Python38Mac:
+        imageName: 'macos-latest'
+        python.version: '3.8'
+      Python38Windows:
+        imageName: 'windows-latest'
+        python.version: '3.8'
+    maxParallel: 4
+  pool:
+    vmImage: $(imageName)
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+      architecture: 'x64'
+
+  - script: choco install llvm
+    condition: eq( variables['Agent.OS'], 'Windows_NT')
+    displayName: 'Preinstall (Windows)'
+
+  - script: git config --global core.autocrlf false
+    displayName: 'Disable automatic crlf conversion'
+
+  - script: git submodule update --init --recursive
+    displayName: 'Update git modules'
+
+  - script: |
+      python -m pip install --upgrade pip wheel setuptools
+      pip install -r requirements.txt
+    displayName: 'Install dependencies'
+
+  # Set the correct paths and includes. Only the env variables set here are
+  # used, not the ones defined in the .jsonl.
+  - script: |
+      set "PATH=C:\Program Files\LLVM\bin;%PATH%"
+      set "AR=llvm-ar"
+      set "AS=llvm-as"
+      set "CC=clang"
+      set RANLIB=echo
+      call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+      clang --version
+      bash -lc "./bin/generate-make-jsonl windows generic --export"
+      bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
+    condition: eq( variables['Agent.OS'], 'Windows_NT')
+    displayName: 'Generate JSONL (Windows)'
+
+  - script: |
+      bin/generate-make-jsonl darwin generic --export
+      bin/generate-make-jsonl darwin x86_64 --export
+      bin/generate-make-jsonl darwin x86_64_no_zen3 --export
+      bin/generate-make-jsonl darwin x86_64_no_zen2 --export
+      bin/generate-make-jsonl darwin x86_64_no_skx --export
+    condition: eq(variables['Agent.OS'], 'Darwin')
+    displayName: 'Generate JSONL (Mac)'
+
+  - publish: $(System.DefaultWorkingDirectory)/artifacts
+    artifact: '$(Agent.JobName)'
+
 - job: 'Test'
   strategy:
     matrix:
@@ -82,7 +144,11 @@ jobs:
   # used, not the ones defined in the .jsonl.
   - script: |
       set "PATH=C:\Program Files\LLVM\bin;%PATH%"
-      set "INCLUDE=%$VC_INCLUDEPATH%"
+      set "AR=llvm-ar"
+      set "AS=llvm-as"
+      set "CC=clang"
+      set RANLIB=echo
+      call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
       clang --version
       python setup.py bdist_wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
