@@ -231,7 +231,8 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     spec["compiler"] = compiler
                 if platform == "windows":
                     spec["compiler"] = locate_windows_llvm()
-                spec["flags"] = [f for f in spec["flags"]]
+                if compiler is not None and "clang" in compiler :
+                    spec["flags"] = [f for f in spec["flags"] if "no-avx256-split-unaligned-store" not in f]
                 objects.append(self.build_object(env=env, **spec))
         return objects
 
