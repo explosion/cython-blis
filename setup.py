@@ -23,6 +23,19 @@ import sys
 import platform
 import numpy
 
+
+PLATFORM_ARCHS = {
+    "linux": {
+        "aarch64": "cortexa57",
+        "ppc64le": "power9",
+    },
+    "darwin": {"arm64": "firestorm"},
+    "windows": {
+        "ARM64": "generic",
+    },
+}
+
+
 MOD_NAMES = ["blis.cy", "blis.py"]
 
 print("BLIS_COMPILER?", os.environ.get("BLIS_COMPILER", "None"))
@@ -127,36 +140,27 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         shutil.rmtree(short_dir)
 
     def get_arch_name(self, platform_name):
+        platform_machine = platform.machine()
+
         # User-defined
         if "BLIS_ARCH" in os.environ:
             return os.environ["BLIS_ARCH"]
-        # Darwin: use "generic" (for now) for any non-x86_64
-        elif platform_name == "darwin":
-            if platform.machine() == "x86_64":
-                return "x86_64"
-            else:
-                return "generic"
-        # Windows: use "generic" (for now) for ARM64 and x86_64 for other platforms
-        elif platform_name == "windows":
-            if platform.machine() == "ARM64":
-                return "generic"
-            else:
-                return "x86_64"
 
-        # Everything else other than linux defaults to x86_64
-        elif not platform_name.startswith("linux"):
+        # Lookup
+        try:
+            return PLATFORM_ARCHS[platform_name][platform_machine]
+        except KeyError:
+            pass
+
+        # Windows has various names for x86_64 :(
+        if platform_name == "windows":
             return "x86_64"
 
-        # Linux
-        machine = platform.machine()
-        if machine == "aarch64":
-            return "cortexa57"
-        elif machine == "ppc64le":
-            return "power9"
-        elif machine != "x86_64":
+        # Unknown CPU architecture.
+        if platform_machine != "x86_64":
             return "generic"
 
-        # Linux x86_64
+        # Linux/Darwin x86_64
         # Try to detect which compiler flags are supported
         supports_znver1 = self.check_compiler_flag("znver1")
         supports_znver2 = self.check_compiler_flag("znver2")
