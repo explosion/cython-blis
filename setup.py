@@ -24,7 +24,7 @@ import platform
 import numpy
 
 
-PLATFORM_ARCHS = {
+PLATFORM_TO_ARCH = {
     "linux": {
         "aarch64": "cortexa57",
         "ppc64le": "power9",
@@ -148,7 +148,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
         # Lookup
         try:
-            return PLATFORM_ARCHS[platform_name][platform_machine]
+            return PLATFORM_TO_ARCH[platform_name][platform_machine]
         except KeyError:
             pass
 
