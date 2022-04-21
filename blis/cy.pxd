@@ -180,3 +180,12 @@ cdef void randv(
     dim_t m,
     reals_ft x, inc_t incx
 ) nogil
+
+
+cdef void sgemm(bint transA, bint transB, int M, int N, int K,
+                float alpha, const float* A, int lda, const float *B,
+                int ldb, float beta, float* C, int ldc) nogil
+
+
+cdef void saxpy(int N, float alpha, const float* X, int incX,
+                float *Y, int incY) nogil
