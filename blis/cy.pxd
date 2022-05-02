@@ -182,10 +182,19 @@ cdef void randv(
 ) nogil
 
 
+cdef void dgemm(bint transA, bint transB, int M, int N, int K,
+                double alpha, const double* A, int lda, const double* B,
+                int ldb, double beta, double* C, int ldc) nogil
+
+
 cdef void sgemm(bint transA, bint transB, int M, int N, int K,
-                float alpha, const float* A, int lda, const float *B,
+                float alpha, const float* A, int lda, const float* B,
                 int ldb, float beta, float* C, int ldc) nogil
 
 
+cdef void daxpy(int N, double alpha, const double* X, int incX,
+                double* Y, int incY) nogil
+
+
 cdef void saxpy(int N, float alpha, const float* X, int incX,
-                float *Y, int incY) nogil
+                float* Y, int incY) nogil
