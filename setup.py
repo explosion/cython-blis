@@ -26,7 +26,6 @@ import numpy
 
 PLATFORM_TO_ARCH = {
     "linux": {
-        "aarch64": "cortexa57",
         "ppc64le": "power9",
     },
     "darwin": {"arm64": "firestorm"},
@@ -156,6 +155,13 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         if platform_name == "windows":
             return "x86_64"
 
+        # Check if gcc/clang supports SVE.
+        if platform_name == "linux" and platform_machine == "aarch64":
+            if self.check_compiler_flag("armv8-a+sve") and self.check_header("arm_sve.h"):
+                return "arm64"
+            else:
+                return "arm64_no_sve"
+
         # Unknown CPU architecture.
         if platform_machine != "x86_64":
             return "generic"
@@ -193,6 +199,22 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
             supports_flag = False
         os.close(DEVNULL)
         return supports_flag
+
+    def check_header(self, header):
+        header_available = True
+        DEVNULL = os.open(os.devnull, os.O_RDWR)
+        try:
+            subprocess.check_call(
+                " ".join(self.compiler.compiler) + " -include {header} -E -xc - -o -".format(header=header),
+                stdin=DEVNULL,
+                stdout=DEVNULL,
+                stderr=DEVNULL,
+                shell=True
+            )
+        except Exception:
+            header_available = False
+        os.close(DEVNULL)
+        return header_available
 
     def get_compiler_name(self):
         if "BLIS_COMPILER" in os.environ:

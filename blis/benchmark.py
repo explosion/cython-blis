@@ -1,7 +1,7 @@
 # Copyright ExplsionAI GmbH, released under BSD.
 import numpy
 import numpy.random
-from .py import gemm, einsum
+from blis.py import gemm, einsum
 from timeit import default_timer as timer
 
 numpy.random.seed(0)
@@ -16,7 +16,7 @@ def create_data(nO, nI, batch_size):
 
 
 def get_numpy_blas():
-    blas_libs = numpy.__config__.blas_opt_info["libraries"]
+    blas_libs = numpy.__config__.blas_ilp64_opt_info["libraries"]
     return blas_libs[0]
 
 

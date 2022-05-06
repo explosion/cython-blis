@@ -1,3 +1,3 @@
 [submodule "flame-blis"]
 	path = flame-blis
-	url = https://github.com/explosion/blis
+	url = https://github.com/danieldk/blis

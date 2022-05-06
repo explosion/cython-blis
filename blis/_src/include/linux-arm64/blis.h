@@ -28,15 +28,22 @@ extern "C" {
 #define BLIS_CONFIG_H
 
 // Enabled configuration "family" (config_name)
-#define BLIS_FAMILY_CORTEXA57
+#define BLIS_FAMILY_ARM64
 
 
 // Enabled sub-configurations (config_list)
+#define BLIS_CONFIG_ARMSVE
+#define BLIS_CONFIG_FIRESTORM
+#define BLIS_CONFIG_THUNDERX2
 #define BLIS_CONFIG_CORTEXA57
+#define BLIS_CONFIG_CORTEXA53
+#define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
+#define BLIS_KERNELS_ARMSVE
 #define BLIS_KERNELS_ARMV8A
+#define BLIS_KERNELS_GENERIC
 
 
 #if 1
@@ -20834,7 +20841,33 @@ CNTX_INIT_PROTS( generic )
 
 // -- ARM families --
 #ifdef BLIS_FAMILY_ARM64
-#include "bli_family_arm64.h" // skipped
+// begin bli_family_arm64.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE 16
+#define BLIS_SIMD_MAX_NUM_REGISTERS 32
+
+// SVE-specific configs.
+#define N_L1_SVE_DEFAULT 64
+#define W_L1_SVE_DEFAULT 4
+#define C_L1_SVE_DEFAULT 256
+#define N_L2_SVE_DEFAULT 2048
+#define W_L2_SVE_DEFAULT 16
+#define C_L2_SVE_DEFAULT 256
+#define N_L3_SVE_DEFAULT 8192
+#define W_L3_SVE_DEFAULT 16
+#define C_L3_SVE_DEFAULT 256
+
+
+//#endif
+
+// end bli_family_arm64.h
 #endif
 #ifdef BLIS_FAMILY_ARM32
 #include "bli_family_arm32.h" // skipped
@@ -20843,16 +20876,97 @@ CNTX_INIT_PROTS( generic )
 // -- ARM architectures --
 
 #ifdef BLIS_FAMILY_ARMSVE
-#include "bli_family_armsve.h" // skipped
+// begin bli_family_armsve.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE        256
+#define BLIS_SIMD_MAX_NUM_REGISTERS 32
+
+// SVE-specific configs.
+#define N_L1_SVE_DEFAULT 64
+#define W_L1_SVE_DEFAULT 4
+#define C_L1_SVE_DEFAULT 256
+#define N_L2_SVE_DEFAULT 2048
+#define W_L2_SVE_DEFAULT 16
+#define C_L2_SVE_DEFAULT 256
+#define N_L3_SVE_DEFAULT 8192
+#define W_L3_SVE_DEFAULT 16
+#define C_L3_SVE_DEFAULT 256
+
+//#endif
+
+// end bli_family_armsve.h
 #endif
 #ifdef BLIS_FAMILY_A64FX
 #include "bli_family_a64fx.h" // skipped
 #endif
 #ifdef BLIS_FAMILY_FIRESTORM
-#include "bli_family_firestorm.h" // skipped
+// begin bli_family_firestorm.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE           16
+
+
+#if 0
+// -- LEVEL-3 MICRO-KERNEL CONSTANTS -------------------------------------------
+
+#define BLIS_SGEMM_UKERNEL             bli_sgemm_opt_8x12
+#define BLIS_DEFAULT_MR_S              8
+#define BLIS_DEFAULT_NR_S              12
+#define BLIS_DEFAULT_MC_S              120 //1536 //336 //416 // 1280 //160 // 160 // 160 //2048 //336 
+#define BLIS_DEFAULT_KC_S              640 //1536 //336 //704 //1280 //672 //528 // 856 //2048 //528 
+#define BLIS_DEFAULT_NC_S              3072
+
+#define BLIS_DGEMM_UKERNEL             bli_dgemm_opt_6x8
+#define BLIS_DEFAULT_MR_D              6
+#define BLIS_DEFAULT_NR_D              8
+#define BLIS_DEFAULT_MC_D              120 //1536 //160 //80 //176 
+#define BLIS_DEFAULT_KC_D              240 //1536 //304 //336 //368 
+#define BLIS_DEFAULT_NC_D              3072
+
+#define BLIS_DEFAULT_MR_C              8
+#define BLIS_DEFAULT_NR_C              4
+#define BLIS_DEFAULT_MC_C              64
+#define BLIS_DEFAULT_KC_C              128
+#define BLIS_DEFAULT_NC_C              4096
+
+#define BLIS_DEFAULT_MR_Z              8
+#define BLIS_DEFAULT_NR_Z              4
+#define BLIS_DEFAULT_MC_Z              64
+#define BLIS_DEFAULT_KC_Z              128
+#define BLIS_DEFAULT_NC_Z              4096
+#endif
+
+
+//#endif
+
+// end bli_family_firestorm.h
 #endif
 #ifdef BLIS_FAMILY_THUNDERX2
-#include "bli_family_thunderx2.h" // skipped
+// begin bli_family_thunderx2.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE           16
+
+// end bli_family_thunderx2.h
 #endif
 #ifdef BLIS_FAMILY_CORTEXA57
 // begin bli_family_cortexa57.h
@@ -20903,7 +21017,16 @@ CNTX_INIT_PROTS( generic )
 // end bli_family_cortexa57.h
 #endif
 #ifdef BLIS_FAMILY_CORTEXA53
-#include "bli_family_cortexa53.h" // skipped
+// begin bli_family_cortexa53.h
+
+
+
+// -- MEMORY ALLOCATION --------------------------------------------------------
+
+#define BLIS_SIMD_ALIGN_SIZE           16
+
+
+// end bli_family_cortexa53.h
 #endif
 #ifdef BLIS_FAMILY_CORTEXA15
 #include "bli_family_cortexa15.h" // skipped
@@ -20933,7 +21056,18 @@ CNTX_INIT_PROTS( generic )
 // -- Generic --
 
 #ifdef BLIS_FAMILY_GENERIC
-#include "bli_family_generic.h" // skipped
+// begin bli_family_generic.h
+
+
+//#ifndef BLIS_FAMILY_H
+//#define BLIS_FAMILY_H
+
+
+
+
+//#endif
+
+// end bli_family_generic.h
 #endif
 
 
@@ -20985,7 +21119,40 @@ CNTX_INIT_PROTS( generic )
 // -- ARM architectures --
 
 #ifdef BLIS_KERNELS_ARMSVE
-#include "bli_kernels_armsve.h" // skipped
+// begin bli_kernels_armsve.h
+
+// begin ./3/bli_armsve_utils.h
+
+// skipped #include "blis.h" 
+
+dim_t bli_vl_bytes_armsve(void);
+
+void bli_s_blksz_armsve(dim_t *m_r_, dim_t *n_r_, dim_t *k_c_, dim_t *m_c_, dim_t *n_c_);
+void bli_d_blksz_armsve(dim_t *m_r_, dim_t *n_r_, dim_t *k_c_, dim_t *m_c_, dim_t *n_c_);
+void bli_c_blksz_armsve(dim_t *m_r_, dim_t *n_r_, dim_t *k_c_, dim_t *m_c_, dim_t *n_c_);
+void bli_z_blksz_armsve(dim_t *m_r_, dim_t *n_r_, dim_t *k_c_, dim_t *m_c_, dim_t *n_c_);
+
+// end ./3/bli_armsve_utils.h
+
+// GEMM_UKR_PROT( double,   d, gemm_armsve256_asm_8x8 )
+GEMM_UKR_PROT( double,   d, gemm_armsve_asm_2vx10_unindexed )
+GEMM_UKR_PROT( float,    s, gemm_armsve_asm_2vx10_unindexed )
+GEMM_UKR_PROT( scomplex, c, gemm_armsve_asm_2vx10_unindexed )
+GEMM_UKR_PROT( dcomplex, z, gemm_armsve_asm_2vx10_unindexed )
+// GEMM_UKR_PROT( dcomplex, z, gemm_armsve_asm_2vx8_unindexed )
+// GEMM_UKR_PROT( dcomplex, z, gemm_armsve_asm_2vx7_unindexed )
+//GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armsve_2vx10_unindexed )
+//GEMMSUP_KER_PROT( double,   d, gemmsup_cv_armsve_2vx10_unindexed )
+//GEMMSUP_KER_PROT( double,   d, gemmsup_rv_armsve_10x2v_unindexed )
+
+// Use SVE intrinsics only for referred cases.
+#if !defined(BLIS_FAMILY_A64FX)
+PACKM_KER_PROT( double,   d, packm_armsve256_int_8xk )
+PACKM_KER_PROT( double,   d, packm_armsve512_int_12xk )
+#endif
+PACKM_KER_PROT( double,   d, packm_armsve512_asm_16xk )
+PACKM_KER_PROT( double,   d, packm_armsve512_asm_10xk )
+// end bli_kernels_armsve.h
 #endif
 #ifdef BLIS_KERNELS_ARMV8A
 // begin bli_kernels_armv8a.h
@@ -39891,15 +40058,22 @@ BLIS_EXPORT_BLAS void PASTEF770(bli_thread_set_num_threads)
 #define BLIS_CONFIG_H
 
 // Enabled configuration "family" (config_name)
-#define BLIS_FAMILY_CORTEXA57
+#define BLIS_FAMILY_ARM64
 
 
 // Enabled sub-configurations (config_list)
+#define BLIS_CONFIG_ARMSVE
+#define BLIS_CONFIG_FIRESTORM
+#define BLIS_CONFIG_THUNDERX2
 #define BLIS_CONFIG_CORTEXA57
+#define BLIS_CONFIG_CORTEXA53
+#define BLIS_CONFIG_GENERIC
 
 
 // Enabled kernel sets (kernel_list)
+#define BLIS_KERNELS_ARMSVE
 #define BLIS_KERNELS_ARMV8A
+#define BLIS_KERNELS_GENERIC
 
 
 #if 1
