@@ -157,7 +157,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
         # Check if gcc/clang supports SVE.
         if platform_name == "linux" and platform_machine == "aarch64":
-            if self.check_compiler_flag("armv8-a+sve") and self.check_header("arm_sve.h"):
+            if self.check_compiler_arch("armv8-a+sve") and self.check_header("arm_sve.h"):
                 return "arm64"
             else:
                 return "arm64_no_sve"
@@ -168,10 +168,10 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
 
         # Linux/Darwin x86_64
         # Try to detect which compiler flags are supported
-        supports_znver1 = self.check_compiler_flag("znver1")
-        supports_znver2 = self.check_compiler_flag("znver2")
-        supports_znver3 = self.check_compiler_flag("znver3")
-        supports_skx = self.check_compiler_flag("skylake-avx512")
+        supports_znver1 = self.check_compiler_arch("znver1")
+        supports_znver2 = self.check_compiler_arch("znver2")
+        supports_znver3 = self.check_compiler_arch("znver3")
+        supports_skx = self.check_compiler_arch("skylake-avx512")
 
         if supports_znver3 and supports_skx:
             return "x86_64"
@@ -184,12 +184,12 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         else:
             return "generic"
 
-    def check_compiler_flag(self, flag):
+    def _check_compiler_flag(self, flag):
         supports_flag = True
         DEVNULL = os.open(os.devnull, os.O_RDWR)
         try:
             subprocess.check_call(
-                " ".join(self.compiler.compiler) + " -march={flag} -E -xc - -o -".format(flag=flag),
+                " ".join(self.compiler.compiler) + " {flag} -E -xc - -o -".format(flag=flag),
                 stdin=DEVNULL,
                 stdout=DEVNULL,
                 stderr=DEVNULL,
@@ -200,21 +200,12 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         os.close(DEVNULL)
         return supports_flag
 
+
+    def check_compiler_arch(self, arch):
+        return self._check_compiler_flag("-march={arch}".format(arch=arch))
+
     def check_header(self, header):
-        header_available = True
-        DEVNULL = os.open(os.devnull, os.O_RDWR)
-        try:
-            subprocess.check_call(
-                " ".join(self.compiler.compiler) + " -include {header} -E -xc - -o -".format(header=header),
-                stdin=DEVNULL,
-                stdout=DEVNULL,
-                stderr=DEVNULL,
-                shell=True
-            )
-        except Exception:
-            header_available = False
-        os.close(DEVNULL)
-        return header_available
+        return self._check_compiler_flag("-include {header}".format(header=header))
 
     def get_compiler_name(self):
         if "BLIS_COMPILER" in os.environ:
