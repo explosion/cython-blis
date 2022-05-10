@@ -1,3 +1,4 @@
+
 #ifndef CBLAS_H
 #define CBLAS_H
 #include <stddef.h>
@@ -574,6 +575,98 @@ void BLIS_EXPORT_BLAS cblas_zher2k(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
                   void *C, f77_int ldc);
 
 void BLIS_EXPORT_BLAS cblas_xerbla(f77_int p, const char *rout, const char *form, ...);
+
+
+/*
+ * ===========================================================================
+ * BLAS Extension prototypes
+ * ===========================================================================
+ */
+
+// -- APIs to operations unique to BLIS --
+
+void BLIS_EXPORT_BLAS cblas_saxpby(f77_int N, float alpha, const float *X,
+                 f77_int incX, float beta, float *Y, f77_int incY);
+void BLIS_EXPORT_BLAS cblas_daxpby(f77_int N, double alpha, const double *X,
+                 f77_int incX, double beta, double *Y, f77_int incY);
+void BLIS_EXPORT_BLAS cblas_caxpby(f77_int N, const void *alpha,
+                const void *X, f77_int incX, const void* beta,
+                void *Y, f77_int incY);
+void BLIS_EXPORT_BLAS cblas_zaxpby(f77_int N, const void *alpha,
+                const void *X, f77_int incX, const void *beta,
+                void *Y, f77_int incY);
+
+// -- APIs to level-3-like operations --
+
+void BLIS_EXPORT_BLAS cblas_sgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+                 enum CBLAS_TRANSPOSE TransA, enum CBLAS_TRANSPOSE TransB,
+                 f77_int N, f77_int K, float alpha, const float *A,
+                 f77_int lda, const float *B, f77_int ldb,
+                 float beta, float *C, f77_int ldc);
+void BLIS_EXPORT_BLAS cblas_dgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+                 enum CBLAS_TRANSPOSE TransA, enum CBLAS_TRANSPOSE TransB,
+                 f77_int N, f77_int K, double alpha, const double *A,
+                 f77_int lda, const double *B, f77_int ldb,
+                 double beta, double *C, f77_int ldc);
+void BLIS_EXPORT_BLAS cblas_cgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+                 enum CBLAS_TRANSPOSE TransA, enum CBLAS_TRANSPOSE TransB,
+                 f77_int N, f77_int K, const void *alpha, const void *A,
+                 f77_int lda, const void *B, f77_int ldb,
+                 const void *beta, void *C, f77_int ldc);
+void BLIS_EXPORT_BLAS cblas_zgemmt(enum CBLAS_ORDER Order, enum CBLAS_UPLO Uplo,
+                 enum CBLAS_TRANSPOSE TransA, enum CBLAS_TRANSPOSE TransB,
+                 f77_int N, f77_int K, const void *alpha, const void *A,
+                 f77_int lda, const void *B, f77_int ldb,
+                 const void *beta, void *C, f77_int ldc);
+
+// -- Batch APIs --
+
+void BLIS_EXPORT_BLAS cblas_sgemm_batch(enum CBLAS_ORDER Order,
+                 enum CBLAS_TRANSPOSE *TransA_array,
+                 enum CBLAS_TRANSPOSE *TransB_array,
+                 f77_int *M_array, f77_int *N_array,
+                 f77_int *K_array, const float *alpha_array, const float **A,
+                 f77_int *lda_array, const float **B, f77_int *ldb_array,
+                 const float *beta_array, float **C, f77_int *ldc_array,
+                 f77_int group_count, f77_int *group_size);
+void BLIS_EXPORT_BLAS cblas_dgemm_batch(enum CBLAS_ORDER Order,
+                 enum CBLAS_TRANSPOSE *TransA_array,
+                 enum CBLAS_TRANSPOSE *TransB_array,
+                 f77_int *M_array, f77_int *N_array,
+                 f77_int *K_array, const double *alpha_array,
+                 const double **A,f77_int *lda_array,
+                 const double **B, f77_int *ldb_array,
+                 const double *beta_array, double **C, f77_int *ldc_array,
+                 f77_int group_count, f77_int *group_size);
+void BLIS_EXPORT_BLAS cblas_cgemm_batch(enum CBLAS_ORDER Order,
+                 enum CBLAS_TRANSPOSE *TransA_array,
+                 enum CBLAS_TRANSPOSE *TransB_array,
+                 f77_int *M_array, f77_int *N_array,
+                 f77_int *K_array, const void *alpha_array, const void **A,
+                 f77_int *lda_array, const void **B, f77_int *ldb_array,
+                 const void *beta_array, void **C, f77_int *ldc_array,
+                 f77_int group_count, f77_int *group_size);
+void BLIS_EXPORT_BLAS cblas_zgemm_batch(enum CBLAS_ORDER Order,
+                 enum CBLAS_TRANSPOSE *TransA_array,
+                 enum CBLAS_TRANSPOSE *TransB_array,
+                 f77_int *M_array, f77_int *N_array,
+                 f77_int *K_array, const void *alpha_array, const void **A,
+                 f77_int *lda_array, const void **B, f77_int *ldb_array,
+                 const void *beta_array, void **C, f77_int *ldc_array,
+                 f77_int group_count, f77_int *group_size);
+
+// -- 3m APIs --
+
+void BLIS_EXPORT_BLAS cblas_cgemm3m(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
+                 enum CBLAS_TRANSPOSE TransB, f77_int M, f77_int N,
+                 f77_int K, const void *alpha, const void *A,
+                 f77_int lda, const void *B, f77_int ldb,
+                 const void *beta, void *C, f77_int ldc);
+void BLIS_EXPORT_BLAS cblas_zgemm3m(enum CBLAS_ORDER Order, enum CBLAS_TRANSPOSE TransA,
+                 enum CBLAS_TRANSPOSE TransB, f77_int M, f77_int N,
+                 f77_int K, const void *alpha, const void *A,
+                 f77_int lda, const void *B, f77_int ldb,
+                 const void *beta, void *C, f77_int ldc);
 
 #ifdef __cplusplus
 }

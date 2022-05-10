@@ -42,7 +42,7 @@ thrinfo_t* bli_thrinfo_create
        dim_t      ocomm_id,
        dim_t      n_way,
        dim_t      work_id, 
-       bool_t     free_comm,
+       bool       free_comm,
        bszid_t    bszid,
        thrinfo_t* sub_node
      )
@@ -73,7 +73,7 @@ void bli_thrinfo_init
        dim_t      ocomm_id,
        dim_t      n_way,
        dim_t      work_id, 
-       bool_t     free_comm,
+       bool       free_comm,
        bszid_t    bszid,
        thrinfo_t* sub_node
      )
@@ -298,6 +298,24 @@ thrinfo_t* bli_thrinfo_create_for_cntl
        thrinfo_t* thread_par
      )
 {
+	// If we are running with a single thread, all of the code can be reduced
+	// and simplified to this.
+	if ( bli_rntm_calc_num_threads( rntm ) == 1 )
+	{
+		thrinfo_t* thread_chl = bli_thrinfo_create
+		(
+		  rntm,                        // rntm
+		  &BLIS_SINGLE_COMM,           // ocomm
+		  0,                           // ocomm_id
+		  1,                           // n_way
+		  0,                           // work_id
+		  FALSE,                       // free_comm
+		  BLIS_NO_PART,                // bszid
+		  NULL                         // sub_node
+		);
+		return thread_chl;
+	}
+
 	thrcomm_t*  static_comms[ BLIS_NUM_STATIC_COMMS ];
 	thrcomm_t** new_comms = NULL;
 
@@ -332,8 +350,10 @@ thrinfo_t* bli_thrinfo_create_for_cntl
 	// pointers.
 	if ( bli_thread_am_ochief( thread_par ) )
 	{
+		err_t r_val;
+
 		if ( parent_n_way > BLIS_NUM_STATIC_COMMS )
-			new_comms = bli_malloc_intl( parent_n_way * sizeof( thrcomm_t* ) );
+			new_comms = bli_malloc_intl( parent_n_way * sizeof( thrcomm_t* ), &r_val );
 		else
 			new_comms = static_comms;
 	}

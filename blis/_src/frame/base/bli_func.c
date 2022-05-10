@@ -44,8 +44,9 @@ func_t* bli_func_create
      )
 {
 	func_t* f;
+	err_t r_val;
 
-	f = ( func_t* ) bli_malloc_intl( sizeof(func_t) );
+	f = ( func_t* )bli_malloc_intl( sizeof( func_t ), &r_val );
 
 	bli_func_init
 	(
@@ -92,16 +93,16 @@ void bli_func_free( func_t* f )
 
 // -----------------------------------------------------------------------------
 
-bool_t bli_func_is_null_dt( num_t   dt,
-                            func_t* f )
+bool bli_func_is_null_dt( num_t   dt,
+                          func_t* f )
 {
 	return ( bli_func_get_dt( dt, f ) == NULL );
 }
 
-bool_t bli_func_is_null( func_t* f )
+bool bli_func_is_null( func_t* f )
 {
-	bool_t r_val = TRUE;
-	num_t  dt;
+	bool  r_val = TRUE;
+	num_t dt;
 
 	// Iterate over all floating-point datatypes. If any is non-null,
 	// return FALSE. Otherwise, if they are all null, return TRUE.

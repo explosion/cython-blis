@@ -40,14 +40,21 @@
 
 // -- Conventional (large code path) values --
 
+// These BLIS_THREAD_RATIO_? macros distort the amount of work in the m and n
+// dimensions for the purposes of factorizing the total number of threads into
+// ways of parallelism in the ic and jc loops. See bli_rntm.c to see how these
+// macros are used.
 #ifndef BLIS_THREAD_RATIO_M
-#define BLIS_THREAD_RATIO_M     2
+#define BLIS_THREAD_RATIO_M     1
 #endif
 
 #ifndef BLIS_THREAD_RATIO_N
 #define BLIS_THREAD_RATIO_N     1
 #endif
 
+// These BLIS_THREAD_MAX_?R macros place a ceiling on the maximum amount of
+// parallelism allowed when performing automatic factorization. See bli_rntm.c
+// to see how these macros are used.
 #ifndef BLIS_THREAD_MAX_IR
 #define BLIS_THREAD_MAX_IR      1
 #endif
@@ -156,21 +163,21 @@
 // When configuring with umbrella configuration families, this should be
 // set to the maximum number of registers across all sub-configurations in
 // the family.
-#ifndef BLIS_SIMD_NUM_REGISTERS
-#define BLIS_SIMD_NUM_REGISTERS          32
+#ifndef BLIS_SIMD_MAX_NUM_REGISTERS
+#define BLIS_SIMD_MAX_NUM_REGISTERS      32
 #endif
 
 // The maximum size (in bytes) of each SIMD vector.
 // When configuring with umbrella configuration families, this should be
 // set to the maximum SIMD size across all sub-configurations in the family.
-#ifndef BLIS_SIMD_SIZE
-#define BLIS_SIMD_SIZE                   64
+#ifndef BLIS_SIMD_MAX_SIZE
+#define BLIS_SIMD_MAX_SIZE               64
 #endif
 
 // Alignment size (in bytes) needed by the instruction set for aligned
 // SIMD/vector instructions.
 #ifndef BLIS_SIMD_ALIGN_SIZE
-#define BLIS_SIMD_ALIGN_SIZE             BLIS_SIMD_SIZE
+#define BLIS_SIMD_ALIGN_SIZE             BLIS_SIMD_MAX_SIZE
 #endif
 
 // The maximum size in bytes of local stack buffers within macro-kernel
@@ -181,8 +188,8 @@
 // micro-tile footprint, even though the virtual micro-kernels will only
 // ever be writing to half (real or imaginary part) at a time.
 #ifndef BLIS_STACK_BUF_MAX_SIZE
-#define BLIS_STACK_BUF_MAX_SIZE          ( BLIS_SIMD_NUM_REGISTERS * \
-                                           BLIS_SIMD_SIZE * 2 )
+#define BLIS_STACK_BUF_MAX_SIZE          ( BLIS_SIMD_MAX_NUM_REGISTERS * \
+                                           BLIS_SIMD_MAX_SIZE * 2 )
 #endif
 
 // Alignment size used to align local stack buffers within macro-kernel

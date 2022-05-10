@@ -33,14 +33,42 @@
 
 */
 
-#include "blis.h"
+#ifdef BLIS_CONFIGURETIME_CPUID
+
+  // NOTE: If you need to make any changes to this cpp branch, it's probably
+  // the case that you also need to modify bli_arch.c, bli_cpuid.c, and
+  // bli_env.c. Don't forget to update these other files as needed!
+
+  // The BLIS_ENABLE_SYSTEM macro must be defined so that the correct cpp
+  // branch in bli_system.h is processed. (This macro is normally defined in
+  // bli_config.h.)
+  #define BLIS_ENABLE_SYSTEM
+
+  // Use C-style static inline functions for any static inline functions that
+  // happen to be defined by the headers below. (This macro is normally defined
+  // in bli_config_macro_defs.h.)
+  #define BLIS_INLINE static
+
+  // Since we're not building a shared library, we can forgo the use of the
+  // BLIS_EXPORT_BLIS annotations by #defining them to be nothing. (This macro
+  // is normally defined in bli_config_macro_defs.h.)
+  #define BLIS_EXPORT_BLIS
+
+  #include "bli_system.h"
+  #include "bli_type_defs.h"
+  //#include "bli_arch.h"
+  //#include "bli_cpuid.h"
+  #include "bli_env.h"
+#else
+  #include "blis.h"
+#endif
 
 // -----------------------------------------------------------------------------
 
-dim_t bli_env_get_var( const char* env, dim_t fallback )
+gint_t bli_env_get_var( const char* env, gint_t fallback )
 {
-	dim_t r_val;
-	char* str;
+	gint_t r_val;
+	char*  str;
 
 	// Query the environment variable and store the result in str.
 	str = getenv( env );
@@ -50,7 +78,7 @@ dim_t bli_env_get_var( const char* env, dim_t fallback )
 	{
 		// If there was no error, convert the string to an integer and
 		// prepare to return that integer.
-		r_val = strtol( str, NULL, 10 );
+		r_val = ( gint_t )strtol( str, NULL, 10 );
 	}
 	else
 	{
@@ -62,6 +90,10 @@ dim_t bli_env_get_var( const char* env, dim_t fallback )
 }
 
 #if 0
+#ifdef _MSC_VER
+#define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
+#endif
+
 void bli_env_set_var( const char* env, dim_t value )
 {
 	dim_t       r_val;

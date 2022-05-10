@@ -63,35 +63,39 @@
 
 // Determine if we are on a 64-bit or 32-bit architecture.
 #if defined(_M_X64) || defined(__x86_64) || defined(__aarch64__) || \
-    defined(_ARCH_PPC64)
+    defined(_ARCH_PPC64) || defined(__s390x__) || defined(_LP64)
   #define BLIS_ARCH_64
 #else
   #define BLIS_ARCH_32
 #endif
 
 // Determine the target operating system.
-#if defined(_WIN32) || defined(__CYGWIN__)
-  #define BLIS_OS_WINDOWS 1
-#elif defined(__gnu_hurd__)
-  #define BLIS_OS_GNU 1
-#elif defined(__APPLE__) || defined(__MACH__)
-  #define BLIS_OS_OSX 1
-#elif defined(__ANDROID__)
-  #define BLIS_OS_ANDROID 1
-#elif defined(__linux__)
-  #define BLIS_OS_LINUX 1
-#elif defined(__bgq__)
-  #define BLIS_OS_BGQ 1
-#elif defined(__bg__)
-  #define BLIS_OS_BGP 1
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
-      defined(__bsdi__) || defined(__DragonFly__) || \
-      defined(__FreeBSD_kernel__) || defined(__HAIKU__)
-  #define BLIS_OS_BSD 1
-#elif defined(EMSCRIPTEN)
-  #define BLIS_OS_EMSCRIPTEN
-#else
-  #error "Cannot determine operating system"
+#if defined(BLIS_ENABLE_SYSTEM)
+  #if defined(_WIN32) || defined(__CYGWIN__)
+    #define BLIS_OS_WINDOWS 1
+  #elif defined(__gnu_hurd__)
+    #define BLIS_OS_GNU 1
+  #elif defined(__APPLE__) || defined(__MACH__)
+    #define BLIS_OS_OSX 1
+  #elif defined(__ANDROID__)
+    #define BLIS_OS_ANDROID 1
+  #elif defined(__linux__)
+    #define BLIS_OS_LINUX 1
+  #elif defined(__bgq__)
+    #define BLIS_OS_BGQ 1
+  #elif defined(__bg__)
+    #define BLIS_OS_BGP 1
+  #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
+        defined(__bsdi__) || defined(__DragonFly__) || \
+        defined(__FreeBSD_kernel__) || defined(__HAIKU__)
+    #define BLIS_OS_BSD 1
+  #elif defined(EMSCRIPTEN)
+    #define BLIS_OS_EMSCRIPTEN
+  #else
+    #error "Cannot determine operating system"
+  #endif
+#else // #if defined(BLIS_DISABLE_SYSTEM)
+  #define BLIS_OS_NONE
 #endif
 
 // A few changes that may be necessary in Windows environments.
@@ -122,11 +126,6 @@
 
   #include <time.h>
 #endif
-
-// POSIX threads are unconditionally required, regardless of whether
-// multithreading is enabled via pthreads or OpenMP (or disabled).
-// If pthreads is not available (Windows), then fake it.
-//#include "bli_pthread_wrap.h"
 
 
 #endif

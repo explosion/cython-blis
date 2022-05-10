@@ -54,8 +54,8 @@ gint_t bli_info_get_int_type_size( void )             { return BLIS_INT_TYPE_SIZ
 gint_t bli_info_get_num_fp_types( void )              { return BLIS_NUM_FP_TYPES; }
 gint_t bli_info_get_max_type_size( void )             { return BLIS_MAX_TYPE_SIZE; }
 gint_t bli_info_get_page_size( void )                 { return BLIS_PAGE_SIZE; }
-gint_t bli_info_get_simd_num_registers( void )        { return BLIS_SIMD_NUM_REGISTERS; }
-gint_t bli_info_get_simd_size( void )                 { return BLIS_SIMD_SIZE; }
+gint_t bli_info_get_simd_num_registers( void )        { return BLIS_SIMD_MAX_NUM_REGISTERS; }
+gint_t bli_info_get_simd_size( void )                 { return BLIS_SIMD_MAX_SIZE; }
 gint_t bli_info_get_simd_align_size( void )           { return BLIS_SIMD_ALIGN_SIZE; }
 gint_t bli_info_get_stack_buf_max_size( void )        { return BLIS_STACK_BUF_MAX_SIZE; }
 gint_t bli_info_get_stack_buf_align_size( void )      { return BLIS_STACK_BUF_ALIGN_SIZE; }
@@ -69,14 +69,6 @@ gint_t bli_info_get_pool_addr_offset_size_a( void )   { return BLIS_POOL_ADDR_OF
 gint_t bli_info_get_pool_addr_offset_size_b( void )   { return BLIS_POOL_ADDR_OFFSET_SIZE_B; }
 gint_t bli_info_get_pool_addr_offset_size_c( void )   { return BLIS_POOL_ADDR_OFFSET_SIZE_C; }
 gint_t bli_info_get_pool_addr_offset_size_gen( void ) { return BLIS_POOL_ADDR_OFFSET_SIZE_GEN; }
-gint_t bli_info_get_enable_stay_auto_init( void )
-{
-#ifdef BLIS_ENABLE_STAY_AUTO_INITIALIZED
-	return 1;
-#else
-	return 0;
-#endif
-}
 gint_t bli_info_get_enable_blas( void )
 {
 #ifdef BLIS_ENABLE_BLAS
@@ -188,12 +180,13 @@ char* bli_info_get_trsm_u_ukr_impl_string( ind_t method, num_t dt )
 // -- BLIS implementation query (level-3) --------------------------------------
 
 char* bli_info_get_gemm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_GEMM,  dt ); }
+char* bli_info_get_gemmt_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
 char* bli_info_get_hemm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_HEMM,  dt ); }
-char* bli_info_get_herk_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_HERK,  dt ); }
-char* bli_info_get_her2k_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_HER2K, dt ); }
+char* bli_info_get_herk_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
+char* bli_info_get_her2k_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
 char* bli_info_get_symm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_SYMM,  dt ); }
-char* bli_info_get_syrk_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_SYRK,  dt ); }
-char* bli_info_get_syr2k_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_SYR2K, dt ); }
+char* bli_info_get_syrk_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
+char* bli_info_get_syr2k_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
 char* bli_info_get_trmm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_TRMM,  dt ); }
 char* bli_info_get_trmm3_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_TRMM3, dt ); }
 char* bli_info_get_trsm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_TRSM,  dt ); }

@@ -6,7 +6,7 @@
 
    Copyright (C) 2014, The University of Texas at Austin
    Copyright (C) 2016, Hewlett Packard Enterprise Development LP
-   Copyright (C) 2019, Advanced Micro Devices, Inc.
+   Copyright (C) 2019 - 2020, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -42,6 +42,7 @@
 //
 
 // -- Intel64 architectures --
+
 #ifdef BLIS_CONFIG_SKX
 CNTX_INIT_PROTS( skx )
 #endif
@@ -62,6 +63,10 @@ CNTX_INIT_PROTS( penryn )
 #endif
 
 // -- AMD64 architectures --
+
+#ifdef BLIS_CONFIG_ZEN3
+CNTX_INIT_PROTS( zen3 )
+#endif
 #ifdef BLIS_CONFIG_ZEN2
 CNTX_INIT_PROTS( zen2 )
 #endif
@@ -83,6 +88,15 @@ CNTX_INIT_PROTS( bulldozer )
 
 // -- ARM architectures --
 
+#ifdef BLIS_CONFIG_ARMSVE
+CNTX_INIT_PROTS( armsve )
+#endif
+#ifdef BLIS_CONFIG_A64FX
+CNTX_INIT_PROTS( a64fx )
+#endif
+#ifdef BLIS_CONFIG_FIRESTORM
+CNTX_INIT_PROTS( firestorm )
+#endif
 #ifdef BLIS_CONFIG_THUNDERX2
 CNTX_INIT_PROTS( thunderx2 )
 #endif
@@ -101,6 +115,9 @@ CNTX_INIT_PROTS( cortexa9 )
 
 // -- IBM Power --
 
+#ifdef BLIS_CONFIG_POWER10
+CNTX_INIT_PROTS( power10 )
+#endif
 #ifdef BLIS_CONFIG_POWER9
 CNTX_INIT_PROTS( power9 )
 #endif
@@ -133,6 +150,9 @@ CNTX_INIT_PROTS( generic )
 #ifdef BLIS_FAMILY_AMD64
 #include "bli_family_amd64.h"
 #endif
+#ifdef BLIS_FAMILY_AMD64_LEGACY
+#include "bli_family_amd64_legacy.h"
+#endif
 #ifdef BLIS_FAMILY_X86_64
 #include "bli_family_x86_64.h"
 #endif
@@ -141,7 +161,16 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_x86_64_no_skx.h"
 #endif
 
+#ifdef BLIS_FAMILY_X86_64_NO_ZEN2
+#include "bli_family_x86_64_no_zen2.h"
+#endif
+
+#ifdef BLIS_FAMILY_X86_64_NO_ZEN3
+#include "bli_family_x86_64_no_zen3.h"
+#endif
+
 // -- Intel64 architectures --
+
 #ifdef BLIS_FAMILY_SKX
 #include "bli_family_skx.h"
 #endif
@@ -163,6 +192,9 @@ CNTX_INIT_PROTS( generic )
 
 // -- AMD64 architectures --
 
+#ifdef BLIS_FAMILY_ZEN3
+#include "bli_family_zen3.h"
+#endif
 #ifdef BLIS_FAMILY_ZEN2
 #include "bli_family_zen2.h"
 #endif
@@ -182,8 +214,25 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_bulldozer.h"
 #endif
 
+// -- ARM families --
+#ifdef BLIS_FAMILY_ARM64
+#include "bli_family_arm64.h"
+#endif
+#ifdef BLIS_FAMILY_ARM32
+#include "bli_family_arm32.h"
+#endif
+
 // -- ARM architectures --
 
+#ifdef BLIS_FAMILY_ARMSVE
+#include "bli_family_armsve.h"
+#endif
+#ifdef BLIS_FAMILY_A64FX
+#include "bli_family_a64fx.h"
+#endif
+#ifdef BLIS_FAMILY_FIRESTORM
+#include "bli_family_firestorm.h"
+#endif
 #ifdef BLIS_FAMILY_THUNDERX2
 #include "bli_family_thunderx2.h"
 #endif
@@ -202,6 +251,9 @@ CNTX_INIT_PROTS( generic )
 
 // -- IBM Power --
 
+#ifdef BLIS_FAMILY_POWER10
+#include "bli_family_power10.h"
+#endif
 #ifdef BLIS_FAMILY_POWER9
 #include "bli_family_power9.h"
 #endif
@@ -248,9 +300,9 @@ CNTX_INIT_PROTS( generic )
 
 // -- AMD64 architectures --
 
-//#ifdef BLIS_KERNELS_ZEN2
-//#include "bli_kernels_zen2.h"
-//#endif
+#ifdef BLIS_KERNELS_ZEN2
+#include "bli_kernels_zen2.h"
+#endif
 #ifdef BLIS_KERNELS_ZEN
 #include "bli_kernels_zen.h"
 #endif
@@ -269,6 +321,9 @@ CNTX_INIT_PROTS( generic )
 
 // -- ARM architectures --
 
+#ifdef BLIS_KERNELS_ARMSVE
+#include "bli_kernels_armsve.h"
+#endif
 #ifdef BLIS_KERNELS_ARMV8A
 #include "bli_kernels_armv8a.h"
 #endif
@@ -278,6 +333,9 @@ CNTX_INIT_PROTS( generic )
 
 // -- IBM Power --
 
+#ifdef BLIS_KERNELS_POWER10
+#include "bli_kernels_power10.h"
+#endif
 #ifdef BLIS_KERNELS_POWER9
 #include "bli_kernels_power9.h"
 #endif

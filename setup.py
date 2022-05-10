@@ -23,6 +23,18 @@ import sys
 import platform
 import numpy
 
+
+PLATFORM_TO_ARCH = {
+    "linux": {
+        "ppc64le": "power9",
+    },
+    "darwin": {"arm64": "firestorm"},
+    "windows": {
+        "ARM64": "generic",
+    },
+}
+
+
 MOD_NAMES = ["blis.cy", "blis.py"]
 
 print("BLIS_COMPILER?", os.environ.get("BLIS_COMPILER", "None"))
@@ -127,65 +139,75 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
         shutil.rmtree(short_dir)
 
     def get_arch_name(self, platform_name):
+        platform_machine = platform.machine()
+
         # User-defined
         if "BLIS_ARCH" in os.environ:
             return os.environ["BLIS_ARCH"]
-        # Darwin: use "generic" (for now) for any non-x86_64
-        elif platform_name == "darwin":
-            if platform.machine() == "x86_64":
-                return "x86_64"
-            else:
-                return "generic"
-        # Windows: use "generic" (for now) for ARM64 and x86_64 for other platforms
-        elif platform_name == "windows":
-            if platform.machine() == "ARM64":
-                return "generic"
-            else:
-                return "x86_64"
 
-        # Everything else other than linux defaults to x86_64
-        elif not platform_name.startswith("linux"):
+        # Lookup
+        try:
+            return PLATFORM_TO_ARCH[platform_name][platform_machine]
+        except KeyError:
+            pass
+
+        # Windows has various names for x86_64 :(
+        if platform_name == "windows":
             return "x86_64"
 
-        # Linux
-        machine = platform.machine()
-        if machine == "aarch64":
-            return "cortexa57"
-        elif machine == "ppc64le":
-            return "power9"
-        elif machine != "x86_64":
+        # Check if gcc/clang supports SVE.
+        if platform_name == "linux" and platform_machine == "aarch64":
+            if self.check_compiler_arch("armv8-a+sve") and self.check_header(
+                "arm_sve.h"
+            ):
+                return "arm64"
+            else:
+                return "arm64_no_sve"
+
+        # Unknown CPU architecture.
+        if platform_machine != "x86_64":
             return "generic"
 
-        # Linux x86_64
+        # Linux/Darwin x86_64
         # Try to detect which compiler flags are supported
-        supports_znver1 = self.check_compiler_flag("znver1")
-        supports_znver2 = self.check_compiler_flag("znver2")
-        supports_skx = self.check_compiler_flag("skylake-avx512")
+        supports_znver1 = self.check_compiler_arch("znver1")
+        supports_znver2 = self.check_compiler_arch("znver2")
+        supports_znver3 = self.check_compiler_arch("znver3")
+        supports_skx = self.check_compiler_arch("skylake-avx512")
 
-        if supports_znver2 and supports_skx:
+        if supports_znver3 and supports_skx:
             return "x86_64"
+        elif supports_znver2 and supports_skx:
+            return "x86_64_no_zen3"
         elif supports_znver1 and supports_skx:
             return "x86_64_no_zen2"
-        elif supports_znver1 and not supports_skx:
+        elif not supports_znver1 or not supports_skx:
             return "x86_64_no_skx"
         else:
             return "generic"
 
-    def check_compiler_flag(self, flag):
+    def _check_compiler_flag(self, flag):
         supports_flag = True
         DEVNULL = os.open(os.devnull, os.O_RDWR)
         try:
             subprocess.check_call(
-                " ".join(self.compiler.compiler) + " -march={flag} -E -xc - -o -".format(flag=flag),
+                " ".join(self.compiler.compiler)
+                + " {flag} -E -xc - -o -".format(flag=flag),
                 stdin=DEVNULL,
                 stdout=DEVNULL,
                 stderr=DEVNULL,
-                shell=True
+                shell=True,
             )
         except Exception:
             supports_flag = False
         os.close(DEVNULL)
         return supports_flag
+
+    def check_compiler_arch(self, arch):
+        return self._check_compiler_flag("-march={arch}".format(arch=arch))
+
+    def check_header(self, header):
+        return self._check_compiler_flag("-include {header}".format(header=header))
 
     def get_compiler_name(self):
         if "BLIS_COMPILER" in os.environ:
@@ -224,7 +246,12 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     spec["compiler"] = compiler
                 if platform == "windows":
                     spec["compiler"] = locate_windows_llvm()
-                spec["flags"] = [f for f in spec["flags"]]
+                if compiler is not None and "clang" in compiler:
+                    spec["flags"] = [
+                        f
+                        for f in spec["flags"]
+                        if "no-avx256-split-unaligned-store" not in f
+                    ]
                 objects.append(self.build_object(env=env, **spec))
         return objects
 
@@ -266,11 +293,16 @@ BLIS_REALLY_COMPILE = os.environ.get("BLIS_REALLY_COMPILE", 0)
 if not BLIS_REALLY_COMPILE:
     try:
         import pip
+
         version_parts = pip.__version__.split(".")
         major = int(version_parts[0])
         minor = int(version_parts[1])
         if major < 19 or (major == 19 and minor < 3):
-            print("WARNING: pip versions <19.3 (currently installed: " + pip.__version__ + ") are unable to detect binary wheel compatibility for blis. To avoid a source install with a very long compilation time, please upgrade pip with `pip install --upgrade pip`.\n\nIf you know what you're doing and you really want to compile blis from source, please set the environment variable BLIS_REALLY_COMPILE=1.")
+            print(
+                "WARNING: pip versions <19.3 (currently installed: "
+                + pip.__version__
+                + ") are unable to detect binary wheel compatibility for blis. To avoid a source install with a very long compilation time, please upgrade pip with `pip install --upgrade pip`.\n\nIf you know what you're doing and you really want to compile blis from source, please set the environment variable BLIS_REALLY_COMPILE=1."
+            )
             sys.exit(1)
     except Exception:
         pass
@@ -295,18 +327,23 @@ setup(
         "numpy>=1.15.0",
     ],
     install_requires=["numpy>=1.15.0"],
-    ext_modules=cythonize([
-        Extension(
-            "blis.cy", [os.path.join("blis", "cy.pyx")], extra_compile_args=["-std=c99"]
-        ),
-        Extension(
-            "blis.py", [os.path.join("blis", "py.pyx")], extra_compile_args=["-std=c99"]
-        ),
-    ], language_level=2),
+    ext_modules=cythonize(
+        [
+            Extension(
+                "blis.cy",
+                [os.path.join("blis", "cy.pyx")],
+                extra_compile_args=["-std=c99"],
+            ),
+            Extension(
+                "blis.py",
+                [os.path.join("blis", "py.pyx")],
+                extra_compile_args=["-std=c99"],
+            ),
+        ],
+        language_level=2,
+    ),
     cmdclass={"build_ext": ExtensionBuilder},
-    package_data={
-        "": ["*.json", "*.jsonl", "*.pyx", "*.pxd"]
-    },
+    package_data={"": ["*.json", "*.jsonl", "*.pyx", "*.pxd"]},
     name="blis",
     packages=["blis", "blis.tests"],
     author=about["__author__"],
