@@ -10,8 +10,8 @@ __summary__ = (
     "The Blis BLAS-like linear algebra library, as a self-contained C-extension."
 )
 __uri__ = "https://github.com/explosion/cython-blis"
-__author__ = "Matthew Honnibal"
-__email__ = "matt@explosion.ai"
+__author__ = "Explosion"
+__email__ = "contact@explosion.ai"
 __license__ = "BSD"
 __title__ = "blis"
 __release__ = True
