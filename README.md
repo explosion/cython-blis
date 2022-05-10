@@ -122,12 +122,13 @@ jsonl file and the header.
 
 ### Linux
 
-The Linux build files need to be produced from within the manylinux1 docker
-container, so that they will be compatible with the wheel building process.
+The Linux build files need to be produced from within the manylinux2014
+Docker container, so that they will be compatible with the wheel building
+process.
 
 First, install docker. Then do the following to start the container:
 
-    sudo docker run -it quay.io/pypa/manylinux1_x86_64:latest
+    sudo docker run -it quay.io/pypa/manylinux2014_x86_64:latest
 
 Once within the container, the following commands should check out the repo and
 build the jsonl files for the generic arch:
