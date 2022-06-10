@@ -224,7 +224,12 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                     spec["compiler"] = compiler
                 if platform == "windows":
                     spec["compiler"] = locate_windows_llvm()
-                spec["flags"] = [f for f in spec["flags"]]
+                # Ensure that symbols are visible to aid debugging and profiling.
+                spec["flags"] = [
+                    f
+                    for f in spec["flags"]
+                    if "visibility=hidden" not in f
+                ]
                 objects.append(self.build_object(env=env, **spec))
         return objects
 
