@@ -16,7 +16,7 @@ if [ ! -f $JSONL ]; then
         mingw32-make -j 4 > make.log
     else
         make clean
-        ./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make $ARCH
+        ./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --export-shared=all $ARCH
         make > make.log 
     fi
     echo "Preprocess make log"

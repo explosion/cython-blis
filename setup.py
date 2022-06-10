@@ -252,6 +252,12 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                         for f in spec["flags"]
                         if "no-avx256-split-unaligned-store" not in f
                     ]
+                # Ensure that symbols are visible to aid debugging and profiling.
+                spec["flags"] = [
+                    f
+                    for f in spec["flags"]
+                    if "visibility=hidden" not in f
+                ]
                 objects.append(self.build_object(env=env, **spec))
         return objects
 
