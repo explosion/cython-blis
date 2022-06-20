@@ -75,7 +75,10 @@ def gemm(const_reals2d_ft A, const_reals2d_ft B,
 
     if const_reals2d_ft is const_float2d_t:
         if out is None:
-            out = numpy.zeros((nM, nN), dtype='f')
+            if beta == 0.:
+                out = numpy.empty((nM, nN), dtype='f')
+            else:
+                out = numpy.zeros((nM, nN), dtype='f')
         C = <float*>out.data
         with nogil:
             cy.gemm(
