@@ -73,14 +73,8 @@ jobs:
       Python27Linux:
         imageName: 'ubuntu-18.04'
         python.version: '2.7'
-      Python27Mac:
-        imageName: 'macos-10.15'
-        python.version: '2.7'
       Python36Linux:
         imageName: 'ubuntu-18.04'
-        python.version: '3.6'
-      Python36Mac:
-        imageName: 'macos-10.15'
         python.version: '3.6'
       Python36Windows:
         imageName: 'windows-2019'
