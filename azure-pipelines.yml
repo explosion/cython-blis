@@ -160,22 +160,16 @@ jobs:
     displayName: 'Build wheel (Mac)'
 
   - script: |
-      gcc --version
-      python setup.py bdist_wheel
-    condition: and(eq(variables['Agent.OS'], 'Linux'), or(eq(variables['python.version'], '2.7'), eq(variables['python.version'], '3.5')))
-    displayName: 'Build wheel (Linux)'
-
-  - script: |
       clang --version
       CC=clang python setup.py bdist_wheel
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.6'))
     displayName: 'Build wheel (Linux / clang)'
 
   - script: |
-      gcc-7 --version
-      CC=gcc-7 python setup.py bdist_wheel
+      gcc-9 --version
+      CC=gcc-9 python setup.py bdist_wheel
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.7'))
-    displayName: 'Build wheel (Linux / gcc-7)'
+    displayName: 'Build wheel (Linux / gcc-9)'
 
   - script: |
       gcc-9 --version
@@ -194,6 +188,12 @@ jobs:
       CC=clang-12 python setup.py bdist_wheel
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.10'))
     displayName: 'Build wheel (Linux / clang-12)'
+
+  - script: |
+      gcc --version
+      CC=gcc python setup.py bdist_wheel
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.11.0-rc.2'))
+    displayName: 'Build wheel (Linux / gcc)'
 
   - task: PythonScript@0
     inputs:
