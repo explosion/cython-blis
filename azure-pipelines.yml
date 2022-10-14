@@ -8,23 +8,14 @@ jobs:
 - job: 'Test'
   strategy:
     matrix:
-      Python27Linux:
-        imageName: 'ubuntu-18.04'
-        python.version: '2.7'
-      Python27Mac:
-        imageName: 'macos-10.15'
-        python.version: '2.7'
       Python36Linux:
-        imageName: 'ubuntu-18.04'
-        python.version: '3.6'
-      Python36Mac:
-        imageName: 'macos-10.15'
+        imageName: 'ubuntu-latest'
         python.version: '3.6'
       Python36Windows:
         imageName: 'windows-2019'
         python.version: '3.6'
       Python37Linux:
-        imageName: 'ubuntu-18.04'
+        imageName: 'ubuntu-latest'
         python.version: '3.7'
       Python37Mac:
         imageName: 'macos-latest'
@@ -59,6 +50,15 @@ jobs:
       Python310Windows:
         imageName: 'windows-latest'
         python.version: '3.10'
+      Python311Linux:
+        imageName: 'ubuntu-latest'
+        python.version: '3.11.0-rc.2'
+      Python311Windows:
+        imageName: 'windows-latest'
+        python.version: '3.11.0-rc.2'
+      Python311Mac:
+        imageName: 'macos-latest'
+        python.version: '3.11.0-rc.2'
     maxParallel: 4
   pool:
     vmImage: $(imageName)
@@ -68,6 +68,7 @@ jobs:
     inputs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
+      allowUnstable: true
 
   - script: choco install llvm
     condition: eq( variables['Agent.OS'], 'Windows_NT')
