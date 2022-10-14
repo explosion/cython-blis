@@ -101,7 +101,7 @@ jobs:
 
   - script: |
       gcc-9 --version
-      CC=gcc-7 python setup.py bdist_wheel
+      CC=gcc-9 python setup.py bdist_wheel
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.7'))
     displayName: 'Build wheel (Linux / gcc-9)'
 
