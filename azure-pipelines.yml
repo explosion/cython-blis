@@ -70,17 +70,14 @@ jobs:
 - job: 'Test'
   strategy:
     matrix:
-      Python27Linux:
-        imageName: 'ubuntu-18.04'
-        python.version: '2.7'
       Python36Linux:
-        imageName: 'ubuntu-18.04'
+        imageName: 'ubuntu-latest'
         python.version: '3.6'
       Python36Windows:
         imageName: 'windows-2019'
         python.version: '3.6'
       Python37Linux:
-        imageName: 'ubuntu-18.04'
+        imageName: 'ubuntu-latest'
         python.version: '3.7'
       Python37Mac:
         imageName: 'macos-latest'
@@ -115,6 +112,15 @@ jobs:
       Python310Windows:
         imageName: 'windows-latest'
         python.version: '3.10'
+      Python311Linux:
+        imageName: 'ubuntu-latest'
+        python.version: '3.11.0-rc.2'
+      Python311Windows:
+        imageName: 'windows-latest'
+        python.version: '3.11.0-rc.2'
+      Python311Mac:
+        imageName: 'macos-latest'
+        python.version: '3.11.0-rc.2'
     maxParallel: 4
   pool:
     vmImage: $(imageName)
@@ -124,6 +130,7 @@ jobs:
     inputs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
+      allowUnstable: true
 
   - script: choco install llvm
     condition: eq( variables['Agent.OS'], 'Windows_NT')
@@ -153,22 +160,16 @@ jobs:
     displayName: 'Build wheel (Mac)'
 
   - script: |
-      gcc --version
-      python setup.py bdist_wheel
-    condition: and(eq(variables['Agent.OS'], 'Linux'), or(eq(variables['python.version'], '2.7'), eq(variables['python.version'], '3.5')))
-    displayName: 'Build wheel (Linux)'
-
-  - script: |
       clang --version
       CC=clang python setup.py bdist_wheel
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.6'))
     displayName: 'Build wheel (Linux / clang)'
 
   - script: |
-      gcc-7 --version
-      CC=gcc-7 python setup.py bdist_wheel
+      gcc-9 --version
+      CC=gcc-9 python setup.py bdist_wheel
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.7'))
-    displayName: 'Build wheel (Linux / gcc-7)'
+    displayName: 'Build wheel (Linux / gcc-9)'
 
   - script: |
       gcc-9 --version
@@ -187,6 +188,12 @@ jobs:
       CC=clang-12 python setup.py bdist_wheel
     condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.10'))
     displayName: 'Build wheel (Linux / clang-12)'
+
+  - script: |
+      gcc --version
+      CC=gcc python setup.py bdist_wheel
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.11.0-rc.2'))
+    displayName: 'Build wheel (Linux / gcc)'
 
   - task: PythonScript@0
     inputs:
