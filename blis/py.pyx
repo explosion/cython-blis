@@ -1,5 +1,5 @@
 # cython: boundscheck=False
-# Copyright ExplsionAI GmbH, released under BSD.
+# Copyright (c) 2017 - 2022 ExplosionAI GmbH, released under BSD-3-Clause.
 cimport numpy as np
 from . cimport cy
 from .cy cimport reals1d_ft, reals2d_ft, float1d_t, float2d_t
