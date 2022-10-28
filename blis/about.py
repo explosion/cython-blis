@@ -12,6 +12,6 @@ __summary__ = (
 __uri__ = "https://github.com/explosion/cython-blis"
 __author__ = "Explosion"
 __email__ = "contact@explosion.ai"
-__license__ = "BSD"
+__license__ = "BSD-3-Clause"
 __title__ = "blis"
 __release__ = True
