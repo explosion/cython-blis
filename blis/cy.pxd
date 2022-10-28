@@ -1,4 +1,4 @@
-# Copyright ExplsionAI GmbH, released under BSD.
+# Copyright (c) 2017 - 2022 ExplosionAI GmbH, released under BSD-3-Clause.
 from cython cimport view
 from libc.stdint cimport int64_t
 

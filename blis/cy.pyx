@@ -1,6 +1,6 @@
 # cython: infer_types=True
 # cython: boundscheck=False
-# Copyright ExplsionAI GmbH, released under BSD.
+# Copyright (c) 2017 - 2022 ExplosionAI GmbH, released under BSD-3-Clause.
 
 import atexit
 
