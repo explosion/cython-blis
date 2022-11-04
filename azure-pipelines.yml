@@ -192,7 +192,7 @@ jobs:
   - script: |
       gcc --version
       CC=gcc python setup.py bdist_wheel
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.11.0-rc.2'))
+    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.11'))
     displayName: 'Build wheel (Linux / gcc)'
 
   - task: PythonScript@0
