@@ -51,7 +51,6 @@ jobs:
           python -m pip install -U -r requirements.txt
 
       - name: Build wheel (Windows)
-        shell: bash
         if: startsWith(matrix.os, 'windows')
         run: |
           set "PATH=C:\Program Files\LLVM\bin;%PATH%"
