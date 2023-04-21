@@ -67,8 +67,32 @@ jobs:
         run: |
           python -m build --wheel
 
+      - name: Build wheel (Linux / clang)
+        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.6'
+        run: |
+          clang --version
+          CC=clang python -m build --wheel
+
+      - name: Build wheel (Linux / gcc-9)
+        if: startsWith(matrix.os, 'ubuntu') && (matrix.python_version == '3.7' || matrix.python_version == '3.8')
+        run: |
+          gcc-9 --version
+          CC=gcc-9 python -m build --wheel
+
+      - name: Build wheel (Linux / gcc-10)
+        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.9'
+        run: |
+          gcc-10 --version
+          CC=gcc-10 python -m build --wheel
+
+      - name: Build wheel (Linux / clang-12)
+        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.10'
+        run: |
+          clang-12 --version
+          CC=clang-12 python -m build --wheel
+
       - name: Build wheel (Linux / gcc)
-        if: startsWith(matrix.os, 'ubuntu') # && matrix.python_version == '3.11'
+        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.11'
         run: |
           gcc --version
           CC=gcc python -m build --wheel
