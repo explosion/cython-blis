@@ -48,7 +48,6 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install -U build pip setuptools wheel
-          python -m pip install -U -r requirements.txt
 
       - name: Build wheel (Windows)
         if: startsWith(matrix.os, 'windows')
@@ -96,6 +95,7 @@ jobs:
           gcc --version
           CC=gcc python -m build --wheel
 
+      # TODO: install mypy from requirements if reenabled
       - name: Run mypy
         shell: bash
         if: ${{ env.RUN_MYPY == 'true' }}
