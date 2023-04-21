@@ -21,12 +21,12 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python_version: ["3.8"] # ["3.7", "3.8", "3.9", "3.10", "3.11"]
-        #include:
-        #  - os: windows-2019
-        #    python_version: "3.6"
-        #  - os: ubuntu-20.04
-        #    python_version: "3.6"
+        python_version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        include:
+          - os: windows-2019
+            python_version: "3.6"
+          - os: ubuntu-20.04
+            python_version: "3.6"
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -48,7 +48,6 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install -U build pip setuptools wheel
-          python -m pip install -U -r requirements.txt
 
       - name: Build wheel (Windows)
         if: startsWith(matrix.os, 'windows')
@@ -58,21 +57,45 @@ jobs:
           set "AS=llvm-as"
           set "CC=clang"
           set RANLIB=echo
-          call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
           clang --version
-          python setup.py bdist_wheel
+          python -m build --wheel
 
       - name: Build wheel (Mac)
         if: startsWith(matrix.os, 'macos')
         run: |
-          python setup.py bdist_wheel
+          python -m build --wheel
+
+      - name: Build wheel (Linux / clang)
+        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.6'
+        run: |
+          clang --version
+          CC=clang python -m build --wheel
+
+      - name: Build wheel (Linux / gcc-9)
+        if: startsWith(matrix.os, 'ubuntu') && (matrix.python_version == '3.7' || matrix.python_version == '3.8')
+        run: |
+          gcc-9 --version
+          CC=gcc-9 python -m build --wheel
+
+      - name: Build wheel (Linux / gcc-10)
+        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.9'
+        run: |
+          gcc-10 --version
+          CC=gcc-10 python -m build --wheel
+
+      - name: Build wheel (Linux / clang-12)
+        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.10'
+        run: |
+          clang-12 --version
+          CC=clang-12 python -m build --wheel
 
       - name: Build wheel (Linux / gcc)
-        if: startsWith(matrix.os, 'ubuntu') # && matrix.python_version == '3.11'
+        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.11'
         run: |
           gcc --version
-          CC=gcc python setup.py bdist_wheel
+          CC=gcc python -m build --wheel
 
+      # TODO: install mypy from requirements if reenabled
       - name: Run mypy
         shell: bash
         if: ${{ env.RUN_MYPY == 'true' }}
@@ -84,31 +107,20 @@ jobs:
           python -m pip freeze > installed.txt
           python -m pip uninstall -y -r installed.txt
 
-      - name: Fix wheel name (Windows, Python 3.8)
-        shell: python
-        if: startsWith(matrix.os, 'windows') && matrix.python_version == '3.8'
-        run: |
-          # https://github.com/pypa/pip/issues/6951
-          import os
-          wheel_file = os.listdir('./dist')[0]
-          wheel_path = os.path.join('./dist', wheel_file)
-          os.rename(wheel_path, wheel_path.replace("cp38m-win", "cp38-win"))
-          print(os.listdir('./dist'))
-
       - name: Install wheel
         shell: bash
         run: |
           python -m pip install dist/*.whl
 
-      - name: Test import
-        shell: bash
-        run: |
-          python -c "import $MODULE_NAME" -Werror
-
       - name: Delete source directory
         shell: bash
         run: |
           rm -rf $MODULE_NAME
+
+      - name: Test import
+        shell: bash
+        run: |
+          python -c "import $MODULE_NAME" -Werror
 
       - name: Install test requirements
         run: |
