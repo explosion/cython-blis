@@ -58,7 +58,6 @@ jobs:
           set "AS=llvm-as"
           set "CC=clang"
           set RANLIB=echo
-          #.\"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
           clang --version
           python -m build --wheel
 
@@ -107,17 +106,6 @@ jobs:
         run: |
           python -m pip freeze > installed.txt
           python -m pip uninstall -y -r installed.txt
-
-      - name: Fix wheel name (Windows, Python 3.8)
-        shell: python
-        if: startsWith(matrix.os, 'windows') && matrix.python_version == '3.8'
-        run: |
-          # https://github.com/pypa/pip/issues/6951
-          import os
-          wheel_file = os.listdir('./dist')[0]
-          wheel_path = os.path.join('./dist', wheel_file)
-          os.rename(wheel_path, wheel_path.replace("cp38m-win", "cp38-win"))
-          print(os.listdir('./dist'))
 
       - name: Install wheel
         shell: bash
