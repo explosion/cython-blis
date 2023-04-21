@@ -60,18 +60,18 @@ jobs:
           set RANLIB=echo
           #.\"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
           clang --version
-          python setup.py bdist_wheel
+          python -m build --wheel
 
       - name: Build wheel (Mac)
         if: startsWith(matrix.os, 'macos')
         run: |
-          python setup.py bdist_wheel
+          python -m build --wheel
 
       - name: Build wheel (Linux / gcc)
         if: startsWith(matrix.os, 'ubuntu') # && matrix.python_version == '3.11'
         run: |
           gcc --version
-          CC=gcc python setup.py bdist_wheel
+          CC=gcc python -m build --wheel
 
       - name: Run mypy
         shell: bash
