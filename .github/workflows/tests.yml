@@ -100,15 +100,15 @@ jobs:
         run: |
           python -m pip install dist/*.whl
 
-      - name: Test import
-        shell: bash
-        run: |
-          python -c "import $MODULE_NAME" -Werror
-
       - name: Delete source directory
         shell: bash
         run: |
           rm -rf $MODULE_NAME
+
+      - name: Test import
+        shell: bash
+        run: |
+          python -c "import $MODULE_NAME" -Werror
 
       - name: Install test requirements
         run: |
