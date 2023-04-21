@@ -59,7 +59,7 @@ jobs:
           set "AS=llvm-as"
           set "CC=clang"
           set RANLIB=echo
-          call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+          .\"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
           clang --version
           python setup.py bdist_wheel
 
