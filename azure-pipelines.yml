@@ -5,74 +5,35 @@ trigger:
     - '*'
 
 jobs:
-- job: 'Test'
+- job: 'JSONL'
+  # Manually enable for generating JSONL
+  condition: false
   strategy:
     matrix:
-      Python36Linux:
-        imageName: 'ubuntu-latest'
-        python.version: '3.6'
-      Python36Windows:
-        imageName: 'windows-2019'
-        python.version: '3.6'
-      Python37Linux:
-        imageName: 'ubuntu-latest'
-        python.version: '3.7'
-      Python37Mac:
-        imageName: 'macos-latest'
-        python.version: '3.7'
-      Python37Windows:
-        imageName: 'windows-latest'
-        python.version: '3.7'
-      Python38Linux:
-        imageName: 'ubuntu-latest'
-        python.version: '3.8'
       Python38Mac:
         imageName: 'macos-latest'
         python.version: '3.8'
       Python38Windows:
         imageName: 'windows-latest'
         python.version: '3.8'
-      Python39Linux:
-        imageName: 'ubuntu-latest'
-        python.version: '3.9'
-      Python39Mac:
-        imageName: 'macos-latest'
-        python.version: '3.9'
-      Python39Windows:
-        imageName: 'windows-latest'
-        python.version: '3.9'
-      Python310Linux:
-        imageName: 'ubuntu-latest'
-        python.version: '3.10'
-      Python310Mac:
-        imageName: 'macos-latest'
-        python.version: '3.10'
-      Python310Windows:
-        imageName: 'windows-latest'
-        python.version: '3.10'
-      Python311Linux:
-        imageName: 'ubuntu-latest'
-        python.version: '3.11.0-rc.2'
-      Python311Windows:
-        imageName: 'windows-latest'
-        python.version: '3.11.0-rc.2'
-      Python311Mac:
-        imageName: 'macos-latest'
-        python.version: '3.11.0-rc.2'
     maxParallel: 4
   pool:
     vmImage: $(imageName)
-
   steps:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
-      allowUnstable: true
 
   - script: choco install llvm
     condition: eq( variables['Agent.OS'], 'Windows_NT')
     displayName: 'Preinstall (Windows)'
+
+  - script: git config --global core.autocrlf false
+    displayName: 'Disable automatic crlf conversion'
+
+  - script: git submodule update --init --recursive
+    displayName: 'Update git modules'
 
   - script: |
       python -m pip install --upgrade pip wheel setuptools
@@ -83,77 +44,25 @@ jobs:
   # used, not the ones defined in the .jsonl.
   - script: |
       set "PATH=C:\Program Files\LLVM\bin;%PATH%"
-      set "INCLUDE=%$VC_INCLUDEPATH%"
+      set "AR=llvm-ar"
+      set "AS=llvm-as"
+      set "CC=clang"
+      set RANLIB=echo
+      call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
       clang --version
-      python setup.py bdist_wheel
+      bash -lc "./bin/generate-make-jsonl windows generic --export"
+      bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
     condition: eq( variables['Agent.OS'], 'Windows_NT')
-    displayName: 'Build wheel (Windows)'
+    displayName: 'Generate JSONL (Windows)'
 
-  - script: python setup.py bdist_wheel
+  - script: |
+      bin/generate-make-jsonl darwin generic --export
+      bin/generate-make-jsonl darwin x86_64 --export
+      bin/generate-make-jsonl darwin x86_64_no_zen3 --export
+      bin/generate-make-jsonl darwin x86_64_no_zen2 --export
+      bin/generate-make-jsonl darwin x86_64_no_skx --export
     condition: eq(variables['Agent.OS'], 'Darwin')
-    displayName: 'Build wheel (Mac)'
+    displayName: 'Generate JSONL (Mac)'
 
-  - script: |
-      clang --version
-      CC=clang python setup.py bdist_wheel
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.6'))
-    displayName: 'Build wheel (Linux / clang)'
-
-  - script: |
-      gcc-9 --version
-      CC=gcc-9 python setup.py bdist_wheel
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.7'))
-    displayName: 'Build wheel (Linux / gcc-9)'
-
-  - script: |
-      gcc-9 --version
-      CC=gcc-9 python setup.py bdist_wheel
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.8'))
-    displayName: 'Build wheel (Linux / gcc-9)'
-
-  - script: |
-      gcc-10 --version
-      CC=gcc-10 python setup.py bdist_wheel
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.9'))
-    displayName: 'Build wheel (Linux / gcc-10)'
-
-  - script: |
-      clang-12 --version
-      CC=clang-12 python setup.py bdist_wheel
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.10'))
-    displayName: 'Build wheel (Linux / clang-12)'
-
-  - script: |
-      gcc --version
-      CC=gcc python setup.py bdist_wheel
-    condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['python.version'], '3.11.0-rc.2'))
-    displayName: 'Build wheel (Linux / gcc)'
-
-  - task: PythonScript@0
-    inputs:
-      scriptSource: inline
-      script: |
-        # https://github.com/pypa/pip/issues/6951
-        import os
-        wheel_file = os.listdir('./dist')[0]
-        wheel_path = os.path.join('./dist', wheel_file)
-        os.rename(wheel_path, wheel_path.replace("cp38m-win", "cp38-win"))
-        print(os.listdir('./dist'))
-      failOnStderr: true
-    condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['python.version'], '3.8'))
-    displayName: Fix wheel name (Windows, Python 3.8)
-
-  - script: |
-      pip freeze > installed.txt
-      pip uninstall -y -r installed.txt
-    displayName: 'Uninstall all packages'
-
-  - bash: |
-      rm -rf blis*
-      python -m pip install dist/*.whl
-    displayName: 'Install wheel'
-
-  - script: |
-      pip install -r requirements.txt
-      python -m pytest --pyargs blis
-    displayName: 'Run tests'
+  - publish: $(System.DefaultWorkingDirectory)/artifacts
+    artifact: '$(Agent.JobName)'
