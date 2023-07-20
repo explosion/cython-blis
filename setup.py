@@ -296,7 +296,7 @@ with chdir(root):
 
 setup(
     setup_requires=[
-        "cython>=0.25",
+        "cython>=0.25,<3.0",
         "numpy>=1.15.0",
     ],
     install_requires=[
