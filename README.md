@@ -2,12 +2,14 @@
 
 # Cython BLIS: Fast BLAS-like operations from Python and Cython, without the tears
 
-This repository provides the [Blis linear algebra](https://github.com/flame/blis)
-routines as a self-contained Python C-extension.
+This repository provides the
+[Blis linear algebra](https://github.com/flame/blis) routines as a
+self-contained Python C-extension.
 
-Currently, we only supports single-threaded execution, as this is actually best for our workloads (ML inference).
+Currently, we only supports single-threaded execution, as this is actually best
+for our workloads (ML inference).
 
-[![Azure Pipelines](https://img.shields.io/azure-devops/build/explosion-ai/public/6/master.svg?logo=azure-pipelines&style=flat-square)](https://dev.azure.com/explosion-ai/public/_build?definitionId=6)
+[![tests](https://github.com/explosion/cython-blis/actions/workflows/tests.yml/badge.svg)](https://github.com/explosion/cython-blis/actions/workflows/tests.yml)
 [![pypi Version](https://img.shields.io/pypi/v/blis.svg?style=flat-square&logo=pypi&logoColor=white)](https://pypi.python.org/pypi/blis)
 [![conda](https://img.shields.io/conda/vn/conda-forge/cython-blis.svg?style=flat-square&logo=conda-forge&logoColor=white)](https://anaconda.org/conda-forge/cython-blis)
 [![Python wheels](https://img.shields.io/badge/wheels-%E2%9C%93-4c1.svg?longCache=true&style=flat-square&logo=python&logoColor=white)](https://github.com/explosion/wheelwright/releases)
@@ -22,11 +24,16 @@ pip install -U pip setuptools wheel
 pip install blis
 ```
 
-Wheels should be available, so installation should be fast. If you want to install from source and you're on Windows, you'll need to install LLVM.
+Wheels should be available, so installation should be fast. If you want to
+install from source and you're on Windows, you'll need to install LLVM.
 
 ### Building BLIS for alternative architectures
 
-The provided wheels should work on x86_64 architectures. Unfortunately we do not currently know a way to provide different wheels for alternative architectures, and we cannot provide a single binary that works everywhere. So if the wheel doesn't work for your CPU, you'll need to specify source distribution, and tell Blis your CPU architecture using the `BLIS_ARCH` environment variable.
+The provided wheels should work on x86_64 architectures. Unfortunately we do not
+currently know a way to provide different wheels for alternative architectures,
+and we cannot provide a single binary that works everywhere. So if the wheel
+doesn't work for your CPU, you'll need to specify source distribution, and tell
+Blis your CPU architecture using the `BLIS_ARCH` environment variable.
 
 #### a) Installing with generic arch support
 
@@ -36,10 +43,14 @@ BLIS_ARCH="generic" pip install spacy --no-binary blis
 
 #### b) Building specific support
 
-In order to compile Blis, `cython-blis` bundles makefile scripts for specific architectures, that are compiled by running the Blis build system and logging the commands. We do not yet have logs for every architecture, as there are some architectures we have not had access to.
+In order to compile Blis, `cython-blis` bundles makefile scripts for specific
+architectures, that are compiled by running the Blis build system and logging
+the commands. We do not yet have logs for every architecture, as there are some
+architectures we have not had access to.
 
 [See here](https://github.com/flame/blis/blob/0.5.1/config_registry) for list of
-architectures. For example, here's how to build support for the ARM architecture `cortexa57`:
+architectures. For example, here's how to build support for the ARM architecture
+`cortexa57`:
 
 ```bash
 git clone https://github.com/explosion/cython-blis && cd cython-blis
@@ -64,10 +75,9 @@ BLIS_ARCH=cortexa57 pip install --no-binary=blis
 ## Usage
 
 Two APIs are provided: a high-level Python API, and direct
-[Cython](http://cython.org) access, which provides fused-type, nogil
-Cython bindings to the underlying Blis linear algebra library. Fused
-types are a simple template mechanism, allowing just a touch of
-compile-time generic programming:
+[Cython](http://cython.org) access, which provides fused-type, nogil Cython
+bindings to the underlying Blis linear algebra library. Fused types are a simple
+template mechanism, allowing just a touch of compile-time generic programming:
 
 ```python
 cimport blis.cy

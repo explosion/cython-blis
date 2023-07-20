@@ -1,5 +1,6 @@
 # Test requirements
-numpy
+numpy>=1.15.0; python_version < "3.9"
+numpy>=1.19.0; python_version >= "3.9"
 pytest
-cython
+cython<3.0
 hypothesis>=4.0.0,<7.0.0
