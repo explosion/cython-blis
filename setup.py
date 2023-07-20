@@ -332,7 +332,10 @@ setup(
         "cython>=0.25",
         "numpy>=1.15.0",
     ],
-    install_requires=["numpy>=1.15.0"],
+    install_requires=[
+        "numpy>=1.15.0; python_version < '3.9'",
+        "numpy>=1.19.0; python_version >= '3.9'",
+    ],
     ext_modules=cythonize(
         [
             Extension(
