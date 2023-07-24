@@ -15,8 +15,7 @@ import io
 import os.path
 import json
 import tempfile
-import distutils.command.build_ext
-from distutils.ccompiler import new_compiler
+from setuptools.command.build_ext import build_ext, new_compiler
 from Cython.Build import cythonize
 import subprocess
 import sys
@@ -103,7 +102,7 @@ class build_ext_options:
             self.compiler.include_dirs = include_dirs
 
 
-class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options):
+class ExtensionBuilder(build_ext, build_ext_options):
     def build_extensions(self):
         build_ext_options.build_options(self)
         if sys.platform in ("msvc", "win32"):
@@ -135,7 +134,7 @@ class ExtensionBuilder(distutils.command.build_ext.build_ext, build_ext_options)
                 os.path.join(INCLUDE, "%s-%s" % (platform_name, arch))
             )
             e.extra_objects = list(short_paths)
-        distutils.command.build_ext.build_ext.build_extensions(self)
+        build_ext.build_extensions(self)
         shutil.rmtree(short_dir)
 
     def get_arch_name(self, platform_name):
