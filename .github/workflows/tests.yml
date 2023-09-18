@@ -21,7 +21,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python_version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python_version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12.0-rc.2"]
         include:
           - os: windows-2019
             python_version: "3.6"
@@ -90,7 +90,7 @@ jobs:
           CC=clang-12 python -m build --wheel
 
       - name: Build wheel (Linux / gcc)
-        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.11'
+        if: startsWith(matrix.os, 'ubuntu') && (matrix.python_version == '3.11' || matrix.python_version == '3.12.0-rc.2')
         run: |
           gcc --version
           CC=gcc python -m build --wheel
