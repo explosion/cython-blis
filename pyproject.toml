@@ -6,3 +6,11 @@ requires = [
     "numpy>=1.25.0; python_version >= '3.9'",
 ]
 build-backend = "setuptools.build_meta"
+
+# NOTE: overrides here are only used if CIBW_ENVIRONMENT is not set
+[tool.cibuildwheel]
+environment = { PIP_CONSTRAINT="build-constraints.txt" }
+
+[[tool.cibuildwheel.overrides]]
+select = "*-macosx_arm64"
+environment = { PIP_CONSTRAINT="build-constraints.txt", BLIS_ARCH="generic", BLIS_COMPILER="clang -arch arm64" }
