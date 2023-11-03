@@ -90,7 +90,7 @@ jobs:
           CC=clang-13 python -m build --wheel
 
       - name: Build wheel (Linux / gcc)
-        if: startsWith(matrix.os, 'ubuntu') && (matrix.python_version == '3.11' || matrix.python_version == '3.12.0-rc.2')
+        if: startsWith(matrix.os, 'ubuntu') && (matrix.python_version == '3.11' || matrix.python_version == '3.12')
         run: |
           gcc --version
           CC=gcc python -m build --wheel
