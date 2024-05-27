@@ -260,12 +260,8 @@ class ExtensionBuilder(build_ext, build_ext_options):
                     if "visibility=hidden" not in f
                 ]
                 specs.append(spec)
-        if self.parallel is None:
-            pool = ThreadPool(1)
-        elif self.parallel == 0:
-            pool = ThreadPool()
-        else:
-            pool = ThreadPool(self.parallel)
+        jobs = int(os.getenv("MAX_JOBS", "1")) if self.parallel is None else self.parallel
+        pool = ThreadPool(jobs or None)
         with pool:
             objects = pool.map(lambda spec: self.build_object(env=env, **spec), specs)
         return objects
