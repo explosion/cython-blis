@@ -253,9 +253,7 @@ class ExtensionBuilder(build_ext, build_ext_options):
                     ]
                 # Ensure that symbols are visible to aid debugging and profiling.
                 spec["flags"] = [
-                    f
-                    for f in spec["flags"]
-                    if "visibility=hidden" not in f
+                    f for f in spec["flags"] if "visibility=hidden" not in f
                 ]
                 objects.append(self.build_object(env=env, **spec))
         return objects
@@ -329,11 +327,10 @@ with chdir(root):
 setup(
     setup_requires=[
         "cython>=0.25",
-        "numpy>=1.15.0",
+        "numpy>=2.0.0,<3.0.0",
     ],
     install_requires=[
-        "numpy>=1.15.0; python_version < '3.9'",
-        "numpy>=1.19.0; python_version >= '3.9'",
+        "numpy>=2.0.0,<3.0.0",
     ],
     ext_modules=cythonize(
         [
@@ -371,10 +368,6 @@ setup(
         "Operating System :: POSIX :: Linux",
         "Operating System :: MacOS :: MacOS X",
         "Programming Language :: Cython",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
