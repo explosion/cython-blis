@@ -12,7 +12,10 @@ skip = "cp36* cp37* cp38*"
 test-skip = ""
 free-threaded-support = false
 
-archs = ["auto"]
+archs_linux = ["x86_64"]
+archs_macos = ["x86_64"]
+archs_windows = ["AMD64"]
+
 build-frontend = "default"
 config-settings = {}
 dependency-versions = "pinned"
