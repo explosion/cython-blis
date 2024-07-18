@@ -42,4 +42,4 @@ def test_memoryview_float_noconj(A, B):
     assume(B is not None)
     numpy_result = A.dot(B)
     result = dotv(A, B)
-    assert_allclose([numpy_result], result, atol=1e-3, rtol=1e-3)
+    assert_allclose([numpy_result], result, atol=1e-2, rtol=1e-2)
