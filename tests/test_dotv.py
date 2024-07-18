@@ -48,6 +48,7 @@ def test_memoryview_float_noconj(A, B):
             rtol=1e-3,
         )
     except AssertionError as e:
+        # Probably better to make a combined message, but eh
         print(f"Numpy 64bit result: {numpy_result64}")
         print(f"blis 64bit result: {blis_result64}")
         raise e
