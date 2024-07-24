@@ -43,6 +43,8 @@ jobs:
           path: dist/*.tar.gz
   create_release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Get the tag name and determine if it's a prerelease
         id: get_tag_info
