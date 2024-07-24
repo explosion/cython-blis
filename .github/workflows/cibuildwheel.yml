@@ -3,7 +3,7 @@ name: Build
 on:
   release:
     types:
-      - published
+      - created
 
 jobs:
   build_wheels:
@@ -25,7 +25,6 @@ jobs:
           package-dir: .
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
-
       - uses: actions/upload-artifact@v4
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
@@ -39,22 +38,25 @@ jobs:
 
       - name: Build sdist
         run: pipx run build --sdist
-
       - uses: actions/upload-artifact@v4
         with:
           name: cibw-sdist
           path: dist/*.tar.gz
-  upload_pypi:
-    needs: [build_wheels, build_sdist]
+  # After the build has finished, download the artifacts from the action
+  # and upload them to the release. When we publish the release, the
+  # assets will be downloaded from it and uploaded to PyPi.
+  upload_assets_to_release:
+    needs: [build_sdist, build_wheels]
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/blis
     permissions:
-      id-token: write
-    if: github.event_name == 'release' && github.event.action == 'published'
-    # or, alternatively, upload to PyPI on every tag starting with 'v' (remove on: release above to use this)
-    # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      contents: write
+      checks: write
+      actions: read
+      issues: read
+      packages: write
+      pull-requests: read
+      repository-projects: read
+      statuses: read
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -62,6 +64,9 @@ jobs:
           pattern: cibw-*
           path: dist
           merge-multiple: true
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: alexellis/upload-assets@0.4.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
-          repository-url: https://test.pypi.org/legacy/
+          asset_paths: '["./dist/*"]'
+
