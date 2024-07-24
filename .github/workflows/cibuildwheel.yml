@@ -42,7 +42,6 @@ jobs:
         with:
           name: cibw-sdist
           path: dist/*.tar.gz
-
   # After the build has finished, download the artifacts from the action
   # and upload them to the release. When we publish the release, the
   # assets will be downloaded from it and uploaded to PyPi.
