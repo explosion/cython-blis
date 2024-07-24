@@ -5,7 +5,7 @@
 # https://github.com/pypa/warehouse/blob/master/warehouse/__about__.py
 
 __name__ = "blis"
-__version__ = "1.0.0a1"
+__version__ = "1.0.0"
 __summary__ = (
     "The Blis BLAS-like linear algebra library, as a self-contained C-extension."
 )
@@ -14,4 +14,4 @@ __author__ = "Explosion"
 __email__ = "contact@explosion.ai"
 __license__ = "BSD-3-Clause"
 __title__ = "blis"
-__release__ = False
+__release__ = True
