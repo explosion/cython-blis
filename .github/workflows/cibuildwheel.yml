@@ -45,6 +45,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      checks: write
+      actions: read
+      issues: read
+      packages: write
+      pull-requests: read
+      repository-projects: read
+      statuses: read
     steps:
       - name: Get the tag name and determine if it's a prerelease
         id: get_tag_info
@@ -73,22 +80,6 @@ jobs:
           release_name: ${{ env.TAG_NAME }}
           draft: true
           prerelease: ${{ env.IS_PRERELEASE }}
-  # After the build has finished, download the artifacts from the action
-  # and upload them to the release. When we publish the release, the
-  # assets will be downloaded from it and uploaded to PyPi.
-  upload_assets_to_release:
-    needs: [build_sdist, build_wheels]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      checks: write
-      actions: read
-      issues: read
-      packages: write
-      pull-requests: read
-      repository-projects: read
-      statuses: read
-    steps:
       - uses: actions/download-artifact@v4
         with:
           # unpacks all CIBW artifacts into dist/
