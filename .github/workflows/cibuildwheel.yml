@@ -42,6 +42,7 @@ jobs:
           name: cibw-sdist
           path: dist/*.tar.gz
   create_release:
+    needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
     permissions:
       contents: write
