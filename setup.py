@@ -21,6 +21,7 @@ import subprocess
 import sys
 import platform
 import numpy
+from multiprocessing.pool import ThreadPool
 
 
 PLATFORM_TO_ARCH = {
@@ -218,6 +219,7 @@ class ExtensionBuilder(build_ext, build_ext_options):
 
     def compile_objects(self, platform, py_arch, obj_dir):
         objects = []
+        specs = []
         platform_arch = platform + "-" + py_arch
         compiler = self.get_compiler_name()
         with open(os.path.join(BLIS_DIR, "make", "%s.jsonl" % platform_arch)) as file_:
@@ -255,7 +257,11 @@ class ExtensionBuilder(build_ext, build_ext_options):
                 spec["flags"] = [
                     f for f in spec["flags"] if "visibility=hidden" not in f
                 ]
-                objects.append(self.build_object(env=env, **spec))
+                specs.append(spec)
+        jobs = int(os.getenv("MAX_JOBS", "1")) if self.parallel is None else self.parallel
+        pool = ThreadPool(jobs or None)
+        with pool:
+            objects = pool.map(lambda spec: self.build_object(env=env, **spec), specs)
         return objects
 
     def build_object(self, compiler, source, target, flags, macros, include, env=None):
