@@ -325,6 +325,7 @@ with chdir(root):
         readme = f.read()
 
 setup(
+    python_requires=">=3.9,<3.14",
     setup_requires=[
         "cython>=0.25",
         "numpy>=2.0.0,<3.0.0",
@@ -372,6 +373,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Scientific/Engineering",
     ],
 )
