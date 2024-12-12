@@ -13,10 +13,12 @@ cd flame-blis
 if [ ! -f $JSONL ]; then
     echo "Compile"
     if [[ "$OS" == "windows" ]]; then
+        echo "Build with mingw32-make"
         mingw32-make clean
         ./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --enable-arg-max-hack $ARCH
-        mingw32-make -j 4 V=1 | tee make.log
+        mingw32-make | tee make.log
     else
+        echo "Build with make"
         make clean
         ./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --export-shared=all $ARCH
         make | tee make.log 
