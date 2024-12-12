@@ -29,6 +29,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        architecture: x64
 
     - name: Preinstall (Windows)
       shell: bash
@@ -60,8 +61,10 @@ jobs:
         clang --version
         rm "blis/_src/make/windows-generic.jsonl"
         rm "blis/_src/make/windows-x86_64.jsonl"
-        bash -lc "./bin/generate-make-jsonl windows generic --export"
-        bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
+        cd flame-blis
+        bash -lc "./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --enable-arg-max-hack generic"
+        echo "Compiling"
+        bash -lc "mingw32-make"
     - name: Generate JSONL (macOS)
       if: runner.os == 'macOS'
       run: |
