@@ -37,6 +37,14 @@ jobs:
       with:
         args: install llvm
 
+
+    - name: Install dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install gettext
+        brew link gettext --force
+        brew install llvm
+
     - name: Disable automatic CRLF conversion
       run: git config --global core.autocrlf false
 
@@ -63,6 +71,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         export PATH="/usr/local/opt/llvm/bin:$PATH"
+        export PATH="/usr/local/opt/gettext/bin:$PATH"
         clang --version
         chmod +x bin/generate-make-jsonl
         bin/generate-make-jsonl darwin generic --export
