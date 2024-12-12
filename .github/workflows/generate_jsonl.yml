@@ -30,11 +30,23 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Setup MSYS2 (Windows)
+      if: runner.os == 'Windows'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-make
+          make
+          git
+
     - name: Install LLVM (Windows)
       if: runner.os == 'Windows'
       uses: crazy-max/ghaction-chocolatey@v3
       with:
-        args: install llvm
+        args: install llvm --version=15.0.7
 
 
     - name: Install dependencies (macOS)
@@ -51,21 +63,22 @@ jobs:
       run: |
         python -m pip install --upgrade pip wheel setuptools
         pip install -r requirements.txt
-
     - name: Generate JSONL (Windows)
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        set PATH=C:\Program Files\LLVM\bin;%PATH%
-        set AR=llvm-ar
-        set AS=llvm-as
-        set CC=clang
-        set RANLIB=echo
+        set "PATH=C:\msys64\mingw64\bin;C:\msys64\bin;%PATH%"
+        set "PATH=C:\Program Files\LLVM\bin;%PATH%"
+        set "AR=llvm-ar"
+        set "AS=llvm-as"
+        set "CC=clang"
+        set "RANLIB=echo"
+        set "LIBPTHREAD="
+        set "CFLAGS=-Wno-macro-redefined"
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64
         clang --version
-        bash -lc "./bin/generate-make-jsonl windows generic --export"
-        bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
-
+        bash -lc "./bin/generate-make-jsonl windows generic --export --enable-arg-max-hack"
+        bash -lc "./bin/generate-make-jsonl windows x86_64 --export --enable-arg-max-hack"
     - name: Generate JSONL (macOS)
       if: runner.os == 'macOS'
       run: |
