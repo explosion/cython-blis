@@ -43,9 +43,6 @@ jobs:
         brew link gettext --force
         brew install llvm
 
-    - name: Disable automatic CRLF conversion
-      run: git config --global core.autocrlf false
-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip wheel setuptools
@@ -62,9 +59,9 @@ jobs:
         rm "blis/_src/make/windows-generic.jsonl"
         rm "blis/_src/make/windows-x86_64.jsonl"
         cd flame-blis
-        bash -lc "./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --enable-arg-max-hack generic"
+        ./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --enable-arg-max-hack generic
         echo "Compiling"
-        bash -lc "mingw32-make"
+        mingw32-make
     - name: Generate JSONL (macOS)
       if: runner.os == 'macOS'
       run: |
