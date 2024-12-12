@@ -7,17 +7,19 @@ ARCH="$2"
 EXPORT="$3"
 JSONL="blis/_src/make/$OS-$ARCH.jsonl"
 
+mkdir -p include
+
 cd flame-blis
 if [ ! -f $JSONL ]; then
     echo "Compile"
     if [[ "$OS" == "windows" ]]; then
         mingw32-make clean
         ./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --enable-arg-max-hack $ARCH
-        mingw32-make -j 4 > make.log
+        mingw32-make -j 4 V=1 | tee make.log
     else
         make clean
         ./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --export-shared=all $ARCH
-        make > make.log 
+        make | tee make.log 
     fi
     echo "Preprocess make log"
     cat make.log | python ../bin/munge_make_log.py $OS $ARCH > ../$JSONL
