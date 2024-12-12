@@ -75,8 +75,10 @@ jobs:
         set "CFLAGS=-Wno-macro-redefined"
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64
         clang --version
-        bash -lc "./bin/generate-make-jsonl windows generic --export --enable-arg-max-hack"
-        bash -lc "./bin/generate-make-jsonl windows x86_64 --export --enable-arg-max-hack"
+        rm "blis/_src/make/windows-generic.jsonl"
+        rm "blis/_src/make/windows-x86_64.jsonl"
+        bash -lc "./bin/generate-make-jsonl windows generic --export"
+        bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
     - name: Generate JSONL (macOS)
       if: runner.os == 'macOS'
       run: |
