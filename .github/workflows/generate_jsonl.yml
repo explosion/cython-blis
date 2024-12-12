@@ -46,9 +46,7 @@ jobs:
       if: runner.os == 'Windows'
       uses: crazy-max/ghaction-chocolatey@v3
       with:
-        args: install llvm --version=15.0.7
-
-
+        args: install llvm --version=15.0.7 --allow-downgrade
     - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
       run: |
