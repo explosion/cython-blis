@@ -1,0 +1,96 @@
+name: Generate JSONL
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate-jsonl:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+        python-version: ['3.10']
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        architecture: 'x64'
+
+    - name: Install LLVM (Windows)
+      if: runner.os == 'Windows'
+      uses: crazy-max/ghaction-chocolatey@v3
+      with:
+        args: install llvm
+
+    - name: Disable automatic CRLF conversion
+      run: git config --global core.autocrlf false
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip wheel setuptools
+        pip install -r requirements.txt
+
+    - name: Generate JSONL (Windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        set PATH=C:\Program Files\LLVM\bin;%PATH%
+        set AR=llvm-ar
+        set AS=llvm-as
+        set CC=clang
+        set RANLIB=echo
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64
+        clang --version
+        bash -lc "./bin/generate-make-jsonl windows generic --export"
+        bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
+
+    - name: Generate JSONL (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        export PATH="/usr/local/opt/llvm/bin:$PATH"
+        clang --version
+        chmod +x bin/generate-make-jsonl
+        bin/generate-make-jsonl darwin generic --export
+        bin/generate-make-jsonl darwin x86_64 --export
+        bin/generate-make-jsonl darwin x86_64_no_zen3 --export
+        bin/generate-make-jsonl darwin x86_64_no_zen2 --export
+        bin/generate-make-jsonl darwin x86_64_no_skx --export
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: jsonl-${{ runner.os }}
+        path: artifacts/
+        retention-days: 5
+
+    # Optional: Automatically commit artifacts
+    # - name: Download all artifacts
+    #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     path: downloaded-artifacts
+    #
+    # - name: Commit artifacts
+    #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    #   run: |
+    #     git config --local user.email "github-actions[bot]@users.noreply.github.com"
+    #     git config --local user.name "github-actions[bot]"
+    #     cp -r downloaded-artifacts/* artifacts/
+    #     git add artifacts/
+    #     git commit -m "Update JSONL artifacts [skip ci]" || echo "No changes to commit"
+    #     git push
