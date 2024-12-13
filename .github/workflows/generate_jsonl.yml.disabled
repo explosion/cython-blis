@@ -1,5 +1,7 @@
 name: Generate JSONL
 
+# The windows jsonl generation isn't working, and I don't know why
+
 on:
   push:
     branches: ['*']
@@ -47,43 +49,40 @@ jobs:
       run: |
         python -m pip install --upgrade pip wheel setuptools
         pip install -r requirements.txt
+    - name: Generate JSONL (Windows)
+      if: startsWith(matrix.os, 'windows')
+      run: |
+        set "PATH=C:\Program Files\LLVM\bin;%PATH%"
+        set "AR=llvm-ar"
+        set "AS=llvm-as"
+        set "CC=clang"
+        set RANLIB=echo
+        clang --version
+        rm "blis/_src/make/windows-generic.jsonl"
+        rm "blis/_src/make/windows-x86_64.jsonl"
+        cd flame-blis
+        bash -lc "./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --enable-arg-max-hack generic"
+        echo "Compiling"
+        mingw32-make
+    - name: Generate JSONL (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        export PATH="/usr/local/opt/llvm/bin:$PATH"
+        export PATH="/usr/local/opt/gettext/bin:$PATH"
+        clang --version
+        chmod +x bin/generate-make-jsonl
+        bin/generate-make-jsonl darwin generic --export
+        bin/generate-make-jsonl darwin x86_64 --export
+        bin/generate-make-jsonl darwin x86_64_no_zen3 --export
+        bin/generate-make-jsonl darwin x86_64_no_zen2 --export
+        bin/generate-make-jsonl darwin x86_64_no_skx --export
 
-    # I can't figure out why the compilation isn't running here,
-    # but we do have it running in azure-pipelines. so...
-    #- name: Generate JSONL (Windows)
-    #  if: startsWith(matrix.os, 'windows')
-    #  run: |
-    #    set "PATH=C:\Program Files\LLVM\bin;%PATH%"
-    #    set "AR=llvm-ar"
-    #    set "AS=llvm-as"
-    #    set "CC=clang"
-    #    set RANLIB=echo
-    #    clang --version
-    #    rm "blis/_src/make/windows-generic.jsonl"
-    #    rm "blis/_src/make/windows-x86_64.jsonl"
-    #    cd flame-blis
-    #    bash -lc "./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --enable-arg-max-hack generic"
-    #    echo "Compiling"
-    #    mingw32-make
-    #- name: Generate JSONL (macOS)
-    #  if: runner.os == 'macOS'
-    #  run: |
-    #    export PATH="/usr/local/opt/llvm/bin:$PATH"
-    #    export PATH="/usr/local/opt/gettext/bin:$PATH"
-    #    clang --version
-    #    chmod +x bin/generate-make-jsonl
-    #    bin/generate-make-jsonl darwin generic --export
-    #    bin/generate-make-jsonl darwin x86_64 --export
-    #    bin/generate-make-jsonl darwin x86_64_no_zen3 --export
-    #    bin/generate-make-jsonl darwin x86_64_no_zen2 --export
-    #    bin/generate-make-jsonl darwin x86_64_no_skx --export
-
-    #- name: Upload artifacts
-    #  uses: actions/upload-artifact@v4
-    #  with:
-    #    name: jsonl-${{ runner.os }}
-    #    path: artifacts/
-    #    retention-days: 5
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: jsonl-${{ runner.os }}
+        path: artifacts/
+        retention-days: 5
 
     # Optional: Automatically commit artifacts
     # - name: Download all artifacts
