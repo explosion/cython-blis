@@ -1,5 +1,5 @@
 # Test requirements
-numpy>=2.0.0,<3.0.0
+numpy>=1.19.3,<3.0.0
 pytest
 cython
 hypothesis>=4.0.0,<7.0.0
