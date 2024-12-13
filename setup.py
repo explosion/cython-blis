@@ -331,7 +331,7 @@ setup(
         "numpy>=2.0.0,<3.0.0",
     ],
     install_requires=[
-        "numpy>=2.0.0,<3.0.0",
+        "numpy>=1.19.3,<3.0.0",
     ],
     ext_modules=cythonize(
         [

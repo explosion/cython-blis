@@ -1,5 +1,7 @@
 name: Generate JSONL
 
+# The windows jsonl generation isn't working, and I don't know why
+
 on:
   push:
     branches: ['*']
