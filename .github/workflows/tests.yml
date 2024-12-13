@@ -43,7 +43,7 @@ jobs:
         shell: bash
         if: startsWith(matrix.os, 'windows')
         run: |
-          choco install llvm
+          choco install llvm --version=15.0.7 --allow-downgrade
 
       - name: Install dependencies
         run: |
