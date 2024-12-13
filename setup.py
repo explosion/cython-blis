@@ -175,12 +175,11 @@ class ExtensionBuilder(build_ext, build_ext_options):
         DEVNULL = os.open(os.devnull, os.O_RDWR)
         try:
             subprocess.check_call(
-                " ".join(self.compiler.compiler)
-                + " -march={flag} -E -xc - -o -".format(flag=flag),
+                " ".join(self.compiler.compiler) + " -march={flag} -E -xc - -o -".format(flag=flag),
                 stdin=DEVNULL,
                 stdout=DEVNULL,
                 stderr=DEVNULL,
-                shell=True,
+                shell=True
             )
         except Exception:
             supports_flag = False
@@ -226,7 +225,9 @@ class ExtensionBuilder(build_ext, build_ext_options):
                     spec["compiler"] = locate_windows_llvm()
                 # Ensure that symbols are visible to aid debugging and profiling.
                 spec["flags"] = [
-                    f for f in spec["flags"] if "visibility=hidden" not in f
+                    f
+                    for f in spec["flags"]
+                    if "visibility=hidden" not in f
                 ]
                 objects.append(self.build_object(env=env, **spec))
         return objects
@@ -269,16 +270,11 @@ BLIS_REALLY_COMPILE = os.environ.get("BLIS_REALLY_COMPILE", 0)
 if not BLIS_REALLY_COMPILE:
     try:
         import pip
-
         version_parts = pip.__version__.split(".")
         major = int(version_parts[0])
         minor = int(version_parts[1])
         if major < 19 or (major == 19 and minor < 3):
-            print(
-                "WARNING: pip versions <19.3 (currently installed: "
-                + pip.__version__
-                + ") are unable to detect binary wheel compatibility for blis. To avoid a source install with a very long compilation time, please upgrade pip with `pip install --upgrade pip`.\n\nIf you know what you're doing and you really want to compile blis from source, please set the environment variable BLIS_REALLY_COMPILE=1."
-            )
+            print("WARNING: pip versions <19.3 (currently installed: " + pip.__version__ + ") are unable to detect binary wheel compatibility for blis. To avoid a source install with a very long compilation time, please upgrade pip with `pip install --upgrade pip`.\n\nIf you know what you're doing and you really want to compile blis from source, please set the environment variable BLIS_REALLY_COMPILE=1.")
             sys.exit(1)
     except Exception:
         pass
@@ -299,31 +295,25 @@ with chdir(root):
 
 setup(
     setup_requires=[
-        "cython>=0.25,<4.0",
-        "numpy>=1.15.0,<3.0.0",
+        "cython>=0.25,<3.0",
+        "numpy>=1.15.0",
     ],
     install_requires=[
-        "numpy>=1.15.0,<3.0.0; python_version < '3.9'",
-        "numpy>=1.19.0,<3.0.0; python_version >= '3.9'",
+        "numpy>=1.15.0; python_version < '3.9'",
+        "numpy>=1.19.0; python_version >= '3.9'",
     ],
-    ext_modules=cythonize(
-        [
-            Extension(
-                "blis.cy",
-                [os.path.join("blis", "cy.pyx")],
-                extra_compile_args=["-std=c99"],
-            ),
-            Extension(
-                "blis.py",
-                [os.path.join("blis", "py.pyx")],
-                extra_compile_args=["-std=c99"],
-            ),
-        ],
-        language_level=2,
-    ),
-    python_requires=">=3.6,<3.13",
+    ext_modules=cythonize([
+        Extension(
+            "blis.cy", [os.path.join("blis", "cy.pyx")], extra_compile_args=["-std=c99"]
+        ),
+        Extension(
+            "blis.py", [os.path.join("blis", "py.pyx")], extra_compile_args=["-std=c99"]
+        ),
+    ], language_level=2),
     cmdclass={"build_ext": ExtensionBuilder},
-    package_data={"": ["*.json", "*.jsonl", "*.pyx", "*.pxd"]},
+    package_data={
+        "": ["*.json", "*.jsonl", "*.pyx", "*.pxd"]
+    },
     name="blis",
     packages=["blis", "blis.tests"],
     author=about["__author__"],
