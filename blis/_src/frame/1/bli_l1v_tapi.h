@@ -42,16 +42,16 @@
 \
 BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
       ( \
-        conj_t  conjx, \
-        dim_t   n, \
-        ctype*  x, inc_t incx, \
-        ctype*  y, inc_t incy  \
+              conj_t conjx, \
+              dim_t  n, \
+        const ctype* x, inc_t incx, \
+              ctype* y, inc_t incy  \
         BLIS_TAPI_EX_PARAMS  \
       );
 
-INSERT_GENTPROT_BASIC0( addv )
-INSERT_GENTPROT_BASIC0( copyv )
-INSERT_GENTPROT_BASIC0( subv )
+INSERT_GENTPROT_BASIC( addv )
+INSERT_GENTPROT_BASIC( copyv )
+INSERT_GENTPROT_BASIC( subv )
 
 
 #undef  GENTPROT
@@ -59,13 +59,13 @@ INSERT_GENTPROT_BASIC0( subv )
 \
 BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t   n, \
-       ctype*  x, inc_t incx, \
-       dim_t*  index  \
+             dim_t  n, \
+       const ctype* x, inc_t incx, \
+             dim_t* index  \
        BLIS_TAPI_EX_PARAMS  \
      ); \
 
-INSERT_GENTPROT_BASIC0( amaxv )
+INSERT_GENTPROT_BASIC( amaxv )
 
 
 #undef  GENTPROT
@@ -73,16 +73,16 @@ INSERT_GENTPROT_BASIC0( amaxv )
 \
 BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjx, \
-       dim_t   n, \
-       ctype*  alpha, \
-       ctype*  x, inc_t incx, \
-       ctype*  beta, \
-       ctype*  y, inc_t incy  \
+             conj_t conjx, \
+             dim_t  n, \
+       const ctype* alpha, \
+       const ctype* x, inc_t incx, \
+       const ctype* beta, \
+             ctype* y, inc_t incy  \
        BLIS_TAPI_EX_PARAMS  \
      ); \
 
-INSERT_GENTPROT_BASIC0( axpbyv )
+INSERT_GENTPROT_BASIC( axpbyv )
 
 
 #undef  GENTPROT
@@ -90,16 +90,16 @@ INSERT_GENTPROT_BASIC0( axpbyv )
 \
 BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjx, \
-       dim_t   n, \
-       ctype*  alpha, \
-       ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy  \
+             conj_t conjx, \
+             dim_t  n, \
+       const ctype* alpha, \
+       const ctype* x, inc_t incx, \
+             ctype* y, inc_t incy  \
        BLIS_TAPI_EX_PARAMS  \
      ); \
 
-INSERT_GENTPROT_BASIC0( axpyv )
-INSERT_GENTPROT_BASIC0( scal2v )
+INSERT_GENTPROT_BASIC( axpyv )
+INSERT_GENTPROT_BASIC( scal2v )
 
 
 #undef  GENTPROT
@@ -107,16 +107,16 @@ INSERT_GENTPROT_BASIC0( scal2v )
 \
 BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjx, \
-       conj_t  conjy, \
-       dim_t   n, \
-       ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy, \
-       ctype*  rho  \
+             conj_t conjx, \
+             conj_t conjy, \
+             dim_t  n, \
+       const ctype* x, inc_t incx, \
+       const ctype* y, inc_t incy, \
+             ctype* rho  \
        BLIS_TAPI_EX_PARAMS  \
      ); \
 
-INSERT_GENTPROT_BASIC0( dotv )
+INSERT_GENTPROT_BASIC( dotv )
 
 
 #undef  GENTPROT
@@ -124,18 +124,18 @@ INSERT_GENTPROT_BASIC0( dotv )
 \
 BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjx, \
-       conj_t  conjy, \
-       dim_t   n, \
-       ctype*  alpha, \
-       ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy, \
-       ctype*  beta, \
-       ctype*  rho  \
+             conj_t conjx, \
+             conj_t conjy, \
+             dim_t  n, \
+       const ctype* alpha, \
+       const ctype* x, inc_t incx, \
+       const ctype* y, inc_t incy, \
+       const ctype* beta, \
+             ctype* rho  \
        BLIS_TAPI_EX_PARAMS  \
      ); \
 
-INSERT_GENTPROT_BASIC0( dotxv )
+INSERT_GENTPROT_BASIC( dotxv )
 
 
 #undef  GENTPROT
@@ -143,12 +143,12 @@ INSERT_GENTPROT_BASIC0( dotxv )
 \
 BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t   n, \
-       ctype*  x, inc_t incx  \
+       dim_t  n, \
+       ctype* x, inc_t incx  \
        BLIS_TAPI_EX_PARAMS  \
      ); \
 
-INSERT_GENTPROT_BASIC0( invertv )
+INSERT_GENTPROT_BASIC( invertv )
 
 
 #undef  GENTPROT
@@ -156,15 +156,16 @@ INSERT_GENTPROT_BASIC0( invertv )
 \
 BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjalpha, \
-       dim_t   n, \
-       ctype*  alpha, \
-       ctype*  x, inc_t incx  \
+             conj_t conjalpha, \
+             dim_t  n, \
+       const ctype* alpha, \
+             ctype* x, inc_t incx  \
        BLIS_TAPI_EX_PARAMS  \
      ); \
 
-INSERT_GENTPROT_BASIC0( scalv )
-INSERT_GENTPROT_BASIC0( setv )
+INSERT_GENTPROT_BASIC( invscalv )
+INSERT_GENTPROT_BASIC( scalv )
+INSERT_GENTPROT_BASIC( setv )
 
 
 #undef  GENTPROT
@@ -172,13 +173,13 @@ INSERT_GENTPROT_BASIC0( setv )
 \
 BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t   n, \
-       ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy  \
+       dim_t  n, \
+       ctype* x, inc_t incx, \
+       ctype* y, inc_t incy  \
        BLIS_TAPI_EX_PARAMS  \
      ); \
 
-INSERT_GENTPROT_BASIC0( swapv )
+INSERT_GENTPROT_BASIC( swapv )
 
 
 #undef  GENTPROT
@@ -186,12 +187,12 @@ INSERT_GENTPROT_BASIC0( swapv )
 \
 BLIS_EXPORT_BLIS void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjx, \
-       dim_t   n, \
-       ctype*  x, inc_t incx, \
-       ctype*  beta, \
-       ctype*  y, inc_t incy  \
+             conj_t conjx, \
+             dim_t  n, \
+       const ctype* x, inc_t incx, \
+       const ctype* beta, \
+             ctype* y, inc_t incy  \
        BLIS_TAPI_EX_PARAMS  \
      ); \
 
-INSERT_GENTPROT_BASIC0( xpbyv )
+INSERT_GENTPROT_BASIC( xpbyv )

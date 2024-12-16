@@ -84,10 +84,8 @@ void PASTEMAC(ch,varname) \
 	/* If alpha == 0, then we are done. */ \
 	if ( PASTEMAC(ch,eq0)( *alpha ) ) return; \
 \
-	/*PASTECH(ch,axpyf_ker_ft) kfp_af;*/ \
-\
 	/* Query the context for the kernel function pointer and fusing factor. */ \
-	/*kfp_af = bli_cntx_get_l1f_ker_dt( dt, BLIS_AXPYF_KER, cntx );*/ \
+	/*axpyf_ker_ft kfp_af = bli_cntx_get_l1f_ker_dt( dt, BLIS_AXPYF_KER, cntx );*/ \
 	/*b_fuse = bli_cntx_get_blksz_def_dt( dt, BLIS_AF, cntx );*/ \
 	b_fuse = fusefac; \
 \
@@ -116,7 +114,7 @@ void PASTEMAC(ch,varname) \
 	} \
 }
 
-//INSERT_GENTFUNC_BASIC0( gemv_unf_var2 )
+//INSERT_GENTFUNC_BASIC( gemv_unf_var2 )
 GENTFUNC( float,    s, gemv_unf_var2, _zen_int10, _zen_int_5,    5 )
 GENTFUNC( double,   d, gemv_unf_var2, _zen_int10, _zen_int_16x4, 4 )
 GENTFUNC( scomplex, c, gemv_unf_var2, _zen_int10, _zen_int_4,    4 )
@@ -217,6 +215,6 @@ void PASTEMAC(ch,varname) \
 	} \
 }
 
-//INSERT_GENTFUNC_BASIC0( gemv_unf_var2 )
+//INSERT_GENTFUNC_BASIC( gemv_unf_var2 )
 GENTFUNC( dcomplex, z, gemv_unf_var2 )
 

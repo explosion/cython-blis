@@ -118,10 +118,8 @@ void PASTEMAC(ch,varname) \
 		); \
 	} \
 \
-	PASTECH(ch,dotaxpyv_ker_ft) kfp_vf; \
-\
 	/* Query the context for the kernel function pointer. */ \
-	kfp_vf = bli_cntx_get_l1f_ker_dt( dt, BLIS_DOTAXPYV_KER, cntx ); \
+	dotaxpyv_ker_ft kfp_vf = bli_cntx_get_ukr_dt( dt, BLIS_DOTAXPYV_KER, cntx ); \
 \
 	for ( i = 0; i < m; ++i ) \
 	{ \
@@ -165,5 +163,5 @@ void PASTEMAC(ch,varname) \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC0( hemv_unf_var3a )
+INSERT_GENTFUNC_BASIC( hemv_unf_var3a )
 

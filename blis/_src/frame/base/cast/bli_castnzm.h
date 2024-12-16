@@ -38,8 +38,8 @@
 
 BLIS_EXPORT_BLIS void bli_castnzm
      (
-       obj_t* a,
-       obj_t* b
+       const obj_t* a,
+       const obj_t* b
      );
 
 //
@@ -51,15 +51,15 @@ BLIS_EXPORT_BLIS void bli_castnzm
 \
 BLIS_EXPORT_BLIS void PASTEMAC2(cha,chb,opname) \
      ( \
-       trans_t transa, \
-       dim_t   m, \
-       dim_t   n, \
-       void*   a, inc_t rs_a, inc_t cs_a, \
-       void*   b, inc_t rs_b, inc_t cs_b  \
+             trans_t transa, \
+             dim_t   m, \
+             dim_t   n, \
+       const void*   a, inc_t rs_a, inc_t cs_a, \
+             void*   b, inc_t rs_b, inc_t cs_b  \
      );
 
-INSERT_GENTPROT2_BASIC0( castnzm )
-INSERT_GENTPROT2_MIXDP0( castnzm )
+INSERT_GENTPROT2_BASIC( castnzm )
+INSERT_GENTPROT2_MIX_DP( castnzm )
 
 //
 // Prototype object-based _check() function.
@@ -67,7 +67,7 @@ INSERT_GENTPROT2_MIXDP0( castnzm )
 
 void bli_castnzm_check
      (
-       obj_t* a,
-       obj_t* b
+       const obj_t* a,
+       const obj_t* b
      );
 

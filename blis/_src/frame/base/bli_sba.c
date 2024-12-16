@@ -47,25 +47,38 @@ apool_t* bli_sba_query( void )
 
 void bli_sba_init( void )
 {
+#ifdef BLIS_ENABLE_SBA_POOLS
 	bli_apool_init( &sba );
+#endif
 }
 
 void bli_sba_finalize( void )
 {
+#ifdef BLIS_ENABLE_SBA_POOLS
 	bli_apool_finalize( &sba );
+#endif
 }
 
 void* bli_sba_acquire
      (
-       rntm_t* restrict rntm,
-       siz_t            req_size
+       pool_t* sba_pool,
+       siz_t   req_size
      )
 {
 	void* block;
 	err_t r_val;
 
 #ifdef BLIS_ENABLE_SBA_POOLS
-	if ( rntm == NULL )
+
+	// We don't expect NULL sba_pool pointers in the normal course of BLIS
+	// operation. However, there are rare instances where it is convenient
+	// to support use of bli_sba_acquire() without having to pass in a valid
+	// sba pool data structure. The case that inspired this branch was the
+	// gemm_ukr and related test modules in the BLIS testsuite. (There, it
+	// is convenient to not have to checkout an array_t from the sba, and it
+	// does no harm since the malloc() happens outside of the region that
+	// would be timed.)
+	if ( sba_pool == NULL )
 	{
 		block = bli_malloc_intl( req_size, &r_val );
 	}
@@ -73,43 +86,26 @@ void* bli_sba_acquire
 	{
 		pblk_t pblk;
 
-		// Query the small block pool from the rntm.
-		pool_t* restrict pool = bli_rntm_sba_pool( rntm );
+		// Query the block_size of the pool_t so that we can request the exact
+		// size present.
+		const siz_t block_size = bli_pool_block_size( sba_pool );
 
-		// We don't expect NULL sba_pool pointers in the normal course of BLIS
-		// operation. However, there are rare instances where it is convenient
-		// to support use of bli_sba_acquire() without having to pass in a valid
-		// sba pool data structure. The case that inspired this branch was the
-		// gemm_ukr and related test modules in the BLIS testsuite. (There, it
-		// is convenient to not have to checkout an array_t from the sba, and it
-		// does no harm since the malloc() happens outside of the region that
-		// would be timed.)
-		if ( pool == NULL )
+		// Sanity check: Make sure the requested size is no larger than the
+		// block_size field of the sba pool.
+		if ( block_size < req_size )
 		{
-		    block = bli_malloc_intl( req_size, &r_val );
+			printf( "bli_sba_acquire(): ** pool block_size is %d but req_size is %d.\n",
+			        ( int )block_size, ( int )req_size );
+			bli_abort();
 		}
-		else
-		{
-			// Query the block_size of the pool_t so that we can request the exact
-			// size present.
-			const siz_t block_size = bli_pool_block_size( pool );
 
-			// Sanity check: Make sure the requested size is no larger than the
-			// block_size field of the pool.
-			if ( block_size < req_size )
-			{
-				printf( "bli_sba_acquire(): ** pool block_size is %d but req_size is %d.\n",
-				        ( int )block_size, ( int )req_size );
-				bli_abort();
-			}
+		// Check out a block using the block_size queried above.
+		bli_pool_checkout_block( block_size, &pblk, sba_pool );
 
-			// Check out a block using the block_size queried above.
-			bli_pool_checkout_block( block_size, &pblk, pool );
-
-			// The block address is stored within the pblk_t.
-			block = bli_pblk_buf( &pblk );
-		}
+		// The block address is stored within the pblk_t.
+		block = bli_pblk_buf( &pblk );
 	}
+
 #else
 
 	block = bli_malloc_intl( req_size, &r_val );
@@ -122,12 +118,13 @@ void* bli_sba_acquire
 
 void bli_sba_release
      (
-       rntm_t* restrict rntm,
-       void*   restrict block
+       pool_t* sba_pool,
+       void*   block
      )
 {
 #ifdef BLIS_ENABLE_SBA_POOLS
-	if ( rntm == NULL )
+
+	if ( sba_pool == NULL )
 	{
 		bli_free_intl( block );
 	}
@@ -135,32 +132,23 @@ void bli_sba_release
 	{
 		pblk_t pblk;
 
-		// Query the small block pool from the rntm.
-		pool_t* restrict pool = bli_rntm_sba_pool( rntm );
+		// Query the block_size field from the pool. This is not super-important
+		// for this particular application of the pool_t (that is, the "leaf"
+		// component of the sba), but it seems like good housekeeping to maintain
+		// the block_size field of the pblk_t in case its ever needed/read.
+		const siz_t block_size = bli_pool_block_size( sba_pool );
 
-		if ( pool == NULL )
-		{
-		    bli_free_intl( block );
-		}
-		else
-		{
-			// Query the block_size field from the pool. This is not super-important
-			// for this particular application of the pool_t (that is, the "leaf"
-			// component of the sba), but it seems like good housekeeping to maintain
-			// the block_size field of the pblk_t in case its ever needed/read.
-			const siz_t block_size = bli_pool_block_size( pool );
+		// Embed the block's memory address into a pblk_t, along with the
+		// block_size queried from the sba pool.
+		bli_pblk_set_buf( block, &pblk );
+		bli_pblk_set_block_size( block_size, &pblk );
 
-			// Embed the block's memory address into a pblk_t, along with the
-			// block_size queried from the pool.
-			bli_pblk_set_buf( block, &pblk );
-			bli_pblk_set_block_size( block_size, &pblk );
-
-			// Check the pblk_t back into the pool_t. (It's okay that the pblk_t is
-			// a local variable since its contents are copied into the pool's internal
-			// data structure--an array of pblk_t.)
-			bli_pool_checkin_block( &pblk, pool );
-		}
+		// Check the pblk_t back into the pool_t. (It's okay that the pblk_t is
+		// a local variable since its contents are copied into the pool's internal
+		// data structure--an array of pblk_t.)
+		bli_pool_checkin_block( &pblk, sba_pool );
 	}
+
 #else
 
 	bli_free_intl( block );
@@ -173,42 +161,36 @@ array_t* bli_sba_checkout_array
        const siz_t n_threads
      )
 {
-	#ifndef BLIS_ENABLE_SBA_POOLS
-	return NULL;
-	#endif
-
+#ifdef BLIS_ENABLE_SBA_POOLS
 	return bli_apool_checkout_array( n_threads, &sba );
+#else
+	return NULL;
+#endif
 }
 
 void bli_sba_checkin_array
      (
-       array_t* restrict array
+       array_t* array
      )
 {
-	#ifndef BLIS_ENABLE_SBA_POOLS
-	return;
-	#endif
-
+#ifdef BLIS_ENABLE_SBA_POOLS
 	bli_apool_checkin_array( array, &sba );
+#else
+	return;
+#endif
 }
 
-void bli_sba_rntm_set_pool
+pool_t* bli_sba_array_elem
      (
-       siz_t             index,
-       array_t* restrict array,
-       rntm_t*  restrict rntm
+       siz_t    index,
+       array_t* array
      )
 {
-	#ifndef BLIS_ENABLE_SBA_POOLS
-	bli_rntm_set_sba_pool( NULL, rntm );
-	return;
-	#endif
-
-	// Query the pool_t* in the array_t corresponding to index.
-	pool_t* restrict pool = bli_apool_array_elem( index, array );
-
-	// Embed the pool_t* into the rntm_t.
-	bli_rntm_set_sba_pool( pool, rntm );
+#ifdef BLIS_ENABLE_SBA_POOLS
+	if ( array != NULL ) return bli_apool_array_elem( index, array );
+	else                 return NULL;
+#else
+	return NULL;
+#endif
 }
-
 

@@ -43,35 +43,52 @@ void bli_cntx_init_bgq( cntx_t* cntx )
 
 	// -------------------------------------------------------------------------
 
-	// Update the context with optimized native gemm micro-kernels and
-	// their storage preferences.
-	bli_cntx_set_l3_nat_ukrs
+	// Update the context with optimized native gemm micro-kernels.
+	bli_cntx_set_ukrs
 	(
-	  2,
-	  BLIS_GEMM_UKR, BLIS_DOUBLE,   bli_dgemm_bgq_int_8x8, FALSE,
-	  BLIS_GEMM_UKR, BLIS_DCOMPLEX, bli_zgemm_bgq_int_4x4, FALSE,
-	  cntx
+	  cntx,
+
+	  // level-3
+	  BLIS_GEMM_UKR, BLIS_DOUBLE,   bli_dgemm_bgq_int_8x8,
+	  BLIS_GEMM_UKR, BLIS_DCOMPLEX, bli_zgemm_bgq_int_4x4,
+
+	  BLIS_VA_END
+	);
+
+	// Update the context with storage preferences.
+	bli_cntx_set_ukr_prefs
+	(
+	  cntx,
+
+	  // level-3
+	  BLIS_GEMM_UKR_ROW_PREF, BLIS_DOUBLE,   FALSE,
+	  BLIS_GEMM_UKR_ROW_PREF, BLIS_DCOMPLEX, FALSE,
+
+	  BLIS_VA_END
 	);
 
 	// Initialize level-3 blocksize objects with architecture-specific values.
 	//                                           s      d      c      z
-	bli_blksz_init_easy( &blkszs[ BLIS_MR ],     0,     8,     0,     4 );
-	bli_blksz_init_easy( &blkszs[ BLIS_NR ],     0,     8,     0,     4 );
-	bli_blksz_init_easy( &blkszs[ BLIS_MC ],     0,  1024,     0,   768 );
-	bli_blksz_init_easy( &blkszs[ BLIS_KC ],     0,  2048,     0,  1536 );
-	bli_blksz_init_easy( &blkszs[ BLIS_NC ],     0, 10240,     0, 10240 );
+	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    -1,     8,    -1,     4 );
+	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    -1,     8,    -1,     4 );
+	bli_blksz_init_easy( &blkszs[ BLIS_MC ],    -1,  1024,    -1,   768 );
+	bli_blksz_init_easy( &blkszs[ BLIS_KC ],    -1,  2048,    -1,  1536 );
+	bli_blksz_init_easy( &blkszs[ BLIS_NC ],    -1, 10240,    -1, 10240 );
 
 	// Update the context with the current architecture's register and cache
 	// blocksizes (and multiples) for native execution.
 	bli_cntx_set_blkszs
 	(
-	  BLIS_NAT, 5,
+	  cntx,
+
+	  // level-3
 	  BLIS_NC, &blkszs[ BLIS_NC ], BLIS_NR,
 	  BLIS_KC, &blkszs[ BLIS_KC ], BLIS_KR,
 	  BLIS_MC, &blkszs[ BLIS_MC ], BLIS_MR,
 	  BLIS_NR, &blkszs[ BLIS_NR ], BLIS_NR,
 	  BLIS_MR, &blkszs[ BLIS_MR ], BLIS_MR,
-	  cntx
+
+	  BLIS_VA_END
 	);
 }
 

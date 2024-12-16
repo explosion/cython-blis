@@ -36,15 +36,14 @@
 
 void bli_trmm3_front
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm,
-       cntl_t* cntl
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+             rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -127,7 +126,7 @@ void bli_trmm3_front
 	// contiguous columns, or if C is stored by columns and the micro-kernel
 	// prefers contiguous rows, transpose the entire operation to allow the
 	// micro-kernel to access elements of C in its preferred manner.
-	if ( bli_cntx_l3_vir_ukr_dislikes_storage_of( &c_local, BLIS_GEMM_UKR, cntx ) )
+	if ( bli_cntx_dislikes_storage_of( &c_local, BLIS_GEMM_VIR_UKR, cntx ) )
 	{
 		bli_toggle_side( &side );
 		bli_obj_induce_trans( &a_local );
@@ -171,8 +170,7 @@ void bli_trmm3_front
 	  beta,
 	  &c_local,
 	  cntx,
-	  rntm,
-	  cntl
+	  rntm
 	);
 }
 

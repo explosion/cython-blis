@@ -37,88 +37,78 @@
 
 #ifdef BLIS_ENABLE_OPENMP
 
-thrcomm_t* bli_thrcomm_create( rntm_t* rntm, dim_t n_threads )
-{
-	#ifdef BLIS_ENABLE_MEM_TRACING
-	printf( "bli_thrcomm_create(): " );
-	#endif
-
-	thrcomm_t* comm = bli_sba_acquire( rntm, sizeof(thrcomm_t) );
-
-	bli_thrcomm_init( n_threads, comm );
-
-	return comm;
-}
-
-void bli_thrcomm_free( rntm_t* rntm, thrcomm_t* comm )
-{
-	if ( comm == NULL ) return;
-
-	bli_thrcomm_cleanup( comm );
-
-	#ifdef BLIS_ENABLE_MEM_TRACING
-	printf( "bli_thrcomm_free(): " );
-	#endif
-
-	bli_sba_release( rntm, comm );
-}
-
 #ifndef BLIS_TREE_BARRIER
 
-void bli_thrcomm_init( dim_t n_threads, thrcomm_t* comm )
+// Define the non-tree barrier implementations of the init, cleanup, and
+// barrier functions. These are the default unless the tree barrier
+// versions are requested at compile-time.
+
+void bli_thrcomm_init_openmp( dim_t n_threads, thrcomm_t* comm )
 {
 	if ( comm == NULL ) return;
-	comm->sent_object = NULL;
-	comm->n_threads = n_threads;
-	comm->barrier_sense = 0;
+
+	comm->sent_object             = NULL;
+	comm->n_threads               = n_threads;
+	comm->ti                      = BLIS_OPENMP;
+	comm->barrier_sense           = 0;
 	comm->barrier_threads_arrived = 0;
 }
 
 
-void bli_thrcomm_cleanup( thrcomm_t* comm )
+void bli_thrcomm_cleanup_openmp( thrcomm_t* comm )
 {
-	if ( comm == NULL ) return;
+	return;
 }
 
-//'Normal' barrier for openmp
-//barrier routine taken from art of multicore programming
-void bli_thrcomm_barrier( dim_t t_id, thrcomm_t* comm )
+void bli_thrcomm_barrier_openmp( dim_t t_id, thrcomm_t* comm )
 {
-#if 0
-	if ( comm == NULL || comm->n_threads == 1 )
-		return;
-	gint_t my_sense = comm->barrier_sense;
-	dim_t my_threads_arrived;
-
-	_Pragma( "omp atomic capture" )
-		my_threads_arrived = ++(comm->barrier_threads_arrived);
-
-	if ( my_threads_arrived == comm->n_threads )
-	{
-		comm->barrier_threads_arrived = 0;
-		comm->barrier_sense = !comm->barrier_sense;
-	}
-	else
-	{
-		volatile gint_t* listener = &comm->barrier_sense;
-		while ( *listener == my_sense ) {}
-	}
-#endif
 	bli_thrcomm_barrier_atomic( t_id, comm );
 }
 
 #else
 
-void bli_thrcomm_init( dim_t n_threads, thrcomm_t* comm )
+// Define the tree barrier implementations of the init, cleanup, and
+// barrier functions.
+
+void bli_thrcomm_init_openmp( dim_t n_threads, thrcomm_t* comm )
 {
 	err_t r_val;
 
 	if ( comm == NULL ) return;
-	comm->sent_object = NULL;
-	comm->n_threads = n_threads;
+
+	comm->sent_object             = NULL;
+	comm->n_threads               = n_threads;
+	comm->ti                      = BLIS_OPENMP;
+	//comm->barrier_sense           = 0;
+	//comm->barrier_threads_arrived = 0;
+
 	comm->barriers = bli_malloc_intl( sizeof( barrier_t* ) * n_threads, &r_val );
+
 	bli_thrcomm_tree_barrier_create( n_threads, BLIS_TREE_BARRIER_ARITY, comm->barriers, 0 );
 }
+
+void bli_thrcomm_cleanup_openmp( thrcomm_t* comm )
+{
+	if ( comm == NULL ) return;
+
+	for ( dim_t i = 0; i < comm->n_threads; i++ )
+	{
+	   bli_thrcomm_tree_barrier_free( comm->barriers[i] );
+	}
+
+	bli_free_intl( comm->barriers );
+}
+
+void bli_thrcomm_barrier_openmp( dim_t t_id, thrcomm_t* comm )
+{
+	// Return early if the comm is NULL or if there is only one
+	// thread participating.
+	if ( comm == NULL || comm->n_threads == 1 ) return;
+
+	bli_thrcomm_tree_barrier( comm->barriers[t_id] );
+}
+
+// -- Helper functions ---------------------------------------------------------
 
 //Tree barrier used for Intel Xeon Phi
 barrier_t* bli_thrcomm_tree_barrier_create( int num_threads, int arity, barrier_t** leaves, int leaf_index )
@@ -164,16 +154,6 @@ barrier_t* bli_thrcomm_tree_barrier_create( int num_threads, int arity, barrier_
 	return me;
 }
 
-void bli_thrcomm_cleanup( thrcomm_t* comm )
-{
-	if ( comm == NULL ) return;
-	for ( dim_t i = 0; i < comm->n_threads; i++ )
-	{
-	   bli_thrcomm_tree_barrier_free( comm->barriers[i] );
-	}
-	bli_free_intl( comm->barriers );
-}
-
 void bli_thrcomm_tree_barrier_free( barrier_t* barrier )
 {
 	if ( barrier == NULL )
@@ -187,32 +167,42 @@ void bli_thrcomm_tree_barrier_free( barrier_t* barrier )
 	return;
 }
 
-void bli_thrcomm_barrier( dim_t t_id, thrcomm_t* comm )
-{
-	bli_thrcomm_tree_barrier( comm->barriers[t_id] );
-}
+// Use __sync_* builtins (assumed available) if __atomic_* ones are not present.
+#ifndef __ATOMIC_RELAXED
+
+#define __ATOMIC_RELAXED
+#define __ATOMIC_ACQUIRE
+#define __ATOMIC_RELEASE
+#define __ATOMIC_ACQ_REL
+
+//#define __atomic_add_fetch( ptr, value, constraint ) __sync_add_and_fetch( ptr, value )
+//#define __atomic_fetch_add( ptr, value, constraint ) __sync_fetch_and_add( ptr, value )
+
+#define __atomic_load_n(    ptr,        constraint ) __sync_fetch_and_add( ptr, 0     )
+#define __atomic_sub_fetch( ptr, value, constraint ) __sync_sub_and_fetch( ptr, value )
+#define __atomic_fetch_xor( ptr, value, constraint ) __sync_fetch_and_xor( ptr, value )
+
+#endif
 
 void bli_thrcomm_tree_barrier( barrier_t* barack )
 {
-	int my_signal = barack->signal;
-	int my_count;
+	gint_t my_signal = __atomic_load_n( &barack->signal, __ATOMIC_RELAXED );
 
-	_Pragma( "omp atomic capture" )
-		my_count = barack->count--;
+	dim_t my_count =
+	__atomic_sub_fetch( &barack->count, 1, __ATOMIC_ACQ_REL );
 
-	if ( my_count == 1 )
+	if ( my_count == 0 )
 	{
 		if ( barack->dad != NULL )
 		{
 			bli_thrcomm_tree_barrier( barack->dad );
 		}
 		barack->count = barack->arity;
-		barack->signal = !barack->signal;
+		__atomic_fetch_xor( &barack->signal, 1, __ATOMIC_RELEASE );
 	}
 	else
 	{
-		volatile int* listener = &barack->signal;
-		while ( *listener == my_signal ) {}
+		while ( __atomic_load_n( &barack->signal, __ATOMIC_ACQUIRE ) == my_signal ) {}
 	}
 }
 

@@ -91,10 +91,8 @@ void PASTEMAC(ch,varname) \
 	  NULL  \
 	); \
 \
-	PASTECH(ch,dotv_ker_ft) kfp_tv; \
-\
 	/* Query the context for the kernel function pointer. */ \
-	kfp_tv = bli_cntx_get_l1v_ker_dt( dt, BLIS_DOTV_KER, cntx ); \
+	dotv_ker_ft kfp_tv = bli_cntx_get_ukr_dt( dt, BLIS_DOTV_KER, cntx ); \
 \
 	/* We reduce all of the possible cases down to just lower/upper. */ \
 	if      ( bli_is_upper( uploa_trans ) ) \
@@ -163,5 +161,5 @@ void PASTEMAC(ch,varname) \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC0( trsv_unb_var1 )
+INSERT_GENTFUNC_BASIC( trsv_unb_var1 )
 

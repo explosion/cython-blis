@@ -67,10 +67,8 @@ void PASTEMAC(ch,varname) \
 \
 	conja = bli_extract_conj( transa ); \
 \
-	PASTECH(ch,dotxv_ker_ft) kfp_dv; \
-\
 	/* Query the context for the kernel function pointer. */ \
-	kfp_dv = bli_cntx_get_l1v_ker_dt( dt, BLIS_DOTXV_KER, cntx ); \
+	dotxv_ker_ft kfp_dv = bli_cntx_get_ukr_dt( dt, BLIS_DOTXV_KER, cntx ); \
 \
 	for ( i = 0; i < n_iter; ++i ) \
 	{ \
@@ -94,5 +92,5 @@ void PASTEMAC(ch,varname) \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC0( gemv_unb_var1 )
+INSERT_GENTFUNC_BASIC( gemv_unb_var1 )
 

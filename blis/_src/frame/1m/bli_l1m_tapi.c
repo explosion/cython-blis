@@ -45,14 +45,14 @@
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       doff_t  diagoffx, \
-       diag_t  diagx, \
-       uplo_t  uplox, \
-       trans_t transx, \
-       dim_t   m, \
-       dim_t   n, \
-       ctype*  x, inc_t rs_x, inc_t cs_x, \
-       ctype*  y, inc_t rs_y, inc_t cs_y  \
+             doff_t  diagoffx, \
+             diag_t  diagx, \
+             uplo_t  uplox, \
+             trans_t transx, \
+             dim_t   m, \
+             dim_t   n, \
+       const ctype*  x, inc_t rs_x, inc_t cs_x, \
+             ctype*  y, inc_t rs_y, inc_t cs_y  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -75,14 +75,18 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  transx, \
 	  m, \
 	  n, \
-	  x, rs_x, cs_x, \
-	  y, rs_y, cs_y, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )x, rs_x, cs_x, \
+	            y, rs_y, cs_y, \
+	  ( cntx_t* )cntx  \
 	); \
 \
 	/* When the diagonal of an upper- or lower-stored matrix is unit,
 	   we handle it with a separate post-processing step. */ \
+	/* NOTE: This code was disabled after I realized that when matrix A has the
+	   properties of having a unit diagonal (and being lower or upper stored),
+	   the operation should only read the strictly lower/upper triangle and
+	   leave the diagonal of B untouched. */ \
+/*
 	if ( bli_is_upper_or_lower( uplox ) && \
 	     bli_is_unit_diag( diagx ) ) \
 	{ \
@@ -99,6 +103,7 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 		  rntm  \
 		); \
 	} \
+*/ \
 }
 
 INSERT_GENTFUNC_BASIC( addm, addd )
@@ -110,14 +115,14 @@ INSERT_GENTFUNC_BASIC( subm, subd )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       doff_t  diagoffx, \
-       diag_t  diagx, \
-       uplo_t  uplox, \
-       trans_t transx, \
-       dim_t   m, \
-       dim_t   n, \
-       ctype*  x, inc_t rs_x, inc_t cs_x, \
-       ctype*  y, inc_t rs_y, inc_t cs_y  \
+             doff_t  diagoffx, \
+             diag_t  diagx, \
+             uplo_t  uplox, \
+             trans_t transx, \
+             dim_t   m, \
+             dim_t   n, \
+       const ctype*  x, inc_t rs_x, inc_t cs_x, \
+             ctype*  y, inc_t rs_y, inc_t cs_y  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -140,14 +145,18 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  transx, \
 	  m, \
 	  n, \
-	  x, rs_x, cs_x, \
-	  y, rs_y, cs_y, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )x, rs_x, cs_x, \
+	            y, rs_y, cs_y, \
+	  ( cntx_t* )cntx  \
 	); \
 \
 	/* When the diagonal of an upper- or lower-stored matrix is unit,
 	   we handle it with a separate post-processing step. */ \
+	/* NOTE: This code was disabled after I realized that when matrix A has the
+	   properties of having a unit diagonal (and being lower or upper stored),
+	   the operation should only read the strictly lower/upper triangle and
+	   leave the diagonal of B untouched. */ \
+/*
 	if ( bli_is_upper_or_lower( uplox ) && \
 	     bli_is_unit_diag( diagx ) ) \
 	{ \
@@ -169,9 +178,10 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 		  rntm  \
 		); \
 	} \
+*/ \
 }
 
-INSERT_GENTFUNC_BASIC0( copym )
+INSERT_GENTFUNC_BASIC( copym )
 
 
 #undef  GENTFUNC
@@ -179,15 +189,15 @@ INSERT_GENTFUNC_BASIC0( copym )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       doff_t  diagoffx, \
-       diag_t  diagx, \
-       uplo_t  uplox, \
-       trans_t transx, \
-       dim_t   m, \
-       dim_t   n, \
-       ctype*  alpha, \
-       ctype*  x, inc_t rs_x, inc_t cs_x, \
-       ctype*  y, inc_t rs_y, inc_t cs_y  \
+             doff_t  diagoffx, \
+             diag_t  diagx, \
+             uplo_t  uplox, \
+             trans_t transx, \
+             dim_t   m, \
+             dim_t   n, \
+       const ctype*  alpha, \
+       const ctype*  x, inc_t rs_x, inc_t cs_x, \
+             ctype*  y, inc_t rs_y, inc_t cs_y  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -213,15 +223,19 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  transx, \
 	  m, \
 	  n, \
-	  alpha, \
-	  x, rs_x, cs_x, \
-	  y, rs_y, cs_y, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )alpha, \
+	  ( ctype* )x, rs_x, cs_x, \
+	            y, rs_y, cs_y, \
+	  ( cntx_t* )cntx  \
 	); \
 \
 	/* When the diagonal of an upper- or lower-stored matrix is unit,
 	   we handle it with a separate post-processing step. */ \
+	/* NOTE: This code was disabled after I realized that when matrix A has the
+	   properties of having a unit diagonal (and being lower or upper stored),
+	   the operation should only read the strictly lower/upper triangle and
+	   leave the diagonal of B untouched. */ \
+/*
 	if ( bli_is_upper_or_lower( uplox ) && \
 	     bli_is_unit_diag( diagx ) ) \
 	{ \
@@ -239,9 +253,10 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 		  rntm  \
 		); \
 	} \
+*/ \
 }
 
-INSERT_GENTFUNC_BASIC0( axpym )
+INSERT_GENTFUNC_BASIC( axpym )
 
 
 #undef  GENTFUNC
@@ -249,15 +264,15 @@ INSERT_GENTFUNC_BASIC0( axpym )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       doff_t  diagoffx, \
-       diag_t  diagx, \
-       uplo_t  uplox, \
-       trans_t transx, \
-       dim_t   m, \
-       dim_t   n, \
-       ctype*  alpha, \
-       ctype*  x, inc_t rs_x, inc_t cs_x, \
-       ctype*  y, inc_t rs_y, inc_t cs_y  \
+             doff_t  diagoffx, \
+             diag_t  diagx, \
+             uplo_t  uplox, \
+             trans_t transx, \
+             dim_t   m, \
+             dim_t   n, \
+       const ctype*  alpha, \
+       const ctype*  x, inc_t rs_x, inc_t cs_x, \
+             ctype*  y, inc_t rs_y, inc_t cs_y  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -302,15 +317,19 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  transx, \
 	  m, \
 	  n, \
-	  alpha, \
-	  x, rs_x, cs_x, \
-	  y, rs_y, cs_y, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )alpha, \
+	  ( ctype* )x, rs_x, cs_x, \
+	            y, rs_y, cs_y, \
+	  ( cntx_t* )cntx  \
 	); \
 \
 	/* When the diagonal of an upper- or lower-stored matrix is unit,
 	   we handle it with a separate post-processing step. */ \
+	/* NOTE: This code was disabled after I realized that when matrix A has the
+	   properties of having a unit diagonal (and being lower or upper stored),
+	   the operation should only read the strictly lower/upper triangle and
+	   leave the diagonal of B untouched. */ \
+/*
 	if ( bli_is_upper_or_lower( uplox ) && \
 	     bli_is_unit_diag( diagx ) ) \
 	{ \
@@ -331,9 +350,10 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 		  rntm  \
 		); \
 	} \
+*/ \
 }
 
-INSERT_GENTFUNC_BASIC0( scal2m )
+INSERT_GENTFUNC_BASIC( scal2m )
 
 
 #undef  GENTFUNC
@@ -341,14 +361,14 @@ INSERT_GENTFUNC_BASIC0( scal2m )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjalpha, \
-       doff_t  diagoffx, \
-       diag_t  diagx, \
-       uplo_t  uplox, \
-       dim_t   m, \
-       dim_t   n, \
-       ctype*  alpha, \
-       ctype*  x, inc_t rs_x, inc_t cs_x  \
+             conj_t conjalpha, \
+             doff_t diagoffx, \
+             diag_t diagx, \
+             uplo_t uplox, \
+             dim_t  m, \
+             dim_t  n, \
+       const ctype* alpha, \
+             ctype* x, inc_t rs_x, inc_t cs_x  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -371,15 +391,15 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  uplox, \
 	  m, \
 	  n, \
-	  alpha, \
-	  x, rs_x, cs_x, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )alpha, \
+	            x, rs_x, cs_x, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 
-INSERT_GENTFUNC_BASIC0( scalm )
-INSERT_GENTFUNC_BASIC0( setm )
+INSERT_GENTFUNC_BASIC( invscalm )
+INSERT_GENTFUNC_BASIC( scalm )
+INSERT_GENTFUNC_BASIC( setm )
 
 
 #undef  GENTFUNC
@@ -387,15 +407,15 @@ INSERT_GENTFUNC_BASIC0( setm )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       doff_t  diagoffx, \
-       diag_t  diagx, \
-       uplo_t  uplox, \
-       trans_t transx, \
-       dim_t   m, \
-       dim_t   n, \
-       ctype*  x, inc_t rs_x, inc_t cs_x, \
-       ctype*  beta, \
-       ctype*  y, inc_t rs_y, inc_t cs_y  \
+             doff_t  diagoffx, \
+             diag_t  diagx, \
+             uplo_t  uplox, \
+             trans_t transx, \
+             dim_t   m, \
+             dim_t   n, \
+       const ctype*  x, inc_t rs_x, inc_t cs_x, \
+       const ctype*  beta, \
+             ctype*  y, inc_t rs_y, inc_t cs_y  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -419,10 +439,9 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 		  transx, \
 		  m, \
 		  n, \
-		  x, rs_x, cs_x, \
-		  y, rs_y, cs_y, \
-		  cntx, \
-		  rntm  \
+		  ( ctype* )x, rs_x, cs_x, \
+		            y, rs_y, cs_y, \
+		  ( cntx_t* )cntx  \
 		); \
 \
 		return; \
@@ -438,15 +457,19 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  transx, \
 	  m, \
 	  n, \
-	  x, rs_x, cs_x, \
-	  beta, \
-	  y, rs_y, cs_y, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )x, rs_x, cs_x, \
+	  ( ctype* )beta, \
+	            y, rs_y, cs_y, \
+	  ( cntx_t* )cntx  \
 	); \
 \
 	/* When the diagonal of an upper- or lower-stored matrix is unit,
 	   we handle it with a separate post-processing step. */ \
+	/* NOTE: This code was disabled after I realized that when matrix A has the
+	   properties of having a unit diagonal (and being lower or upper stored),
+	   the operation should only read the strictly lower/upper triangle and
+	   leave the diagonal of B untouched. */ \
+/*
 	if ( bli_is_upper_or_lower( uplox ) && \
 	     bli_is_unit_diag( diagx ) ) \
 	{ \
@@ -464,9 +487,10 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 		  rntm  \
 		); \
 	} \
+*/ \
 }
 
-INSERT_GENTFUNC_BASIC0( xpbym )
+INSERT_GENTFUNC_BASIC( xpbym )
 
 
 #undef  GENTFUNC2
@@ -474,15 +498,15 @@ INSERT_GENTFUNC_BASIC0( xpbym )
 \
 void PASTEMAC3(chx,chy,opname,EX_SUF) \
      ( \
-       doff_t   diagoffx, \
-       diag_t   diagx, \
-       uplo_t   uplox, \
-       trans_t  transx, \
-       dim_t    m, \
-       dim_t    n, \
-       ctype_x* x, inc_t rs_x, inc_t cs_x, \
-       ctype_y* beta, \
-       ctype_y* y, inc_t rs_y, inc_t cs_y  \
+             doff_t   diagoffx, \
+             diag_t   diagx, \
+             uplo_t   uplox, \
+             trans_t  transx, \
+             dim_t    m, \
+             dim_t    n, \
+       const ctype_x* x, inc_t rs_x, inc_t cs_x, \
+       const ctype_y* beta, \
+             ctype_y* y, inc_t rs_y, inc_t cs_y  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -520,16 +544,15 @@ void PASTEMAC3(chx,chy,opname,EX_SUF) \
 	  transx, \
 	  m, \
 	  n, \
-	  x, rs_x, cs_x, \
-	  beta, \
-	  y, rs_y, cs_y, \
-	  cntx, \
-	  rntm  \
+	  ( ctype_x* )x, rs_x, cs_x, \
+	  ( ctype_y* )beta, \
+	              y, rs_y, cs_y, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 
-INSERT_GENTFUNC2_BASIC0( xpbym_md )
-INSERT_GENTFUNC2_MIXDP0( xpbym_md )
+INSERT_GENTFUNC2_BASIC( xpbym_md )
+INSERT_GENTFUNC2_MIX_DP( xpbym_md )
 
 
 #endif

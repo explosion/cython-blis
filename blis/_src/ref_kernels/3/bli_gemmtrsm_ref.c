@@ -34,55 +34,80 @@
 
 #include "blis.h"
 
+// An implementation that indexes through B with the assumption that all
+// elements were broadcast (duplicated) by a factor of NP/NR.
+
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, arch, suf, trsmkerid ) \
 \
 void PASTEMAC3(ch,opname,arch,suf) \
      ( \
-       dim_t               m, \
-       dim_t               n, \
-       dim_t               k, \
-       ctype*     restrict alpha, \
-       ctype*     restrict a1x, \
-       ctype*     restrict a11, \
-       ctype*     restrict bx1, \
-       ctype*     restrict b11, \
-       ctype*     restrict c11, inc_t rs_c, inc_t cs_c, \
-       auxinfo_t* restrict data, \
-       cntx_t*    restrict cntx  \
+             dim_t      m, \
+             dim_t      n, \
+             dim_t      k, \
+       const void*      alpha0, \
+       const void*      a1x0, \
+       const void*      a110, \
+       const void*      bx10, \
+             void*      b110, \
+             void*      c110, inc_t rs_c, inc_t cs_c, \
+             auxinfo_t* data, \
+       const cntx_t*    cntx  \
      ) \
 { \
-	const num_t     dt     = PASTEMAC(ch,type); \
+	const ctype* alpha = alpha0; \
+	const ctype* a1x   = a1x0; \
+	const ctype* a11   = a110; \
+	const ctype* bx1   = bx10; \
+	      ctype* b11   = b110; \
+	      ctype* c11   = c110; \
 \
-	const dim_t     mr     = bli_cntx_get_blksz_def_dt( dt, BLIS_MR, cntx ); \
-	const dim_t     nr     = bli_cntx_get_blksz_def_dt( dt, BLIS_NR, cntx ); \
+	const num_t dt     = PASTEMAC(ch,type); \
 \
-	const inc_t     packnr = bli_cntx_get_blksz_max_dt( dt, BLIS_NR, cntx ); \
+	const dim_t mr     = bli_cntx_get_blksz_def_dt( dt, BLIS_MR, cntx ); \
+	const dim_t nr     = bli_cntx_get_blksz_def_dt( dt, BLIS_NR, cntx ); \
 \
-	const inc_t     rs_b   = packnr; \
-	const inc_t     cs_b   = 1; \
+	const inc_t packnr = bli_cntx_get_blksz_max_dt( dt, BLIS_NR, cntx ); \
 \
-	ctype*          minus_one = PASTEMAC(ch,m1); \
+	const inc_t rs_b   = packnr; \
+	const inc_t cs_b   = bli_cntx_get_blksz_def_dt( dt, BLIS_BBN, cntx ); \
+/*
+printf( "bli_gemmtrsm_ref(): cs_b = %d\n", (int)cs_b ); \
+printf( "bli_gemmtrsm_ref(): k nr = %d %d\n", (int)k, (int)nr ); \
+*/ \
 \
-	PASTECH(ch,gemm_ukr_ft) \
-	              gemm_ukr = bli_cntx_get_l3_nat_ukr_dt( dt, BLIS_GEMM_UKR, cntx ); \
-	PASTECH(ch,trsm_ukr_ft) \
-	              trsm_ukr = bli_cntx_get_l3_nat_ukr_dt( dt, trsmkerid, cntx ); \
+	const ctype* minus_one = PASTEMAC(ch,m1); \
 \
-	ctype           ct[ BLIS_STACK_BUF_MAX_SIZE \
+	gemm_ukr_ft gemm_ukr = bli_cntx_get_ukr_dt( dt, BLIS_GEMM_UKR, cntx ); \
+	trsm_ukr_ft trsm_ukr = bli_cntx_get_ukr_dt( dt, trsmkerid, cntx ); \
+\
+/*
+PASTEMAC(d,fprintm)( stdout, "gemmtrsm_ukr: b01", k, nr, \
+                     (double*)bx1, rs_b, cs_b, "%5.2f", "" ); \
+PASTEMAC(d,fprintm)( stdout, "gemmtrsm_ukr: b11", mr, 2*nr, \
+                     (double*)b11, rs_b, 1, "%5.2f", "" ); \
+*/ \
+\
+	      ctype     ct[ BLIS_STACK_BUF_MAX_SIZE \
 	                    / sizeof( ctype ) ] \
 	                    __attribute__((aligned(BLIS_STACK_BUF_ALIGN_SIZE))); \
-	/* FGVZ: Should we be querying the preference of BLIS_GEMMTRSM_?_UKR
-	   instead? */ \
-	const bool      col_pref    = bli_cntx_l3_vir_ukr_prefers_cols_dt( dt, BLIS_GEMM_UKR, cntx ); \
-	const inc_t     rs_ct       = ( col_pref ? 1 : nr ); \
-	const inc_t     cs_ct       = ( col_pref ? mr : 1 ); \
+	/* to FGVZ: Should we be querying the preference of BLIS_GEMMTRSM_?_UKR
+	   instead?
+
+	   to DAM: Given that this reference kernel is implemented in terms of gemm,
+	   I think that is the preference we want to query. There might be other
+	   circumstances where we would want the gemmtrsm_? operations to have
+	   and exercise their own IO preferences -- I'd have to think about it --
+	   but this doesn't seem to be one of them. */ \
+	const bool      col_pref = bli_cntx_ukr_prefers_cols_dt( dt, BLIS_GEMM_VIR_UKR, cntx ); \
+	const inc_t     rs_ct    = ( col_pref ? 1 : nr ); \
+	const inc_t     cs_ct    = ( col_pref ? mr : 1 ); \
 \
-	const bool      use_ct      = ( m < mr || n < nr ); \
+	const bool      use_ct   = ( m < mr || n < nr ); \
 \
-	ctype* restrict c11_use     = c11; \
-	inc_t           rs_c_use    = rs_c; \
-	inc_t           cs_c_use    = cs_c; \
+	      ctype*    c11_use  = c11; \
+	      inc_t     rs_c_use = rs_c; \
+	      inc_t     cs_c_use = cs_c; \
 \
 	if ( use_ct ) \
 	{ \
@@ -106,6 +131,19 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	  data, \
 	  cntx  \
 	); \
+/*
+PASTEMAC(d,fprintm)( stdout, "gemmtrsm_ukr: b11 after gemm", mr, 2*nr, \
+                     (double*)b11, rs_b, 1, "%5.2f", "" ); \
+*/ \
+\
+	/* Broadcast the elements of the updated b11 submatrix to their
+	   duplicated neighbors. */ \
+	PASTEMAC(ch,bcastbbs_mxn) \
+	( \
+	  m, \
+	  n, \
+	  b11, rs_b, cs_b  \
+	); \
 \
 	/* b11 = inv(a11) * b11;
 	   c11 = b11; */ \
@@ -117,6 +155,10 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	  data, \
 	  cntx  \
 	); \
+/*
+PASTEMAC(d,fprintm)( stdout, "gemmtrsm_ukr: b11 after trsm", mr, 2*nr, \
+                     (double*)b11, rs_b, 1, "%5.2f", "" ); \
+*/ \
 \
 	if ( use_ct ) \
 	{ \
@@ -136,6 +178,6 @@ PASTEMAC(d,fprintm)( stdout, "gemmtrsm_ukr: b0111p_i after", k+3, 8, \
 */ \
 }
 
-INSERT_GENTFUNC_BASIC3( gemmtrsm_l, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX, BLIS_TRSM_L_UKR )
-INSERT_GENTFUNC_BASIC3( gemmtrsm_u, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX, BLIS_TRSM_U_UKR )
+INSERT_GENTFUNC_BASIC( gemmtrsm_l, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX, BLIS_TRSM_L_UKR )
+INSERT_GENTFUNC_BASIC( gemmtrsm_u, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX, BLIS_TRSM_U_UKR )
 

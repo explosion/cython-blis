@@ -37,14 +37,13 @@
 
 void bli_gemm_front
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm,
-       cntl_t* cntl
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+             rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -52,22 +51,6 @@ void bli_gemm_front
 	obj_t   a_local;
 	obj_t   b_local;
 	obj_t   c_local;
-
-	// If C has a zero dimension, return early.
-	if ( bli_obj_has_zero_dim( c ) )
-	{
-		return;
-	}
-
-	// If alpha is zero, or if A or B has a zero dimension, scale C by beta
-	// and return early.
-	if ( bli_obj_equals( alpha, &BLIS_ZERO ) ||
-	     bli_obj_has_zero_dim( a ) ||
-	     bli_obj_has_zero_dim( b ) )
-	{
-		bli_scalm( beta, c );
-		return;
-	}
 
 #if 0
 #ifdef BLIS_ENABLE_SMALL_MATRIX
@@ -99,7 +82,7 @@ void bli_gemm_front
 	// contiguous columns, or if C is stored by columns and the micro-kernel
 	// prefers contiguous rows, transpose the entire operation to allow the
 	// micro-kernel to access elements of C in its preferred manner.
-	if ( bli_cntx_l3_vir_ukr_dislikes_storage_of( &c_local, BLIS_GEMM_UKR, cntx ) )
+	if ( bli_cntx_dislikes_storage_of( &c_local, BLIS_GEMM_VIR_UKR, cntx ) )
 	{
 		bli_obj_swap( &a_local, &b_local );
 
@@ -163,8 +146,8 @@ void bli_gemm_front
 	  rntm
 	);
 
-	obj_t* cp    = &c_local;
-	obj_t* betap = beta;
+	      obj_t* cp    = &c_local;
+	const obj_t* betap = beta;
 
 #ifdef BLIS_ENABLE_GEMM_MD
 #ifdef BLIS_ENABLE_GEMM_MD_EXTRA_MEM
@@ -260,8 +243,7 @@ void bli_gemm_front
 	  betap,
 	  cp,
 	  cntx,
-	  rntm,
-	  cntl
+	  rntm
 	);
 
 #ifdef BLIS_ENABLE_GEMM_MD
@@ -269,7 +251,7 @@ void bli_gemm_front
 	// If we created a temporary matrix conformal to C for whatever reason,
 	// we copy/accumulate the result back to C and then release the object.
 	if ( use_ct )
-    {
+	{
 		obj_t beta_local;
 
 		bli_obj_scalar_detach( &c_local, &beta_local );

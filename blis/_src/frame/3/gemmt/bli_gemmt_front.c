@@ -37,14 +37,13 @@
 
 void bli_gemmt_front
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm,
-       cntl_t* cntl
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+             rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -52,22 +51,6 @@ void bli_gemmt_front
 	obj_t   a_local;
 	obj_t   b_local;
 	obj_t   c_local;
-
-	// If C has a zero dimension, return early.
-	if ( bli_obj_has_zero_dim( c ) )
-	{
-		return;
-	}
-
-	// If alpha is zero, or if A or B has a zero dimension, scale C by beta
-	// and return early.
-	if ( bli_obj_equals( alpha, &BLIS_ZERO ) ||
-	     bli_obj_has_zero_dim( a ) ||
-	     bli_obj_has_zero_dim( b ) )
-	{
-		bli_scalm( beta, c );
-		return;
-	}
 
 	// Alias A, B, and C in case we need to apply transformations.
 	bli_obj_alias_to( a, &a_local );
@@ -86,7 +69,7 @@ void bli_gemmt_front
 	// contiguous columns, or if C is stored by columns and the micro-kernel
 	// prefers contiguous rows, transpose the entire operation to allow the
 	// micro-kernel to access elements of C in its preferred manner.
-	if ( bli_cntx_l3_vir_ukr_dislikes_storage_of( &c_local, BLIS_GEMM_UKR, cntx ) )
+	if ( bli_cntx_dislikes_storage_of( &c_local, BLIS_GEMM_VIR_UKR, cntx ) )
 	{
 		bli_obj_swap( &a_local, &b_local );
 
@@ -122,8 +105,7 @@ void bli_gemmt_front
 	  beta,
 	  &c_local,
 	  cntx,
-	  rntm,
-	  cntl
+	  rntm
 	);
 }
 

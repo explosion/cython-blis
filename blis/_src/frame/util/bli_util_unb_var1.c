@@ -52,11 +52,11 @@ void PASTEMAC(ch,varname) \
        rntm_t*  rntm  \
      ) \
 { \
-	ctype*   chi1; \
-	ctype_r  chi1_r; \
-	ctype_r  chi1_i; \
-	ctype_r  absum; \
-	dim_t    i; \
+	ctype*  chi1; \
+	ctype_r chi1_r; \
+	ctype_r chi1_i; \
+	ctype_r absum; \
+	dim_t   i; \
 \
 	/* Initialize the absolute sum accumulator to zero. */ \
 	PASTEMAC(chr,set0s)( absum ); \
@@ -81,7 +81,7 @@ void PASTEMAC(ch,varname) \
 	PASTEMAC(chr,copys)( absum, *asum ); \
 }
 
-INSERT_GENTFUNCR_BASIC0( asumv_unb_var1 )
+INSERT_GENTFUNCR_BASIC( asumv_unb_var1 )
 
 
 #undef  GENTFUNCR
@@ -137,7 +137,7 @@ void PASTEMAC(ch,varname) \
 	); \
 }
 
-INSERT_GENTFUNCR_BASIC0( mkherm_unb_var1 )
+INSERT_GENTFUNCR_BASIC( mkherm_unb_var1 )
 
 
 #undef  GENTFUNC
@@ -179,7 +179,7 @@ void PASTEMAC(ch,varname) \
 	); \
 }
 
-INSERT_GENTFUNC_BASIC0( mksymm_unb_var1 )
+INSERT_GENTFUNC_BASIC( mksymm_unb_var1 )
 
 
 #undef  GENTFUNC
@@ -224,7 +224,7 @@ void PASTEMAC(ch,varname) \
 	); \
 }
 
-INSERT_GENTFUNC_BASIC0( mktrim_unb_var1 )
+INSERT_GENTFUNC_BASIC( mktrim_unb_var1 )
 
 
 #undef  GENTFUNCR
@@ -239,10 +239,10 @@ void PASTEMAC(ch,varname) \
        rntm_t*  rntm  \
      ) \
 { \
-	ctype*   chi1; \
-	ctype_r  abs_chi1; \
-	ctype_r  absum; \
-	dim_t    i; \
+	ctype*  chi1; \
+	ctype_r abs_chi1; \
+	ctype_r absum; \
+	dim_t   i; \
 \
 	/* Initialize the absolute sum accumulator to zero. */ \
 	PASTEMAC(chr,set0s)( absum ); \
@@ -262,7 +262,7 @@ void PASTEMAC(ch,varname) \
 	PASTEMAC(chr,copys)( absum, *norm ); \
 }
 
-INSERT_GENTFUNCR_BASIC0( norm1v_unb_var1 )
+INSERT_GENTFUNCR_BASIC( norm1v_unb_var1 )
 
 
 #undef  GENTFUNCR
@@ -455,10 +455,10 @@ void PASTEMAC(ch,varname) \
        rntm_t*  rntm  \
      ) \
 { \
-	ctype*   chi1; \
-	ctype_r  abs_chi1; \
-	ctype_r  abs_chi1_max; \
-	dim_t    i; \
+	ctype*  chi1; \
+	ctype_r abs_chi1; \
+	ctype_r abs_chi1_max; \
+	dim_t   i; \
 \
 	/* Initialize the maximum absolute value to zero. */ \
 	PASTEMAC(chr,set0s)( abs_chi1_max ); \
@@ -485,7 +485,7 @@ void PASTEMAC(ch,varname) \
 	PASTEMAC(chr,copys)( abs_chi1_max, *norm ); \
 }
 
-INSERT_GENTFUNCR_BASIC0( normiv_unb_var1 )
+INSERT_GENTFUNCR_BASIC( normiv_unb_var1 )
 
 
 
@@ -505,19 +505,19 @@ void PASTEMAC(ch,varname) \
        rntm_t*  rntm  \
      ) \
 { \
-	ctype*   one       = PASTEMAC(ch,1); \
-	ctype*   x0; \
-	ctype*   chi1; \
-	ctype*   x2; \
-	ctype_r  absum_max; \
-	ctype_r  absum_j; \
-	ctype_r  abval_chi1; \
-	uplo_t   uplox_eff; \
-	dim_t    n_iter; \
-	dim_t    n_elem, n_elem_max; \
-	inc_t    ldx, incx; \
-	dim_t    j, i; \
-	dim_t    ij0, n_shift; \
+	ctype*  one = PASTEMAC(ch,1); \
+	ctype*  x0; \
+	ctype*  chi1; \
+	ctype*  x2; \
+	ctype_r absum_max; \
+	ctype_r absum_j; \
+	ctype_r abval_chi1; \
+	uplo_t  uplox_eff; \
+	dim_t   n_iter; \
+	dim_t   n_elem, n_elem_max; \
+	inc_t   ldx, incx; \
+	dim_t   j, i; \
+	dim_t   ij0, n_shift; \
 \
 	/* Initialize the maximum absolute column sum to zero. */ \
 	PASTEMAC(chr,set0s)( absum_max ); \
@@ -904,20 +904,20 @@ void PASTEMAC(ch,varname) \
        rntm_t* rntm  \
      ) \
 { \
-	ctype*  one = PASTEMAC(ch,1); \
-	ctype*  x0; \
-	ctype*  x1; \
-	ctype*  x2; \
-	ctype*  chi1; \
-	ctype   beta; \
-	ctype   omega; \
-	double  max_m_n; \
-	uplo_t  uplox_eff; \
-	dim_t   n_iter; \
-	dim_t   n_elem, n_elem_max; \
-	inc_t   ldx, incx; \
-	dim_t   j, i; \
-	dim_t   ij0, n_shift; \
+	ctype* one = PASTEMAC(ch,1); \
+	ctype* x0; \
+	ctype* x1; \
+	ctype* x2; \
+	ctype* chi1; \
+	ctype  beta; \
+	ctype  omega; \
+	double max_m_n; \
+	uplo_t uplox_eff; \
+	dim_t  n_iter; \
+	dim_t  n_elem, n_elem_max; \
+	inc_t  ldx, incx; \
+	dim_t  j, i; \
+	dim_t  ij0, n_shift; \
 \
 	/* Set various loop parameters. Here, we pretend that diagx is equal to
 	   BLIS_NONUNIT_DIAG because we handle the unit diagonal case manually. */ \
@@ -1059,16 +1059,17 @@ void PASTEMAC(ch,varname) \
        rntm_t*  rntm  \
      ) \
 { \
-	const ctype_r zero_r = *PASTEMAC(chr,0); \
-	const ctype_r one_r  = *PASTEMAC(chr,1); \
+	ctype_r zero_r = *PASTEMAC(chr,0); \
+	ctype_r one_r  = *PASTEMAC(chr,1); \
 \
-	ctype*        chi1; \
-	ctype_r       chi1_r; \
-	ctype_r       chi1_i; \
-	ctype_r       scale_r; \
-	ctype_r       sumsq_r; \
-	ctype_r       abs_chi1_r; \
-	dim_t         i; \
+	ctype*  chi1; \
+	ctype_r chi1_r; \
+	ctype_r chi1_i; \
+	ctype_r scale_r; \
+	ctype_r sumsq_r; \
+	ctype_r abs_chi1_r; \
+	ctype_r abs_chi1_i; \
+	dim_t   i; \
 \
 	/* NOTE: This function attempts to mimic the algorithm for computing
 	   the Frobenius norm in netlib LAPACK's ?lassq(). */ \
@@ -1085,10 +1086,47 @@ void PASTEMAC(ch,varname) \
 		PASTEMAC2(ch,chr,gets)( *chi1, chi1_r, chi1_i ); \
 \
 		abs_chi1_r = bli_fabs( chi1_r ); \
+		abs_chi1_i = bli_fabs( chi1_i ); \
+\
+		if ( bli_isnan( abs_chi1_r ) ) \
+		{ \
+			sumsq_r = abs_chi1_r; \
+			scale_r = one_r; \
+		} \
+\
+		if ( bli_isnan( abs_chi1_i ) ) \
+		{ \
+			sumsq_r = abs_chi1_i; \
+			scale_r = one_r; \
+		} \
+\
+		if ( bli_isnan( sumsq_r ) ) \
+		{ \
+			chi1 += incx; \
+			continue; \
+		} \
+\
+		if ( bli_isinf( abs_chi1_r ) ) \
+		{ \
+			sumsq_r = abs_chi1_r; \
+			scale_r = one_r; \
+		} \
+\
+		if ( bli_isinf( abs_chi1_i ) ) \
+		{ \
+			sumsq_r = abs_chi1_i; \
+			scale_r = one_r; \
+		} \
+\
+		if ( bli_isinf( sumsq_r ) ) \
+		{ \
+			chi1 += incx; \
+			continue; \
+		} \
 \
 		/* Accumulate real component into sumsq, adjusting scale if
 		   needed. */ \
-		if ( abs_chi1_r > zero_r || bli_isnan( abs_chi1_r) ) \
+		if ( abs_chi1_r > zero_r ) \
 		{ \
 			if ( scale_r < abs_chi1_r ) \
 			{ \
@@ -1105,24 +1143,22 @@ void PASTEMAC(ch,varname) \
 			} \
 		} \
 \
-		abs_chi1_r = bli_fabs( chi1_i ); \
-\
 		/* Accumulate imaginary component into sumsq, adjusting scale if
 		   needed. */ \
-		if ( abs_chi1_r > zero_r || bli_isnan( abs_chi1_r) ) \
+		if ( abs_chi1_i > zero_r ) \
 		{ \
-			if ( scale_r < abs_chi1_r ) \
+			if ( scale_r < abs_chi1_i ) \
 			{ \
 				sumsq_r = one_r + \
-				          sumsq_r * ( scale_r / abs_chi1_r ) * \
-				                    ( scale_r / abs_chi1_r );  \
+				          sumsq_r * ( scale_r / abs_chi1_i ) * \
+				                    ( scale_r / abs_chi1_i );  \
 \
-				PASTEMAC(chr,copys)( abs_chi1_r, scale_r ); \
+				PASTEMAC(chr,copys)( abs_chi1_i, scale_r ); \
 			} \
 			else \
 			{ \
-				sumsq_r = sumsq_r + ( abs_chi1_r / scale_r ) * \
-				                    ( abs_chi1_r / scale_r );  \
+				sumsq_r = sumsq_r + ( abs_chi1_i / scale_r ) * \
+				                    ( abs_chi1_i / scale_r );  \
 			} \
 		} \
 \
@@ -1134,7 +1170,7 @@ void PASTEMAC(ch,varname) \
 	PASTEMAC(chr,copys)( sumsq_r, *sumsq ); \
 }
 
-INSERT_GENTFUNCR_BASIC0( sumsqv_unb_var1 )
+INSERT_GENTFUNCR_BASIC( sumsqv_unb_var1 )
 
 // -----------------------------------------------------------------------------
 
@@ -1143,10 +1179,10 @@ INSERT_GENTFUNCR_BASIC0( sumsqv_unb_var1 )
 \
 bool PASTEMAC(ch,opname) \
      ( \
-       conj_t  conjx, \
-       dim_t   n, \
-       ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy  \
+       conj_t conjx, \
+       dim_t  n, \
+       ctype* x, inc_t incx, \
+       ctype* y, inc_t incy  \
      ) \
 { \
 	for ( dim_t i = 0; i < n; ++i ) \
@@ -1166,7 +1202,7 @@ bool PASTEMAC(ch,opname) \
 	return TRUE; \
 }
 
-INSERT_GENTFUNC_BASIC0( eqv_unb_var1 )
+INSERT_GENTFUNC_BASIC( eqv_unb_var1 )
 
 
 #undef  GENTFUNC
@@ -1290,7 +1326,7 @@ bool PASTEMAC(ch,opname) \
 	return TRUE; \
 }
 
-INSERT_GENTFUNC_BASIC0( eqm_unb_var1 )
+INSERT_GENTFUNC_BASIC( eqm_unb_var1 )
 
 
 #undef  GENTFUNC
@@ -1298,25 +1334,23 @@ INSERT_GENTFUNC_BASIC0( eqm_unb_var1 )
 \
 void PASTEMAC(ch,opname) \
      ( \
-       FILE*  file, \
-       char*  s1, \
-       dim_t  n, \
-       ctype* x, inc_t incx, \
-       char*  format, \
-       char*  s2  \
+             FILE*  file, \
+       const char*  s1, \
+             dim_t  n, \
+       const ctype* x, inc_t incx, \
+       const char*  format, \
+       const char*  s2  \
      ) \
 { \
-	dim_t  i; \
-	ctype* chi1; \
-	char   default_spec[32] = PASTEMAC(ch,formatspec)(); \
+	const char default_spec[32] = PASTEMAC(ch,formatspec)(); \
 \
 	if ( format == NULL ) format = default_spec; \
 \
-	chi1 = x; \
+	const ctype*chi1 = x; \
 \
 	fprintf( file, "%s\n", s1 ); \
 \
-	for ( i = 0; i < n; ++i ) \
+	for ( dim_t i = 0; i < n; ++i ) \
 	{ \
 		PASTEMAC(ch,fprints)( file, format, *chi1 ); \
 		fprintf( file, "\n" ); \
@@ -1327,7 +1361,7 @@ void PASTEMAC(ch,opname) \
 	fprintf( file, "%s\n", s2 ); \
 }
 
-INSERT_GENTFUNC_BASIC0_I( fprintv )
+INSERT_GENTFUNC_BASIC_I( fprintv )
 
 
 #undef  GENTFUNC
@@ -1335,28 +1369,26 @@ INSERT_GENTFUNC_BASIC0_I( fprintv )
 \
 void PASTEMAC(ch,opname) \
      ( \
-       FILE*  file, \
-       char*  s1, \
-       dim_t  m, \
-       dim_t  n, \
-       ctype* x, inc_t rs_x, inc_t cs_x, \
-       char*  format, \
-       char*  s2  \
+             FILE*  file, \
+       const char*  s1, \
+             dim_t  m, \
+             dim_t  n, \
+       const ctype* x, inc_t rs_x, inc_t cs_x, \
+       const char*  format, \
+       const char*  s2  \
      ) \
 { \
-	dim_t  i, j; \
-	ctype* chi1; \
-	char   default_spec[32] = PASTEMAC(ch,formatspec)(); \
+	const char default_spec[32] = PASTEMAC(ch,formatspec)(); \
 \
 	if ( format == NULL ) format = default_spec; \
 \
 	fprintf( file, "%s\n", s1 ); \
 \
-	for ( i = 0; i < m; ++i ) \
+	for ( dim_t i = 0; i < m; ++i ) \
 	{ \
-		for ( j = 0; j < n; ++j ) \
+		for ( dim_t j = 0; j < n; ++j ) \
 		{ \
-			chi1 = (( ctype* ) x) + i*rs_x + j*cs_x; \
+			const ctype* chi1 = (( ctype* ) x) + i*rs_x + j*cs_x; \
 \
 			PASTEMAC(ch,fprints)( file, format, *chi1 ); \
 			fprintf( file, " " ); \
@@ -1369,5 +1401,5 @@ void PASTEMAC(ch,opname) \
 	fflush( file ); \
 }
 
-INSERT_GENTFUNC_BASIC0_I( fprintm )
+INSERT_GENTFUNC_BASIC_I( fprintm )
 

@@ -34,7 +34,7 @@
 
 #include "blis.h"
 
-static char* bli_ind_impl_str[BLIS_NUM_IND_METHODS] =
+static const char* bli_ind_impl_str[BLIS_NUM_IND_METHODS] =
 {
 /* 1m   */ "1m",
 /* nat  */ "native",
@@ -42,11 +42,17 @@ static char* bli_ind_impl_str[BLIS_NUM_IND_METHODS] =
 
 // -----------------------------------------------------------------------------
 
-void bli_ind_init( void )
+int bli_ind_init( void )
 {
-	// NOTE: Instead of calling bli_gks_query_cntx(), we call
-	// bli_gks_query_cntx_noinit() to avoid the call to bli_init_once().
-	cntx_t* cntx     = bli_gks_query_cntx_noinit();
+	// NOTE: If TLS is enabled, this function is called once by EACH application
+	// thread per library init/finalize cycle (see bli_init.c). In this case,
+	// the threads will initialize thread-local data (see bli_l3_ind.c). If TLS
+	// is disabled, this function is called once by ONLY ONE application thread.
+	// In neither case is a mutex needed to protect the data initialization.
+
+	// NOTE: We intentionally call bli_gks_query_nat_cntx_noinit() in order
+	// to avoid the internal call to bli_init_once().
+	const cntx_t* cntx = bli_gks_query_nat_cntx_noinit();
 
 	// For each precision, enable the default induced method (1m) if both of
 	// the following conditions are met:
@@ -62,10 +68,13 @@ void bli_ind_init( void )
 
 	if ( c_is_ref && !s_is_ref ) bli_ind_enable_dt( BLIS_1M, BLIS_SCOMPLEX );
 	if ( z_is_ref && !d_is_ref ) bli_ind_enable_dt( BLIS_1M, BLIS_DCOMPLEX );
+
+	return 0;
 }
 
-void bli_ind_finalize( void )
+int bli_ind_finalize( void )
 {
+	return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -151,8 +160,8 @@ bool bli_ind_oper_is_impl( opid_t oper, ind_t method )
 		// All other operations should be reported as not implemented,
 		// unless the requested check was for BLIS_NAT, in which case
 		// all operations are implemented.
-	    if ( method == BLIS_NAT ) is_impl = TRUE;
-	    else                      is_impl = FALSE;
+		if ( method == BLIS_NAT ) is_impl = TRUE;
+		else                      is_impl = FALSE;
 	}
 
 	return is_impl;
@@ -176,7 +185,7 @@ ind_t bli_ind_oper_find_avail( opid_t oper, num_t dt )
 	return method;
 }
 
-char* bli_ind_oper_get_avail_impl_string( opid_t oper, num_t dt )
+const char* bli_ind_oper_get_avail_impl_string( opid_t oper, num_t dt )
 {
 	ind_t method = bli_ind_oper_find_avail( oper, dt );
 
@@ -185,7 +194,7 @@ char* bli_ind_oper_get_avail_impl_string( opid_t oper, num_t dt )
 
 // -----------------------------------------------------------------------------
 
-char* bli_ind_get_impl_string( ind_t method )
+const char* bli_ind_get_impl_string( ind_t method )
 {
 	return bli_ind_impl_str[ method ];
 }

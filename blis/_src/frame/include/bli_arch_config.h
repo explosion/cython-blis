@@ -88,15 +88,24 @@ CNTX_INIT_PROTS( bulldozer )
 
 // -- ARM architectures --
 
+// ARM-SVE
 #ifdef BLIS_CONFIG_ARMSVE
 CNTX_INIT_PROTS( armsve )
 #endif
 #ifdef BLIS_CONFIG_A64FX
 CNTX_INIT_PROTS( a64fx )
 #endif
+// ARM-NEON (4x128)
+#ifdef BLIS_CONFIG_ALTRAMAX
+CNTX_INIT_PROTS( altramax )
+#endif
+#ifdef BLIS_CONFIG_ALTRA
+CNTX_INIT_PROTS( altra )
+#endif
 #ifdef BLIS_CONFIG_FIRESTORM
 CNTX_INIT_PROTS( firestorm )
 #endif
+// ARM-NEON (2x128)
 #ifdef BLIS_CONFIG_THUNDERX2
 CNTX_INIT_PROTS( thunderx2 )
 #endif
@@ -106,6 +115,7 @@ CNTX_INIT_PROTS( cortexa57 )
 #ifdef BLIS_CONFIG_CORTEXA53
 CNTX_INIT_PROTS( cortexa53 )
 #endif
+// ARM 32-bit (vintage)
 #ifdef BLIS_CONFIG_CORTEXA15
 CNTX_INIT_PROTS( cortexa15 )
 #endif
@@ -129,6 +139,27 @@ CNTX_INIT_PROTS( power7 )
 
 #ifdef BLIS_CONFIG_BGQ
 CNTX_INIT_PROTS( bgq )
+#endif
+
+// -- RISC-V --
+
+#ifdef BLIS_CONFIG_RV32I
+CNTX_INIT_PROTS( rv32i )
+#endif
+#ifdef BLIS_CONFIG_RV64I
+CNTX_INIT_PROTS( rv64i )
+#endif
+#ifdef BLIS_CONFIG_RV32IV
+CNTX_INIT_PROTS( rv32iv )
+#endif
+#ifdef BLIS_CONFIG_RV64IV
+CNTX_INIT_PROTS( rv64iv )
+#endif
+
+// -- SiFive architectures --
+
+#ifdef BLIS_CONFIG_SIFIVE_X280
+CNTX_INIT_PROTS( sifive_x280 )
 #endif
 
 // -- Generic --
@@ -215,6 +246,9 @@ CNTX_INIT_PROTS( generic )
 #endif
 
 // -- ARM families --
+#ifdef BLIS_FAMILY_ARM64_NO_SVE
+#include "bli_family_arm64_no_sve.h"
+#endif
 #ifdef BLIS_FAMILY_ARM64
 #include "bli_family_arm64.h"
 #endif
@@ -224,15 +258,24 @@ CNTX_INIT_PROTS( generic )
 
 // -- ARM architectures --
 
+// ARM-SVE
 #ifdef BLIS_FAMILY_ARMSVE
 #include "bli_family_armsve.h"
 #endif
 #ifdef BLIS_FAMILY_A64FX
 #include "bli_family_a64fx.h"
 #endif
+// ARM-NEON (4x128)
+#ifdef BLIS_FAMILY_ALTRAMAX
+#include "bli_family_altramax.h"
+#endif
+#ifdef BLIS_FAMILY_ALTRA
+#include "bli_family_altra.h"
+#endif
 #ifdef BLIS_FAMILY_FIRESTORM
 #include "bli_family_firestorm.h"
 #endif
+// ARM-NEON (2x128)
 #ifdef BLIS_FAMILY_THUNDERX2
 #include "bli_family_thunderx2.h"
 #endif
@@ -242,6 +285,7 @@ CNTX_INIT_PROTS( generic )
 #ifdef BLIS_FAMILY_CORTEXA53
 #include "bli_family_cortexa53.h"
 #endif
+// ARM 32-bit (vintage)
 #ifdef BLIS_FAMILY_CORTEXA15
 #include "bli_family_cortexa15.h"
 #endif
@@ -249,7 +293,12 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_cortexa9.h"
 #endif
 
-// -- IBM Power --
+// -- IBM Power families --
+#ifdef BLIS_FAMILY_POWER
+#include "bli_family_power.h"
+#endif
+
+// -- IBM Power architectures --
 
 #ifdef BLIS_FAMILY_POWER10
 #include "bli_family_power10.h"
@@ -265,6 +314,12 @@ CNTX_INIT_PROTS( generic )
 
 #ifdef BLIS_FAMILY_BGQ
 #include "bli_family_bgq.h"
+#endif
+
+// -- SiFive families --
+
+#ifdef BLIS_FAMILY_SIFIVE_X280
+#include "bli_family_sifive_x280.h"
 #endif
 
 // -- Generic --
@@ -349,6 +404,20 @@ CNTX_INIT_PROTS( generic )
 #include "bli_kernels_bgq.h"
 #endif
 
+// -- RISC-V --
+
+#ifdef BLIS_KERNELS_RVI
+#include "bli_kernels_rvi.h"
+#endif
+#ifdef BLIS_KERNELS_RVIV
+#include "bli_kernels_rviv.h"
+#endif
+
+// -- SiFive RISC-V architectures --
+
+#ifdef BLIS_KERNELS_SIFIVE_X280
+#include "bli_kernels_sifive_x280.h"
+#endif
 
 
 #endif

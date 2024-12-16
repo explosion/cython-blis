@@ -32,6 +32,8 @@
 
 */
 
+#ifdef BLIS_SANDBOX_POWER10
+
 #include "vector_int_macros.h"
 
 #define I4_ACCUMULATE \
@@ -55,16 +57,21 @@
 
 void bli_i4gemm_power10_mma_8x16
     (
-        dim_t               m,
-        dim_t               n,
-        dim_t               k,
-        int32_t*       restrict alpha,
-        nibbles*   restrict a,
-        nibbles*   restrict b,
-        int32_t*       restrict beta,
-        int32_t*       restrict c, inc_t rs_c0, inc_t cs_c0,
-        auxinfo_t* restrict data,
-        cntx_t*    restrict cntx
+              dim_t      m,
+              dim_t      n,
+              dim_t      k,
+        //const int32_t*   alpha,
+        //const nibbles*   a,
+        //const nibbles*   b,
+        //const int32_t*   beta,
+        //      int32_t*   c, inc_t rs_c0, inc_t cs_c0,
+        const void*      alpha,
+        const void*      a,
+        const void*      b,
+        const void*      beta,
+              void*      c, inc_t rs_c0, inc_t cs_c0,
+              auxinfo_t* data,
+        const cntx_t*    cntx
     )
 {
 
@@ -72,13 +79,14 @@ void bli_i4gemm_power10_mma_8x16
     uint64_t k_left = (k-1) % 4;
 
     uint64_t rs_c   = rs_c0;
+    //uint64_t cs_c   = cs_c0;
 
-    nibbles* restrict A0 = a;
-    nibbles* restrict B0 = b;
-    int*     restrict C0 = c;
+    const nibbles* restrict A0 = a;
+    const nibbles* restrict B0 = b;
+          int*     restrict C0 = c;
 
-    int alpha_ = *alpha,
-        beta_ = *beta;
+    int alpha_ = *((int32_t*)alpha),
+        beta_  = *((int32_t*)beta);
 
     iv4sf_t result[4];
     iv4sf_t *rowC;
@@ -140,3 +148,4 @@ void bli_i4gemm_power10_mma_8x16
         SAVE_ACC_bz(iv4sf_t, &acc7, rs_c, 12+4*rs_c);
     }
 }
+#endif // BLIS_SANDBOX_POWER10

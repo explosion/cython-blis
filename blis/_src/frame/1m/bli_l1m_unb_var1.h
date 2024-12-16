@@ -50,13 +50,12 @@ void PASTEMAC2(ch,opname,_unb_var1) \
        dim_t   n, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
        ctype*  y, inc_t rs_y, inc_t cs_y, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      );
 
-INSERT_GENTPROT_BASIC0( addm )
-INSERT_GENTPROT_BASIC0( copym )
-INSERT_GENTPROT_BASIC0( subm )
+INSERT_GENTPROT_BASIC( addm )
+INSERT_GENTPROT_BASIC( copym )
+INSERT_GENTPROT_BASIC( subm )
 
 
 #undef  GENTPROT
@@ -73,12 +72,11 @@ void PASTEMAC2(ch,opname,_unb_var1) \
        ctype*  alpha, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
        ctype*  y, inc_t rs_y, inc_t cs_y, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      );
 
-INSERT_GENTPROT_BASIC0( axpym )
-INSERT_GENTPROT_BASIC0( scal2m )
+INSERT_GENTPROT_BASIC( axpym )
+INSERT_GENTPROT_BASIC( scal2m )
 
 
 #undef  GENTPROT
@@ -94,12 +92,12 @@ void PASTEMAC2(ch,opname,_unb_var1) \
        dim_t   n, \
        ctype*  alpha, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      );
 
-INSERT_GENTPROT_BASIC0( scalm )
-INSERT_GENTPROT_BASIC0( setm )
+INSERT_GENTPROT_BASIC( invscalm )
+INSERT_GENTPROT_BASIC( scalm )
+INSERT_GENTPROT_BASIC( setm )
 
 
 #undef  GENTPROT
@@ -116,11 +114,10 @@ void PASTEMAC2(ch,opname,_unb_var1) \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
        ctype*  beta, \
        ctype*  y, inc_t rs_y, inc_t cs_y, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      );
 
-INSERT_GENTPROT_BASIC0( xpbym )
+INSERT_GENTPROT_BASIC( xpbym )
 
 
 #undef  GENTPROT2
@@ -137,10 +134,9 @@ void PASTEMAC3(chx,chy,opname,_unb_var1) \
        ctype_x* x, inc_t rs_x, inc_t cs_x, \
        ctype_y* beta, \
        ctype_y* y, inc_t rs_y, inc_t cs_y, \
-       cntx_t*  cntx, \
-       rntm_t*  rntm  \
+       cntx_t*  cntx \
      );
 
-INSERT_GENTPROT2_BASIC0( xpbym_md )
-INSERT_GENTPROT2_MIXDP0( xpbym_md )
+INSERT_GENTPROT2_BASIC( xpbym_md )
+INSERT_GENTPROT2_MIX_DP( xpbym_md )
 

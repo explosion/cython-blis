@@ -45,9 +45,9 @@
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t    n, \
-       ctype*   x, inc_t incx, \
-       ctype_r* asum  \
+             dim_t    n, \
+       const ctype*   x, inc_t incx, \
+             ctype_r* asum  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -71,14 +71,14 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	PASTEMAC2(ch,opname,_unb_var1) \
 	( \
 	  n, \
-	  x, incx, \
-	  asum, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )x, incx, \
+	            asum, \
+	  ( cntx_t* )cntx, \
+	  ( rntm_t* )rntm  \
 	); \
 }
 
-INSERT_GENTFUNCR_BASIC0( asumv )
+INSERT_GENTFUNCR_BASIC( asumv )
 
 
 #undef  GENTFUNC
@@ -86,9 +86,9 @@ INSERT_GENTFUNCR_BASIC0( asumv )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       uplo_t  uploa, \
-       dim_t   m, \
-       ctype*  a, inc_t rs_a, inc_t cs_a  \
+       uplo_t uploa, \
+       dim_t  m, \
+       ctype* a, inc_t rs_a, inc_t cs_a  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -109,14 +109,14 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  uploa, \
 	  m, \
 	  a, rs_a, cs_a, \
-	  cntx, \
-	  rntm  \
+	  ( cntx_t* )cntx, \
+	  ( rntm_t* )rntm  \
 	); \
 }
 
-INSERT_GENTFUNC_BASIC0( mkherm )
-INSERT_GENTFUNC_BASIC0( mksymm )
-INSERT_GENTFUNC_BASIC0( mktrim )
+INSERT_GENTFUNC_BASIC( mkherm )
+INSERT_GENTFUNC_BASIC( mksymm )
+INSERT_GENTFUNC_BASIC( mktrim )
 
 
 #undef  GENTFUNCR
@@ -124,9 +124,9 @@ INSERT_GENTFUNC_BASIC0( mktrim )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t    n, \
-       ctype*   x, inc_t incx, \
-       ctype_r* norm  \
+             dim_t    n, \
+       const ctype*   x, inc_t incx, \
+             ctype_r* norm  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -150,16 +150,16 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	PASTEMAC2(ch,opname,_unb_var1) \
 	( \
 	  n, \
-	  x, incx, \
-	  norm, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )x, incx, \
+	            norm, \
+	  ( cntx_t* )cntx, \
+	  ( rntm_t* )rntm  \
 	); \
 }
 
-INSERT_GENTFUNCR_BASIC0( norm1v )
-INSERT_GENTFUNCR_BASIC0( normfv )
-INSERT_GENTFUNCR_BASIC0( normiv )
+INSERT_GENTFUNCR_BASIC( norm1v )
+INSERT_GENTFUNCR_BASIC( normfv )
+INSERT_GENTFUNCR_BASIC( normiv )
 
 
 #undef  GENTFUNCR
@@ -167,13 +167,13 @@ INSERT_GENTFUNCR_BASIC0( normiv )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       doff_t   diagoffx, \
-       diag_t   diagx, \
-       uplo_t   uplox, \
-       dim_t    m, \
-       dim_t    n, \
-       ctype*   x, inc_t rs_x, inc_t cs_x, \
-       ctype_r* norm  \
+             doff_t   diagoffx, \
+             diag_t   diagx, \
+             uplo_t   uplox, \
+             dim_t    m, \
+             dim_t    n, \
+       const ctype*   x, inc_t rs_x, inc_t cs_x, \
+             ctype_r* norm  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -201,16 +201,16 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  uplox, \
 	  m, \
 	  n, \
-	  x, rs_x, cs_x, \
-	  norm, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )x, rs_x, cs_x, \
+	            norm, \
+	  ( cntx_t* )cntx, \
+	  ( rntm_t* )rntm  \
 	); \
 }
 
-INSERT_GENTFUNCR_BASIC0( norm1m )
-INSERT_GENTFUNCR_BASIC0( normfm )
-INSERT_GENTFUNCR_BASIC0( normim )
+INSERT_GENTFUNCR_BASIC( norm1m )
+INSERT_GENTFUNCR_BASIC( normfm )
+INSERT_GENTFUNCR_BASIC( normim )
 
 
 #undef  GENTFUNCR
@@ -218,8 +218,8 @@ INSERT_GENTFUNCR_BASIC0( normim )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t    n, \
-       ctype*   x, inc_t incx  \
+       dim_t  n, \
+       ctype* x, inc_t incx  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -247,8 +247,8 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 		( \
 		  n, \
 		  x, incx, \
-		  cntx, \
-		  rntm  \
+		  ( cntx_t* )cntx, \
+		  ( rntm_t* )rntm  \
 		); \
 \
 		/* Check the 1-norm of the randomzied vector. In the unlikely event that
@@ -265,8 +265,8 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	} \
 }
 
-INSERT_GENTFUNCR_BASIC0( randv )
-INSERT_GENTFUNCR_BASIC0( randnv )
+INSERT_GENTFUNCR_BASIC( randv )
+INSERT_GENTFUNCR_BASIC( randnv )
 
 
 #undef  GENTFUNCR
@@ -274,11 +274,11 @@ INSERT_GENTFUNCR_BASIC0( randnv )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       doff_t  diagoffx, \
-       uplo_t  uplox, \
-       dim_t   m, \
-       dim_t   n, \
-       ctype*  x, inc_t rs_x, inc_t cs_x  \
+       doff_t diagoffx, \
+       uplo_t uplox, \
+       dim_t  m, \
+       dim_t  n, \
+       ctype* x, inc_t rs_x, inc_t cs_x  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -309,8 +309,8 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 		  m, \
 		  n, \
 		  x, rs_x, cs_x, \
-		  cntx, \
-		  rntm  \
+		  ( cntx_t* )cntx, \
+		  ( rntm_t* )rntm  \
 		); \
 \
 		/* Check the 1-norm of the randomzied matrix. In the unlikely event that
@@ -331,8 +331,8 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	} \
 }
 
-INSERT_GENTFUNCR_BASIC0( randm )
-INSERT_GENTFUNCR_BASIC0( randnm )
+INSERT_GENTFUNCR_BASIC( randm )
+INSERT_GENTFUNCR_BASIC( randnm )
 
 
 #undef  GENTFUNCR
@@ -340,10 +340,10 @@ INSERT_GENTFUNCR_BASIC0( randnm )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t    n, \
-       ctype*   x, inc_t incx, \
-       ctype_r* scale, \
-       ctype_r* sumsq  \
+             dim_t    n, \
+       const ctype*   x, inc_t incx, \
+             ctype_r* scale, \
+             ctype_r* sumsq  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -362,15 +362,15 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	PASTEMAC2(ch,opname,_unb_var1) \
 	( \
 	  n, \
-	  x, incx, \
-	  scale, \
-	  sumsq, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )x, incx, \
+	            scale, \
+	            sumsq, \
+	  ( cntx_t* )cntx, \
+	  ( rntm_t* )rntm  \
 	); \
 }
 
-INSERT_GENTFUNCR_BASIC0( sumsqv )
+INSERT_GENTFUNCR_BASIC( sumsqv )
 
 // -----------------------------------------------------------------------------
 
@@ -383,10 +383,10 @@ INSERT_GENTFUNCR_BASIC0( sumsqv )
 \
 void PASTEMAC(ch,opname) \
      ( \
-       conj_t  conjchi, \
-       ctype*  chi, \
-       ctype*  psi, \
-       bool*   is_eq  \
+             conj_t conjchi, \
+       const ctype* chi, \
+       const ctype* psi, \
+             bool*  is_eq  \
      ) \
 { \
 	bli_init_once(); \
@@ -398,7 +398,7 @@ void PASTEMAC(ch,opname) \
 	*is_eq = PASTEMAC(ch,eq)( chi_conj, *psi ); \
 }
 
-INSERT_GENTFUNC_BASIC0( eqsc )
+INSERT_GENTFUNC_BASIC( eqsc )
 
 
 #undef  GENTFUNC
@@ -406,11 +406,11 @@ INSERT_GENTFUNC_BASIC0( eqsc )
 \
 void PASTEMAC(ch,opname) \
      ( \
-       conj_t  conjx, \
-       dim_t   n, \
-       ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy, \
-       bool*   is_eq  \
+             conj_t conjx, \
+             dim_t  n, \
+       const ctype* x, inc_t incx, \
+       const ctype* y, inc_t incy, \
+             bool*  is_eq  \
      ) \
 { \
 	bli_init_once(); \
@@ -425,12 +425,12 @@ void PASTEMAC(ch,opname) \
 	( \
 	  conjx, \
 	  n, \
-	  x, incx, \
-	  y, incy  \
+	  ( ctype* )x, incx, \
+	  ( ctype* )y, incy  \
 	); \
 }
 
-INSERT_GENTFUNC_BASIC0( eqv )
+INSERT_GENTFUNC_BASIC( eqv )
 
 
 #undef  GENTFUNC
@@ -438,15 +438,15 @@ INSERT_GENTFUNC_BASIC0( eqv )
 \
 void PASTEMAC(ch,opname) \
      ( \
-       doff_t  diagoffx, \
-       diag_t  diagx, \
-       uplo_t  uplox, \
-       trans_t transx, \
-       dim_t   m, \
-       dim_t   n, \
-       ctype*  x, inc_t rs_x, inc_t cs_x, \
-       ctype*  y, inc_t rs_y, inc_t cs_y, \
-       bool*   is_eq  \
+             doff_t  diagoffx, \
+             diag_t  diagx, \
+             uplo_t  uplox, \
+             trans_t transx, \
+             dim_t   m, \
+             dim_t   n, \
+       const ctype*  x, inc_t rs_x, inc_t cs_x, \
+       const ctype*  y, inc_t rs_y, inc_t cs_y, \
+             bool*   is_eq  \
      ) \
 { \
 	bli_init_once(); \
@@ -467,12 +467,33 @@ void PASTEMAC(ch,opname) \
 	  transx, \
 	  m, \
 	  n, \
-	  x, rs_x, cs_x, \
-	  y, rs_y, cs_y  \
+	  ( ctype* )x, rs_x, cs_x, \
+	  ( ctype* )y, rs_y, cs_y  \
 	); \
 }
 
-INSERT_GENTFUNC_BASIC0( eqm )
+INSERT_GENTFUNC_BASIC( eqm )
+
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname, kername ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+       const ctype* chi, \
+       const ctype* psi, \
+             bool*  is  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	*is = PASTEMAC(ch,kername)( *chi, *psi ); \
+}
+
+INSERT_GENTFUNC_BASIC( ltsc,  lt )
+INSERT_GENTFUNC_BASIC( ltesc, lte )
+INSERT_GENTFUNC_BASIC( gtsc,  gt )
+INSERT_GENTFUNC_BASIC( gtesc, gte )
 
 
 #undef  GENTFUNC
@@ -480,11 +501,11 @@ INSERT_GENTFUNC_BASIC0( eqm )
 \
 void PASTEMAC(ch,opname) \
      ( \
-       char*  s1, \
-       dim_t  n, \
-       void*  x, inc_t incx, \
-       char*  format, \
-       char*  s2  \
+       const char* s1, \
+             dim_t n, \
+       const void* x, inc_t incx, \
+       const char* format, \
+       const char* s2  \
      ) \
 { \
 	bli_init_once(); \
@@ -508,12 +529,12 @@ INSERT_GENTFUNC_BASIC_I( printv, fprintv )
 \
 void PASTEMAC(ch,opname) \
      ( \
-       char*  s1, \
-       dim_t  m, \
-       dim_t  n, \
-       void*  x, inc_t rs_x, inc_t cs_x, \
-       char*  format, \
-       char*  s2  \
+       const char* s1, \
+             dim_t m, \
+             dim_t n, \
+       const void* x, inc_t rs_x, inc_t cs_x, \
+       const char* format, \
+       const char* s2  \
      ) \
 { \
 	bli_init_once(); \

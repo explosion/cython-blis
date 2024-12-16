@@ -50,11 +50,10 @@ extern "C" {
 
 // -- configure definitions --
 
-// NOTE: bli_config.h header must be included before any BLIS header.
-// It is bootstrapped by ./configure and does not depend on later
-// headers. Moreover, these configuration variables are necessary to change
-// some default behaviors (e.g. disable OS-detection in bli_system.h in case
-// of --disable-system).
+// NOTE: bli_config.h must be included before any other BLIS header. It is
+// bootstrapped by ./configure and does not depend on later headers. Moreover
+// these configuration variables are necessary to change some default behaviors
+// (e.g. disable OS detection in bli_system.h in case of --disable-system).
 #include "bli_config.h"
 
 // -- System and language-related headers --
@@ -80,18 +79,14 @@ extern "C" {
 #include "bli_pragma_macro_defs.h"
 
 
-// -- Threading definitions --
-
-#include "bli_thread.h"
-#include "bli_pthread.h"
-
-
-// -- Constant definitions --
-
-#include "bli_extern_defs.h"
-
-
 // -- BLIS architecture/kernel definitions --
+
+#include "bli_pre_ker_params.h"
+#include "bli_l1v_ker_params.h"
+#include "bli_l1f_ker_params.h"
+#include "bli_l1m_ker_params.h"
+#include "bli_l3_ukr_params.h"
+#include "bli_l3_sup_ker_params.h"
 
 #include "bli_l1v_ker_prot.h"
 #include "bli_l1f_ker_prot.h"
@@ -103,6 +98,21 @@ extern "C" {
 #include "bli_arch_config.h"
 
 #include "bli_kernel_macro_defs.h"
+
+
+// -- Threading definitions --
+
+#include "bli_thread.h"
+#include "bli_thread_range.h"
+#include "bli_thread_range_slab_rr.h"
+#include "bli_thread_range_tlb.h"
+
+#include "bli_pthread.h"
+
+
+// -- Constant definitions --
+
+#include "bli_extern_defs.h"
 
 
 // -- Base operation prototypes --

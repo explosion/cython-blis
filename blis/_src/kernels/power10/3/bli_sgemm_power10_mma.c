@@ -55,57 +55,60 @@
 
 void bli_sgemm_power10_mma_8x16
     (
-        dim_t               m,
-        dim_t               n,
-        dim_t               k,
-        float*     restrict alpha,
-        float*     restrict a,
-        float*     restrict b,
-        float*     restrict beta,
-        float*     restrict c, inc_t rs_c0, inc_t cs_c,
-        auxinfo_t* restrict data,
-        cntx_t*    restrict cntx
+              dim_t      m,
+              dim_t      n,
+              dim_t      k,
+        //const float*     alpha,
+        //const float*     a,
+        //const float*     b,
+        //const float*     beta,
+        //      float*     c, inc_t rs_c0, inc_t cs_c0,
+        const void*      alpha,
+        const void*      a,
+        const void*      b,
+        const void*      beta,
+              void*      c, inc_t rs_c0, inc_t cs_c0,
+              auxinfo_t* data,
+        const cntx_t*    cntx
     )
 {
     // Typecast local copies of integers in case dim_t and inc_t are a
     // different size than is expected by load instructions.
-    // (1 is subtracted from k0 because 1 iteration of the k loop is pulled out)
-    uint64_t k_iter = (k-1) / 4;
-    uint64_t k_left = (k-1) % 4;
+    uint64_t k_iter = k / 4;
+    uint64_t k_left = k % 4;
 
     uint64_t rs_c   = rs_c0;
+    uint64_t cs_c   = cs_c0;
 
     GEMM_UKR_SETUP_CT( s, 8, 16, true );
 
     fv4sf_t result[4];
-      fv4sf_t *rowC;
+    fv4sf_t *rowC;
 
     // accumulators that will hold the matrix product
     __vector_quad acc0, acc1, acc2, acc3,
                   acc4, acc5, acc6, acc7;
 
-    float* restrict A0 = a;
-    float* restrict B0 = b;
-    float* restrict C0 = c;
+    // initialize the accumulators to zeros
+    __builtin_mma_xxsetaccz(&acc0);
+    __builtin_mma_xxsetaccz(&acc1);
+    __builtin_mma_xxsetaccz(&acc2);
+    __builtin_mma_xxsetaccz(&acc3);
+    __builtin_mma_xxsetaccz(&acc4);
+    __builtin_mma_xxsetaccz(&acc5);
+    __builtin_mma_xxsetaccz(&acc6);
+    __builtin_mma_xxsetaccz(&acc7);
 
-    float alpha_ = *alpha,
-          beta_  = *beta;
+    const float* restrict A0 = a;
+    const float* restrict B0 = b;
+          float* restrict C0 = c;
+
+    float alpha_= *((float*)alpha),
+          beta_ = *((float*)beta);
 
     /* Load elements into vector registers */
     vec_t *ca = (vec_t *) A0;
     vec_t *rb = (vec_t *) B0;
-
-    /* Compute accumulate outer products and override accumulators with result */
-    __builtin_mma_xvf32ger (&acc0, ca[0], rb[0]);
-    __builtin_mma_xvf32ger (&acc1, ca[0], rb[1]);
-    __builtin_mma_xvf32ger (&acc2, ca[0], rb[2]);
-    __builtin_mma_xvf32ger (&acc3, ca[0], rb[3]);
-    __builtin_mma_xvf32ger (&acc4, ca[1], rb[0]);
-    __builtin_mma_xvf32ger (&acc5, ca[1], rb[1]);
-    __builtin_mma_xvf32ger (&acc6, ca[1], rb[2]);
-    __builtin_mma_xvf32ger (&acc7, ca[1], rb[3]);
-
-    S_INCREMENT
 
     // k loop (unrolled by 4)
     for (int k = 0; k<k_iter; k++)

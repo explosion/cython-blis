@@ -37,28 +37,28 @@
 
 typedef void (*xpbys_mxn_vft)
     (
-      dim_t m,
-      dim_t n,
-      void* x, inc_t rs_x, inc_t cs_x,
-      void* b,
-      void* y, inc_t rs_y, inc_t cs_y
+            dim_t m,
+            dim_t n,
+      const void* x, inc_t rs_x, inc_t cs_x,
+      const void* b,
+            void* y, inc_t rs_y, inc_t cs_y
     );
 
-#undef GENTFUNC2
+#undef  GENTFUNC2
 #define GENTFUNC2(ctypex,ctypey,chx,chy,op) \
 \
-void PASTEMAC2(chx,chy,op) \
+BLIS_INLINE void PASTEMAC2(chx,chy,op) \
     ( \
-      dim_t m, \
-      dim_t n, \
-      void* x, inc_t rs_x, inc_t cs_x, \
-      void* b, \
-      void* y, inc_t rs_y, inc_t cs_y \
+            dim_t m, \
+            dim_t n, \
+      const void* x, inc_t rs_x, inc_t cs_x, \
+      const void* b, \
+            void* y, inc_t rs_y, inc_t cs_y \
     ) \
 { \
-	ctypex* restrict x_cast = x; \
-	ctypey* restrict b_cast = b; \
-	ctypey* restrict y_cast = y; \
+	const ctypex* restrict x_cast = x; \
+	const ctypey* restrict b_cast = b; \
+	      ctypey* restrict y_cast = y; \
 \
 	PASTEMAC3(chx,chy,chy,xpbys_mxn) \
 	( \
@@ -69,46 +69,45 @@ void PASTEMAC2(chx,chy,op) \
 	); \
 }
 
-INSERT_GENTFUNC2_BASIC0(xbpys_mxn_fn);
-INSERT_GENTFUNC2_MIXDP0(xbpys_mxn_fn);
+INSERT_GENTFUNC2_BASIC(xpbys_mxn_fn);
+INSERT_GENTFUNC2_MIX_DP(xpbys_mxn_fn);
 
-static xpbys_mxn_vft GENARRAY2_ALL(xbpys_mxn, xbpys_mxn_fn);
+static xpbys_mxn_vft GENARRAY2_ALL(xpbys_mxn, xpbys_mxn_fn);
 
 
 void bli_gemm_ker_var2
      (
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm,
-       cntl_t* cntl,
-       thrinfo_t* thread
+       const obj_t*     a,
+       const obj_t*     b,
+       const obj_t*     c,
+       const cntx_t*    cntx,
+       const cntl_t*    cntl,
+             thrinfo_t* thread_par
      )
 {
-	num_t     dt_exec   = bli_obj_exec_dt( c );
-	num_t     dt_c      = bli_obj_dt( c );
+	      num_t  dt_exec   = bli_obj_exec_dt( c );
+	      num_t  dt_c      = bli_obj_dt( c );
 
-	pack_t    schema_a  = bli_obj_pack_schema( a );
-	pack_t    schema_b  = bli_obj_pack_schema( b );
+	const pack_t schema_a  = bli_obj_pack_schema( a );
+	const pack_t schema_b  = bli_obj_pack_schema( b );
 
-	dim_t     m         = bli_obj_length( c );
-	dim_t     n         = bli_obj_width( c );
-	dim_t     k         = bli_obj_width( a );
+	      dim_t  m         = bli_obj_length( c );
+	      dim_t  n         = bli_obj_width( c );
+	      dim_t  k         = bli_obj_width( a );
 
-	char*     a_cast    = bli_obj_buffer_at_off( a );
-	inc_t     is_a      = bli_obj_imag_stride( a );
-	dim_t     pd_a      = bli_obj_panel_dim( a );
-	inc_t     ps_a      = bli_obj_panel_stride( a );
+	const char*  a_cast    = bli_obj_buffer_at_off( a );
+	const inc_t  is_a      = bli_obj_imag_stride( a );
+	      dim_t  pd_a      = bli_obj_panel_dim( a );
+	      inc_t  ps_a      = bli_obj_panel_stride( a );
 
-	char*     b_cast    = bli_obj_buffer_at_off( b );
-	inc_t     is_b      = bli_obj_imag_stride( b );
-	dim_t     pd_b      = bli_obj_panel_dim( b );
-	inc_t     ps_b      = bli_obj_panel_stride( b );
+	const char*  b_cast    = bli_obj_buffer_at_off( b );
+	const inc_t  is_b      = bli_obj_imag_stride( b );
+	      dim_t  pd_b      = bli_obj_panel_dim( b );
+	      inc_t  ps_b      = bli_obj_panel_stride( b );
 
-	char*     c_cast    = bli_obj_buffer_at_off( c );
-	inc_t     rs_c      = bli_obj_row_stride( c );
-	inc_t     cs_c      = bli_obj_col_stride( c );
+	      char*  c_cast    = bli_obj_buffer_at_off( c );
+	      inc_t  rs_c      = bli_obj_row_stride( c );
+	      inc_t  cs_c      = bli_obj_col_stride( c );
 
 	// If any dimension is zero, return immediately.
 	if ( bli_zero_dim3( m, n, k ) ) return;
@@ -117,8 +116,7 @@ void bli_gemm_ker_var2
 	// NOTE: We know that the internal scalars of A and B are already of the
 	// target datatypes because the necessary typecasting would have already
 	// taken place during bli_packm_init().
-	obj_t     scalar_a;
-	obj_t     scalar_b;
+	obj_t scalar_a, scalar_b;
 	bli_obj_scalar_detach( a, &scalar_a );
 	bli_obj_scalar_detach( b, &scalar_b );
 	bli_mulsc( &scalar_a, &scalar_b );
@@ -129,16 +127,13 @@ void bli_gemm_ker_var2
 	// that casts the scalars of A and B to dt_exec via scalar_a and scalar_b,
 	// and we know that the internal scalar in C is already of the type dt_c
 	// due to the casting in the implementation of bli_obj_scalar_attach().
-	char* alpha_cast = bli_obj_internal_scalar_buffer( &scalar_b );
-	char* beta_cast  = bli_obj_internal_scalar_buffer( c );
+	const char* alpha_cast = bli_obj_internal_scalar_buffer( &scalar_b );
+	const char* beta_cast  = bli_obj_internal_scalar_buffer( c );
 
-	// If 1m is being employed on a column- or row-stored matrix with a
-	// real-valued beta, we can use the real domain macro-kernel, which
-	// eliminates a little overhead associated with the 1m virtual
-	// micro-kernel.
-	// Only employ this optimization if the storage datatype of C is
-	// equal to the execution/computation datatype.
 #if 1
+	// Under certain conditions, we can avoid the overhead of calling the 1m
+	// virtual microkernel by having the real-domain macrokernel execute with
+	// the real-domain microkernel. (See the function definition for details.)
 	if ( bli_cntx_method( cntx ) == BLIS_1M )
 	{
 		bli_gemm_ind_recast_1m_params
@@ -150,7 +145,8 @@ void bli_gemm_ker_var2
 		  &m, &n, &k,
 		  &pd_a, &ps_a,
 		  &pd_b, &ps_b,
-		  &rs_c, &cs_c
+		  &rs_c, &cs_c,
+		  cntx
 		);
 	}
 #endif
@@ -174,25 +170,23 @@ void bli_gemm_ker_var2
 	}
 #endif
 
-	siz_t        dt_size   = bli_dt_size( dt_exec );
-	siz_t        dt_c_size = bli_dt_size( dt_c );
+	const siz_t dt_size   = bli_dt_size( dt_exec );
+	const siz_t dt_c_size = bli_dt_size( dt_c );
 
 	// Alias some constants to simpler names.
-	const dim_t  MR        = pd_a;
-	const dim_t  NR        = pd_b;
-	//const dim_t PACKMR     = cs_a;
-	//const dim_t PACKNR     = rs_b;
+	const dim_t MR = pd_a;
+	const dim_t NR = pd_b;
 
 	// Query the context for the micro-kernel address and cast it to its
 	// function pointer type.
-	gemm_ukr_vft gemm_ukr = bli_cntx_get_l3_vir_ukr_dt( dt_exec, BLIS_GEMM_UKR, cntx );
+	gemm_ukr_ft gemm_ukr = bli_cntx_get_l3_vir_ukr_dt( dt_exec, BLIS_GEMM_UKR, cntx );
 
 	// Query the params field from the obj_t. If it is non-NULL, grab the ukr
 	// field of the params struct. If that function pointer is non-NULL, use it
 	// as our microkernel instead of the default microkernel queried from the
 	// cntx above.
-	gemm_ker_params_t* params = bli_obj_ker_params( c );
-	gemm_ukr_vft user_ukr = params ? params->ukr : NULL;
+	const gemm_ker_params_t* params = bli_obj_ker_params( c );
+	gemm_ukr_ft user_ukr = params ? params->ukr : NULL;
 	if ( user_ukr ) gemm_ukr = user_ukr;
 
 	// Temporary C buffer for edge cases. Note that the strides of this
@@ -201,10 +195,10 @@ void bli_gemm_ker_var2
 	// column-stored as well.
 	char        ct[ BLIS_STACK_BUF_MAX_SIZE ]
 	                __attribute__((aligned(BLIS_STACK_BUF_ALIGN_SIZE)));
-	const bool  col_pref    = bli_cntx_l3_vir_ukr_prefers_cols_dt( dt_exec, BLIS_GEMM_UKR, cntx );
+	const bool  col_pref    = bli_cntx_ukr_prefers_cols_dt( dt_exec, BLIS_GEMM_VIR_UKR, cntx );
 	const inc_t rs_ct       = ( col_pref ? 1 : NR );
 	const inc_t cs_ct       = ( col_pref ? MR : 1 );
-	char*       zero        = bli_obj_buffer_for_const( dt_exec, &BLIS_ZERO );
+	const char* zero        = bli_obj_buffer_for_const( dt_exec, &BLIS_ZERO );
 
 	//
 	// Assumptions/assertions:
@@ -222,22 +216,19 @@ void bli_gemm_ker_var2
 
 	// Compute number of primary and leftover components of the m and n
 	// dimensions.
-	dim_t n_iter = n / NR;
-	dim_t n_left = n % NR;
+	const dim_t n_iter = n / NR + ( n % NR ? 1 : 0 );
+	const dim_t n_left = n % NR;
 
-	dim_t m_iter = m / MR;
-	dim_t m_left = m % MR;
-
-	if ( n_left ) ++n_iter;
-	if ( m_left ) ++m_iter;
+	const dim_t m_iter = m / MR + ( m % MR ? 1 : 0 );
+	const dim_t m_left = m % MR;
 
 	// Determine some increments used to step through A, B, and C.
-	inc_t rstep_a = ps_a * dt_size;
+	const inc_t rstep_a = ps_a * dt_size;
 
-	inc_t cstep_b = ps_b * dt_size;
+	const inc_t cstep_b = ps_b * dt_size;
 
-	inc_t rstep_c = rs_c * MR * dt_c_size;
-	inc_t cstep_c = cs_c * NR * dt_c_size;
+	const inc_t rstep_c = rs_c * MR * dt_c_size;
+	const inc_t cstep_c = cs_c * NR * dt_c_size;
 
 	auxinfo_t aux;
 
@@ -253,54 +244,95 @@ void bli_gemm_ker_var2
 	bli_auxinfo_set_ukr( gemm_ukr, &aux );
 	bli_auxinfo_set_params( params, &aux );
 
-	// The 'thread' argument points to the thrinfo_t node for the 2nd (jr)
-	// loop around the microkernel. Here we query the thrinfo_t node for the
-	// 1st (ir) loop around the microkernel.
+	dim_t jr_start, jr_end, jr_inc;
+	dim_t ir_start, ir_end, ir_inc;
+
+#ifdef BLIS_ENABLE_JRIR_TLB
+
+	// Query the number of threads and thread ids for the jr loop around
+	// the microkernel.
+	thrinfo_t* thread = bli_thrinfo_sub_node( thread_par );
+	const dim_t jr_nt  = bli_thrinfo_n_way( thread );
+	const dim_t jr_tid = bli_thrinfo_work_id( thread );
+
+	const dim_t ir_nt  = 1;
+	const dim_t ir_tid = 0;
+
+	dim_t n_ut_for_me
+	=
+	bli_thread_range_tlb_d( jr_nt, jr_tid, m_iter, n_iter, MR, NR,
+	                        &jr_start, &ir_start );
+
+	// Always increment by 1 in both dimensions.
+	jr_inc = 1;
+	ir_inc = 1;
+
+	// Each thread iterates over the entire panel of C until it exhausts its
+	// assigned set of microtiles.
+	jr_end = n_iter;
+	ir_end = m_iter;
+
+	// Successive iterations of the ir loop should start at 0.
+	const dim_t ir_next = 0;
+
+#else // ifdef ( _SLAB || _RR )
+
+	// Query the number of threads and thread ids for the ir loop around
+	// the microkernel.
+	thrinfo_t* thread = bli_thrinfo_sub_node( thread_par );
 	thrinfo_t* caucus = bli_thrinfo_sub_node( thread );
-
-	// Query the number of threads and thread ids for each loop.
-	dim_t jr_nt  = bli_thread_n_way( thread );
-	dim_t jr_tid = bli_thread_work_id( thread );
-	dim_t ir_nt  = bli_thread_n_way( caucus );
-	dim_t ir_tid = bli_thread_work_id( caucus );
-
-	dim_t jr_start, jr_end;
-	dim_t ir_start, ir_end;
-	dim_t jr_inc,   ir_inc;
+	const dim_t ir_nt  = bli_thrinfo_n_way( caucus );
+	const dim_t ir_tid = bli_thrinfo_work_id( caucus );
 
 	// Determine the thread range and increment for the 2nd and 1st loops.
-	// NOTE: The definition of bli_thread_range_jrir() will depend on whether
+	// NOTE: The definition of bli_thread_range_slrr() will depend on whether
 	// slab or round-robin partitioning was requested at configure-time.
-	bli_thread_range_jrir( thread, n_iter, 1, FALSE, &jr_start, &jr_end, &jr_inc );
-	bli_thread_range_jrir( caucus, m_iter, 1, FALSE, &ir_start, &ir_end, &ir_inc );
+	bli_thread_range_slrr( thread, n_iter, 1, FALSE, &jr_start, &jr_end, &jr_inc );
+	bli_thread_range_slrr( caucus, m_iter, 1, FALSE, &ir_start, &ir_end, &ir_inc );
+
+	// Calculate the total number of microtiles assigned to this thread.
+	dim_t n_ut_for_me = ( ( ir_end + ir_inc - 1 - ir_start ) / ir_inc ) *
+	                    ( ( jr_end + jr_inc - 1 - jr_start ) / jr_inc );
+
+	// Each succesive iteration of the ir loop always starts at ir_start.
+	const dim_t ir_next = ir_start;
+
+#endif
+
+	// It's possible that there are so few microtiles relative to the number
+	// of threads that one or more threads gets no work. If that happens, those
+	// threads can return early.
+	if ( n_ut_for_me == 0 ) return;
 
 	// Loop over the n dimension (NR columns at a time).
 	for ( dim_t j = jr_start; j < jr_end; j += jr_inc )
 	{
-		char* b1 = b_cast + j * cstep_b;
-		char* c1 = c_cast + j * cstep_c;
+		const char* b1 = b_cast + j * cstep_b;
+		      char* c1 = c_cast + j * cstep_c;
 
-		dim_t n_cur = ( bli_is_not_edge_f( j, n_iter, n_left ) ? NR : n_left );
+		// Compute the current microtile's width.
+		const dim_t n_cur = ( bli_is_not_edge_f( j, n_iter, n_left )
+		                      ? NR : n_left );
 
 		// Initialize our next panel of B to be the current panel of B.
-		char* b2 = b1;
+		const char* b2 = b1;
 
 		// Loop over the m dimension (MR rows at a time).
 		for ( dim_t i = ir_start; i < ir_end; i += ir_inc )
 		{
-			char* a1  = a_cast + i * rstep_a;
-			char* c11 = c1     + i * rstep_c;
+			const char* a1  = a_cast + i * rstep_a;
+			      char* c11 = c1     + i * rstep_c;
 
-			dim_t m_cur = ( bli_is_not_edge_f( i, m_iter, m_left ) ? MR : m_left );
+			// Compute the current microtile's length.
+			const dim_t m_cur = ( bli_is_not_edge_f( i, m_iter, m_left )
+			                      ? MR : m_left );
 
 			// Compute the addresses of the next panels of A and B.
-			char* a2 = bli_gemm_get_next_a_upanel( a1, rstep_a, ir_inc );
-			if ( bli_is_last_iter( i, ir_end, ir_tid, ir_nt ) )
+			const char* a2 = bli_gemm_get_next_a_upanel( a1, rstep_a, ir_inc );
+			if ( bli_is_last_iter_slrr( i, ir_end, ir_tid, ir_nt ) )
 			{
 				a2 = a_cast;
 				b2 = bli_gemm_get_next_b_upanel( b1, cstep_b, jr_inc );
-				if ( bli_is_last_iter( j, jr_end, jr_tid, jr_nt ) )
-					b2 = b_cast;
 			}
 
 			// Save addresses of next panels of A and B to the auxinfo_t
@@ -320,13 +352,13 @@ void bli_gemm_ker_var2
 				  m_cur,
 				  n_cur,
 				  k,
-				  alpha_cast,
-				  a1,
-				  b1,
-				  beta_cast,
-				  c11, rs_c, cs_c,
+				  ( void* )alpha_cast,
+				  ( void* )a1,
+				  ( void* )b1,
+				  ( void* )beta_cast,
+				           c11, rs_c, cs_c,
 				  &aux,
-				  cntx
+				  ( cntx_t* )cntx
 				);
 			}
 			else
@@ -337,31 +369,35 @@ void bli_gemm_ker_var2
 				  MR,
 				  NR,
 				  k,
-				  alpha_cast,
-				  a1,
-				  b1,
-				  zero,
-				  &ct, rs_ct, cs_ct,
+				  ( void* )alpha_cast,
+				  ( void* )a1,
+				  ( void* )b1,
+				  ( void* )zero,
+				           &ct, rs_ct, cs_ct,
 				  &aux,
-				  cntx
+				  ( cntx_t* )cntx
 				);
 
-				// Accumulate to C with type-casting.
-				xbpys_mxn[ dt_exec ][ dt_c ]
+				// Accumulate to C with typecasting.
+				xpbys_mxn[ dt_exec ][ dt_c ]
 				(
-				    m_cur, n_cur,
-				    &ct, rs_ct, cs_ct,
-				    beta_cast,
-				    c11, rs_c, cs_c
+				  m_cur, n_cur,
+				  &ct, rs_ct, cs_ct,
+				  ( void* )beta_cast,
+				  c11, rs_c, cs_c
 				);
 			}
-		}
-	}
 
-/*
-PASTEMAC(ch,fprintm)( stdout, "gemm_ker_var2: b1", k, NR, b1, NR, 1, "%4.1f", "" );
-PASTEMAC(ch,fprintm)( stdout, "gemm_ker_var2: a1", MR, k, a1, 1, MR, "%4.1f", "" );
-PASTEMAC(ch,fprintm)( stdout, "gemm_ker_var2: c after", m_cur, n_cur, c11, rs_c, cs_c, "%4.1f", "" );
-*/
+			// Decrement the number of microtiles assigned to the thread; once
+			// it reaches zero, return immediately.
+			n_ut_for_me -= 1; if ( n_ut_for_me == 0 ) return;
+		}
+
+		ir_start = ir_next;
+	}
 }
+
+//PASTEMAC(ch,fprintm)( stdout, "gemm_ker_var2: b1", k, NR, b1, NR, 1, "%4.1f", "" );
+//PASTEMAC(ch,fprintm)( stdout, "gemm_ker_var2: a1", MR, k, a1, 1, MR, "%4.1f", "" );
+//PASTEMAC(ch,fprintm)( stdout, "gemm_ker_var2: c after", m_cur, n_cur, c11, rs_c, cs_c, "%4.1f", "" );
 

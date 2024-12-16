@@ -45,10 +45,10 @@
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjx, \
-       dim_t   n, \
-       ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy  \
+             conj_t conjx, \
+             dim_t  n, \
+       const ctype* x, inc_t incx, \
+             ctype* y, inc_t incy  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -61,15 +61,15 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	/* Obtain a valid context from the gks if necessary. */ \
 	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
 \
-	PASTECH2(ch,opname,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(opname,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	f \
 	( \
-	   conjx, \
-	   n, \
-	   x, incx, \
-	   y, incy, \
-	   cntx  \
+	  conjx, \
+	  n, \
+	  ( ctype* )x, incx, \
+	            y, incy, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 
@@ -83,9 +83,9 @@ INSERT_GENTFUNC_BASIC( subv,  BLIS_SUBV_KER )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t   n, \
-       ctype*  x, inc_t incx, \
-       dim_t*  index  \
+             dim_t  n, \
+       const ctype* x, inc_t incx, \
+             dim_t* index  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -98,14 +98,14 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	/* Obtain a valid context from the gks if necessary. */ \
 	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
 \
-	PASTECH2(ch,opname,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(opname,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	f \
 	( \
-	   n, \
-	   x, incx, \
-	   index, \
-	   cntx  \
+	  n, \
+	  ( ctype* )x, incx, \
+	  index, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 
@@ -117,12 +117,12 @@ INSERT_GENTFUNC_BASIC( amaxv, BLIS_AMAXV_KER )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjx, \
-       dim_t   n, \
-       ctype*  alpha, \
-       ctype*  x, inc_t incx, \
-       ctype*  beta, \
-       ctype*  y, inc_t incy  \
+             conj_t conjx, \
+             dim_t  n, \
+       const ctype* alpha, \
+       const ctype* x, inc_t incx, \
+       const ctype* beta, \
+             ctype* y, inc_t incy  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -135,17 +135,17 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	/* Obtain a valid context from the gks if necessary. */ \
 	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
 \
-	PASTECH2(ch,opname,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(opname,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	f \
 	( \
-	   conjx, \
-	   n, \
-	   alpha, \
-	   x, incx, \
-	   beta, \
-	   y, incy, \
-	   cntx  \
+	  conjx, \
+	  n, \
+	  ( ctype* )alpha, \
+	  ( ctype* )x, incx, \
+	  ( ctype* )beta, \
+	            y, incy, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 
@@ -157,11 +157,11 @@ INSERT_GENTFUNC_BASIC( axpbyv, BLIS_AXPBYV_KER )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjx, \
-       dim_t   n, \
-       ctype*  alpha, \
-       ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy  \
+             conj_t conjx, \
+             dim_t  n, \
+       const ctype* alpha, \
+       const ctype* x, inc_t incx, \
+             ctype* y, inc_t incy  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -175,16 +175,16 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	if ( cntx == NULL ) \
 		cntx = bli_gks_query_cntx(); \
 \
-	PASTECH2(ch,opname,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(opname,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	f \
 	( \
-	   conjx, \
-	   n, \
-	   alpha, \
-	   x, incx, \
-	   y, incy, \
-	   cntx  \
+	  conjx, \
+	  n, \
+	  ( ctype* )alpha, \
+	  ( ctype* )x, incx, \
+	            y, incy, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 
@@ -197,12 +197,12 @@ INSERT_GENTFUNC_BASIC( scal2v, BLIS_SCAL2V_KER )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjx, \
-       conj_t  conjy, \
-       dim_t   n, \
-       ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy, \
-       ctype*  rho  \
+             conj_t conjx, \
+             conj_t conjy, \
+             dim_t  n, \
+       const ctype* x, inc_t incx, \
+       const ctype* y, inc_t incy, \
+             ctype* rho  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -215,17 +215,17 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	/* Obtain a valid context from the gks if necessary. */ \
 	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
 \
-	PASTECH2(ch,opname,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(opname,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	f \
 	( \
-	   conjx, \
-	   conjy, \
-	   n, \
-	   x, incx, \
-	   y, incy, \
-	   rho, \
-	   cntx  \
+	  conjx, \
+	  conjy, \
+	  n, \
+	  ( ctype* )x, incx, \
+	  ( ctype* )y, incy, \
+	            rho, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 
@@ -237,14 +237,14 @@ INSERT_GENTFUNC_BASIC( dotv, BLIS_DOTV_KER )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjx, \
-       conj_t  conjy, \
-       dim_t   n, \
-       ctype*  alpha, \
-       ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy, \
-       ctype*  beta, \
-       ctype*  rho  \
+             conj_t conjx, \
+             conj_t conjy, \
+             dim_t  n, \
+       const ctype* alpha, \
+       const ctype* x, inc_t incx, \
+       const ctype* y, inc_t incy, \
+       const ctype* beta, \
+             ctype* rho  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -257,19 +257,19 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	/* Obtain a valid context from the gks if necessary. */ \
 	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
 \
-	PASTECH2(ch,opname,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(opname,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	f \
 	( \
-	   conjx, \
-	   conjy, \
-	   n, \
-	   alpha, \
-	   x, incx, \
-	   y, incy, \
-	   beta, \
-	   rho, \
-	   cntx  \
+	  conjx, \
+	  conjy, \
+	  n, \
+	  ( ctype* )alpha, \
+	  ( ctype* )x, incx, \
+	  ( ctype* )y, incy, \
+	  ( ctype* )beta, \
+	            rho, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 
@@ -281,8 +281,8 @@ INSERT_GENTFUNC_BASIC( dotxv, BLIS_DOTXV_KER )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t   n, \
-       ctype*  x, inc_t incx  \
+       dim_t  n, \
+       ctype* x, inc_t incx  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -295,13 +295,13 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	/* Obtain a valid context from the gks if necessary. */ \
 	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
 \
-	PASTECH2(ch,opname,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(opname,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	f \
 	( \
-	   n, \
-	   x, incx, \
-	   cntx  \
+	  n, \
+	  x, incx, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 
@@ -313,10 +313,10 @@ INSERT_GENTFUNC_BASIC( invertv, BLIS_INVERTV_KER )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjalpha, \
-       dim_t   n, \
-       ctype*  alpha, \
-       ctype*  x, inc_t incx  \
+             conj_t conjalpha, \
+             dim_t  n, \
+       const ctype* alpha, \
+             ctype* x, inc_t incx  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -329,18 +329,19 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	/* Obtain a valid context from the gks if necessary. */ \
 	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
 \
-	PASTECH2(ch,opname,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(opname,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	f \
 	( \
-	   conjalpha, \
-	   n, \
-	   alpha, \
-	   x, incx, \
-	   cntx  \
+	  conjalpha, \
+	  n, \
+	  ( ctype* )alpha, \
+	            x, incx, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 
+INSERT_GENTFUNC_BASIC( invscalv, BLIS_INVSCALV_KER )
 INSERT_GENTFUNC_BASIC( scalv, BLIS_SCALV_KER )
 INSERT_GENTFUNC_BASIC( setv,  BLIS_SETV_KER )
 
@@ -350,9 +351,9 @@ INSERT_GENTFUNC_BASIC( setv,  BLIS_SETV_KER )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t   n, \
-       ctype*  x, inc_t incx, \
-       ctype*  y, inc_t incy  \
+       dim_t  n, \
+       ctype* x, inc_t incx, \
+       ctype* y, inc_t incy  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -365,14 +366,14 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	/* Obtain a valid context from the gks if necessary. */ \
 	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
 \
-	PASTECH2(ch,opname,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(opname,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	f \
 	( \
-	   n, \
-	   x, incx, \
-	   y, incy, \
-	   cntx  \
+	  n, \
+	  x, incx, \
+	  y, incy, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 
@@ -383,11 +384,11 @@ INSERT_GENTFUNC_BASIC( swapv, BLIS_SWAPV_KER )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       conj_t  conjx, \
-       dim_t   n, \
-       ctype*  x, inc_t incx, \
-       ctype*  beta, \
-       ctype*  y, inc_t incy  \
+             conj_t conjx, \
+             dim_t  n, \
+       const ctype* x, inc_t incx, \
+       const ctype* beta, \
+             ctype* y, inc_t incy  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -400,16 +401,16 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	/* Obtain a valid context from the gks if necessary. */ \
 	if ( cntx == NULL ) cntx = bli_gks_query_cntx(); \
 \
-	PASTECH2(ch,opname,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(opname,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	f \
 	( \
-	   conjx, \
-	   n, \
-	   x, incx, \
-	   beta, \
-	   y, incy, \
-	   cntx  \
+	  conjx, \
+	  n, \
+	  ( ctype* )x, incx, \
+	  ( ctype* )beta, \
+	            y, incy, \
+	  ( cntx_t* )cntx  \
 	); \
 }
 

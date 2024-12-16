@@ -44,16 +44,29 @@
 
 void PASTEMAC(gemm,BLIS_OAPI_EX_SUF)
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	bli_init_once();
+
+	// If C has a zero dimension, return early.
+	if ( bli_obj_has_zero_dim( c ) ) return;
+
+	// If alpha is zero, or if A or B has a zero dimension, scale C by beta
+	// and return early.
+	if ( bli_obj_equals( alpha, &BLIS_ZERO ) ||
+	     bli_obj_has_zero_dim( a ) ||
+	     bli_obj_has_zero_dim( b ) )
+	{
+		bli_scalm( beta, c );
+		return;
+	}
 
 	// If the rntm is non-NULL, it may indicate that we should forgo sup
 	// handling altogether.
@@ -77,8 +90,8 @@ void PASTEMAC(gemm,BLIS_OAPI_EX_SUF)
 	// Initialize a local runtime with global settings if necessary. Note
 	// that in the case that a runtime is passed in, we make a local copy.
 	rntm_t rntm_l;
-	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); rntm = &rntm_l; }
-	else                { rntm_l = *rntm;                       rntm = &rntm_l; }
+	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); }
+	else                { rntm_l = *rntm;                       }
 
 	// Default to using native execution.
 	num_t dt = bli_obj_dt( c );
@@ -102,14 +115,14 @@ void PASTEMAC(gemm,BLIS_OAPI_EX_SUF)
 
 	// If necessary, obtain a valid context from the gks using the induced
 	// method id determined above.
-	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im, dt );
+	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im );
 
 	// Check the operands.
 	if ( bli_error_checking_is_enabled() )
 		bli_gemm_check( alpha, a, b, beta, c, cntx );
 
 	// Invoke the operation's front-end and request the default control tree.
-	bli_gemm_front( alpha, a, b, beta, c, cntx, rntm, NULL );
+	bli_gemm_front( alpha, a, b, beta, c, cntx, &rntm_l );
 }
 
 #endif
@@ -117,22 +130,35 @@ void PASTEMAC(gemm,BLIS_OAPI_EX_SUF)
 
 void PASTEMAC(gemmt,BLIS_OAPI_EX_SUF)
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	bli_init_once();
 
+	// If C has a zero dimension, return early.
+	if ( bli_obj_has_zero_dim( c ) ) return;
+
+	// If alpha is zero, or if A or B has a zero dimension, scale C by beta
+	// and return early.
+	if ( bli_obj_equals( alpha, &BLIS_ZERO ) ||
+	     bli_obj_has_zero_dim( a ) ||
+	     bli_obj_has_zero_dim( b ) )
+	{
+		bli_scalm( beta, c );
+		return;
+	}
+
 	// Initialize a local runtime with global settings if necessary. Note
 	// that in the case that a runtime is passed in, we make a local copy.
 	rntm_t rntm_l;
-	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); rntm = &rntm_l; }
-	else                { rntm_l = *rntm;                       rntm = &rntm_l; }
+	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); }
+	else                { rntm_l = *rntm;                       }
 
 	// Default to using native execution.
 	num_t dt = bli_obj_dt( c );
@@ -153,26 +179,26 @@ void PASTEMAC(gemmt,BLIS_OAPI_EX_SUF)
 
 	// If necessary, obtain a valid context from the gks using the induced
 	// method id determined above.
-	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im, dt );
+	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im );
 
 	// Check the operands.
 	if ( bli_error_checking_is_enabled() )
 		bli_gemmt_check( alpha, a, b, beta, c, cntx );
 
 	// Invoke the operation's front-end and request the default control tree.
-	bli_gemmt_front( alpha, a, b, beta, c, cntx, rntm, NULL );
+	bli_gemmt_front( alpha, a, b, beta, c, cntx, &rntm_l );
 }
 
 
 void PASTEMAC(her2k,BLIS_OAPI_EX_SUF)
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -212,13 +238,13 @@ void PASTEMAC(her2k,BLIS_OAPI_EX_SUF)
 
 void PASTEMAC(syr2k,BLIS_OAPI_EX_SUF)
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -244,14 +270,14 @@ void PASTEMAC(syr2k,BLIS_OAPI_EX_SUF)
 
 void PASTEMAC(hemm,BLIS_OAPI_EX_SUF)
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -259,8 +285,8 @@ void PASTEMAC(hemm,BLIS_OAPI_EX_SUF)
 	// Initialize a local runtime with global settings if necessary. Note
 	// that in the case that a runtime is passed in, we make a local copy.
 	rntm_t rntm_l;
-	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); rntm = &rntm_l; }
-	else                { rntm_l = *rntm;                       rntm = &rntm_l; }
+	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); }
+	else                { rntm_l = *rntm;                       }
 
 	// Default to using native execution.
 	num_t dt = bli_obj_dt( c );
@@ -281,27 +307,27 @@ void PASTEMAC(hemm,BLIS_OAPI_EX_SUF)
 
 	// If necessary, obtain a valid context from the gks using the induced
 	// method id determined above.
-	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im, dt );
+	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im );
 
 	// Check the operands.
 	if ( bli_error_checking_is_enabled() )
 		bli_hemm_check( side, alpha, a, b, beta, c, cntx );
 
 	// Invoke the operation's front-end and request the default control tree.
-	bli_hemm_front( side, alpha, a, b, beta, c, cntx, rntm, NULL );
+	bli_hemm_front( side, alpha, a, b, beta, c, cntx, &rntm_l );
 }
 
 
 void PASTEMAC(symm,BLIS_OAPI_EX_SUF)
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -309,8 +335,8 @@ void PASTEMAC(symm,BLIS_OAPI_EX_SUF)
 	// Initialize a local runtime with global settings if necessary. Note
 	// that in the case that a runtime is passed in, we make a local copy.
 	rntm_t rntm_l;
-	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); rntm = &rntm_l; }
-	else                { rntm_l = *rntm;                       rntm = &rntm_l; }
+	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); }
+	else                { rntm_l = *rntm;                       }
 
 	// Default to using native execution.
 	num_t dt = bli_obj_dt( c );
@@ -331,27 +357,27 @@ void PASTEMAC(symm,BLIS_OAPI_EX_SUF)
 
 	// If necessary, obtain a valid context from the gks using the induced
 	// method id determined above.
-	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im, dt );
+	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im );
 
 	// Check the operands.
 	if ( bli_error_checking_is_enabled() )
 		bli_symm_check( side, alpha, a, b, beta, c, cntx );
 
 	// Invoke the operation's front-end and request the default control tree.
-	bli_symm_front( side, alpha, a, b, beta, c, cntx, rntm, NULL );
+	bli_symm_front( side, alpha, a, b, beta, c, cntx, &rntm_l );
 }
 
 
 void PASTEMAC(trmm3,BLIS_OAPI_EX_SUF)
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -359,8 +385,8 @@ void PASTEMAC(trmm3,BLIS_OAPI_EX_SUF)
 	// Initialize a local runtime with global settings if necessary. Note
 	// that in the case that a runtime is passed in, we make a local copy.
 	rntm_t rntm_l;
-	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); rntm = &rntm_l; }
-	else                { rntm_l = *rntm;                       rntm = &rntm_l; }
+	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); }
+	else                { rntm_l = *rntm;                       }
 
 	// Default to using native execution.
 	num_t dt = bli_obj_dt( c );
@@ -381,25 +407,25 @@ void PASTEMAC(trmm3,BLIS_OAPI_EX_SUF)
 
 	// If necessary, obtain a valid context from the gks using the induced
 	// method id determined above.
-	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im, dt );
+	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im );
 
 	// Check the operands.
 	if ( bli_error_checking_is_enabled() )
 		bli_trmm3_check( side, alpha, a, b, beta, c, cntx );
 
 	// Invoke the operation's front-end and request the default control tree.
-	bli_trmm3_front( side, alpha, a, b, beta, c, cntx, rntm, NULL );
+	bli_trmm3_front( side, alpha, a, b, beta, c, cntx, &rntm_l );
 }
 
 
 void PASTEMAC(herk,BLIS_OAPI_EX_SUF)
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -428,12 +454,12 @@ void PASTEMAC(herk,BLIS_OAPI_EX_SUF)
 
 void PASTEMAC(syrk,BLIS_OAPI_EX_SUF)
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -453,12 +479,12 @@ void PASTEMAC(syrk,BLIS_OAPI_EX_SUF)
 
 void PASTEMAC(trmm,BLIS_OAPI_EX_SUF)
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       cntx_t* cntx,
-       rntm_t* rntm
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -466,8 +492,8 @@ void PASTEMAC(trmm,BLIS_OAPI_EX_SUF)
 	// Initialize a local runtime with global settings if necessary. Note
 	// that in the case that a runtime is passed in, we make a local copy.
 	rntm_t rntm_l;
-	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); rntm = &rntm_l; }
-	else                { rntm_l = *rntm;                       rntm = &rntm_l; }
+	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); }
+	else                { rntm_l = *rntm;                       }
 
 	// Default to using native execution.
 	num_t dt = bli_obj_dt( b );
@@ -487,25 +513,25 @@ void PASTEMAC(trmm,BLIS_OAPI_EX_SUF)
 
 	// If necessary, obtain a valid context from the gks using the induced
 	// method id determined above.
-	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im, dt );
+	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im );
 
 	// Check the operands.
 	if ( bli_error_checking_is_enabled() )
 		bli_trmm_check( side, alpha, a, b, cntx );
 
 	// Invoke the operation's front-end and request the default control tree.
-	bli_trmm_front( side, alpha, a, b, cntx, rntm, NULL );
+	bli_trmm_front( side, alpha, a, b, cntx, &rntm_l );
 }
 
 
 void PASTEMAC(trsm,BLIS_OAPI_EX_SUF)
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       cntx_t* cntx,
-       rntm_t* rntm
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -513,8 +539,8 @@ void PASTEMAC(trsm,BLIS_OAPI_EX_SUF)
 	// Initialize a local runtime with global settings if necessary. Note
 	// that in the case that a runtime is passed in, we make a local copy.
 	rntm_t rntm_l;
-	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); rntm = &rntm_l; }
-	else                { rntm_l = *rntm;                       rntm = &rntm_l; }
+	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); }
+	else                { rntm_l = *rntm;                       }
 
 	// Default to using native execution.
 	num_t dt = bli_obj_dt( b );
@@ -534,12 +560,12 @@ void PASTEMAC(trsm,BLIS_OAPI_EX_SUF)
 
 	// If necessary, obtain a valid context from the gks using the induced
 	// method id determined above.
-	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im, dt );
+	if ( cntx == NULL ) cntx = bli_gks_query_ind_cntx( im );
 
 	// Check the operands.
 	if ( bli_error_checking_is_enabled() )
 		bli_trsm_check( side, alpha, a, b, cntx );
 
 	// Invoke the operation's front-end and request the default control tree.
-	bli_trsm_front( side, alpha, a, b, cntx, rntm, NULL );
+	bli_trsm_front( side, alpha, a, b, cntx, &rntm_l );
 }

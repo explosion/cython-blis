@@ -40,12 +40,11 @@
 
 // This string gets defined via -D on the command line when BLIS is compiled.
 // This string is (or rather, should be) only used here.
-static char* bli_version_str       = BLIS_VERSION_STRING;
-static char* bli_int_type_size_str = STRINGIFY_INT( BLIS_INT_TYPE_SIZE );
+static const char* bli_version_str       = BLIS_VERSION_STRING;
+static const char* bli_int_type_size_str = STRINGIFY_INT( BLIS_INT_TYPE_SIZE );
 
-char* bli_info_get_version_str( void )                { return bli_version_str; }
-char* bli_info_get_int_type_size_str( void )          { return bli_int_type_size_str; }
-
+const char* bli_info_get_version_str( void )          { return bli_version_str; }
+const char* bli_info_get_int_type_size_str( void )    { return bli_int_type_size_str; }
 
 
 // -- General configuration-related --------------------------------------------
@@ -104,9 +103,10 @@ gint_t bli_info_get_enable_sba_pools( void )
 }
 gint_t bli_info_get_enable_threading( void )
 {
-	if ( bli_info_get_enable_openmp() ||
-	     bli_info_get_enable_pthreads() ) return 1;
-	else                                  return 0;
+	if ( bli_info_get_enable_openmp()   ||
+	     bli_info_get_enable_pthreads() ||
+	     bli_info_get_enable_hpx() ) return 1;
+	else                             return 0;
 }
 gint_t bli_info_get_enable_openmp( void )
 {
@@ -124,7 +124,39 @@ gint_t bli_info_get_enable_pthreads( void )
 	return 0;
 #endif
 }
-gint_t bli_info_get_thread_part_jrir_slab( void )
+gint_t bli_info_get_enable_hpx( void )
+{
+#ifdef BLIS_ENABLE_HPX
+	return 1;
+#else
+	return 0;
+#endif
+}
+gint_t bli_info_get_enable_openmp_as_default( void )
+{
+#ifdef BLIS_ENABLE_OPENMP_AS_DEFAULT
+	return 1;
+#else
+	return 0;
+#endif
+}
+gint_t bli_info_get_enable_pthreads_as_default( void )
+{
+#ifdef BLIS_ENABLE_PTHREADS_AS_DEFAULT
+	return 1;
+#else
+	return 0;
+#endif
+}
+gint_t bli_info_get_enable_hpx_as_default( void )
+{
+#ifdef BLIS_ENABLE_HPX_AS_DEFAULT
+	return 1;
+#else
+	return 0;
+#endif
+}
+gint_t bli_info_get_thread_jrir_slab( void )
 {
 #ifdef BLIS_ENABLE_JRIR_SLAB
 	return 1;
@@ -132,9 +164,25 @@ gint_t bli_info_get_thread_part_jrir_slab( void )
 	return 0;
 #endif
 }
-gint_t bli_info_get_thread_part_jrir_rr( void )
+gint_t bli_info_get_thread_jrir_rr( void )
 {
 #ifdef BLIS_ENABLE_JRIR_RR
+	return 1;
+#else
+	return 0;
+#endif
+}
+gint_t bli_info_get_thread_jrir_tlb( void )
+{
+#ifdef BLIS_ENABLE_JRIR_TLB
+	return 1;
+#else
+	return 0;
+#endif
+}
+gint_t bli_info_get_enable_tls( void )
+{
+#ifdef BLIS_ENABLE_TLS
 	return 1;
 #else
 	return 0;
@@ -158,36 +206,34 @@ gint_t bli_info_get_enable_sandbox( void )
 }
 
 
-
 // -- Kernel implementation-related --------------------------------------------
 
 
 // -- Level-3 kernel definitions --
 
-char* bli_info_get_gemm_ukr_impl_string( ind_t method, num_t dt )
+const char* bli_info_get_gemm_ukr_impl_string( ind_t method, num_t dt )
 { bli_init_once(); return bli_gks_l3_ukr_impl_string( BLIS_GEMM_UKR,       method, dt ); }
-char* bli_info_get_gemmtrsm_l_ukr_impl_string( ind_t method, num_t dt )
+const char* bli_info_get_gemmtrsm_l_ukr_impl_string( ind_t method, num_t dt )
 { bli_init_once(); return bli_gks_l3_ukr_impl_string( BLIS_GEMMTRSM_L_UKR, method, dt ); }
-char* bli_info_get_gemmtrsm_u_ukr_impl_string( ind_t method, num_t dt )
+const char* bli_info_get_gemmtrsm_u_ukr_impl_string( ind_t method, num_t dt )
 { bli_init_once(); return bli_gks_l3_ukr_impl_string( BLIS_GEMMTRSM_U_UKR, method, dt ); }
-char* bli_info_get_trsm_l_ukr_impl_string( ind_t method, num_t dt )
+const char* bli_info_get_trsm_l_ukr_impl_string( ind_t method, num_t dt )
 { bli_init_once(); return bli_gks_l3_ukr_impl_string( BLIS_TRSM_L_UKR,     method, dt ); }
-char* bli_info_get_trsm_u_ukr_impl_string( ind_t method, num_t dt )
+const char* bli_info_get_trsm_u_ukr_impl_string( ind_t method, num_t dt )
 { bli_init_once(); return bli_gks_l3_ukr_impl_string( BLIS_TRSM_U_UKR,     method, dt ); }
-
 
 
 // -- BLIS implementation query (level-3) --------------------------------------
 
-char* bli_info_get_gemm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_GEMM,  dt ); }
-char* bli_info_get_gemmt_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
-char* bli_info_get_hemm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_HEMM,  dt ); }
-char* bli_info_get_herk_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
-char* bli_info_get_her2k_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
-char* bli_info_get_symm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_SYMM,  dt ); }
-char* bli_info_get_syrk_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
-char* bli_info_get_syr2k_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
-char* bli_info_get_trmm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_TRMM,  dt ); }
-char* bli_info_get_trmm3_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_TRMM3, dt ); }
-char* bli_info_get_trsm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_TRSM,  dt ); }
+const char* bli_info_get_gemm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_GEMM,  dt ); }
+const char* bli_info_get_gemmt_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
+const char* bli_info_get_hemm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_HEMM,  dt ); }
+const char* bli_info_get_herk_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
+const char* bli_info_get_her2k_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
+const char* bli_info_get_symm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_SYMM,  dt ); }
+const char* bli_info_get_syrk_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
+const char* bli_info_get_syr2k_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_GEMMT, dt ); }
+const char* bli_info_get_trmm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_TRMM,  dt ); }
+const char* bli_info_get_trmm3_impl_string( num_t dt ) { return bli_ind_oper_get_avail_impl_string( BLIS_TRMM3, dt ); }
+const char* bli_info_get_trsm_impl_string( num_t dt )  { return bli_ind_oper_get_avail_impl_string( BLIS_TRSM,  dt ); }
 

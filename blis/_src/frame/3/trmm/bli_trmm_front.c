@@ -37,13 +37,12 @@
 
 void bli_trmm_front
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       cntx_t* cntx,
-       rntm_t* rntm,
-       cntl_t* cntl
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const cntx_t* cntx,
+             rntm_t* rntm
      )
 {
 	bli_init_once();
@@ -135,7 +134,7 @@ void bli_trmm_front
 	// of row- vs. column storage breaks down.
 	//if ( !bli_obj_is_1x1( &c_local ) ) // NOTE: This conditional should NOT
 	                                     // be enabled. See issue #342 comments.
-	if ( bli_cntx_l3_vir_ukr_dislikes_storage_of( &c_local, BLIS_GEMM_UKR, cntx ) )
+	if ( bli_cntx_dislikes_storage_of( &c_local, BLIS_GEMM_VIR_UKR, cntx ) )
 	{
 		bli_toggle_side( &side );
 		bli_obj_induce_trans( &a_local );
@@ -179,8 +178,7 @@ void bli_trmm_front
 	  &BLIS_ZERO,
 	  &c_local,
 	  cntx,
-	  rntm,
-	  cntl
+	  rntm
 	);
 }
 

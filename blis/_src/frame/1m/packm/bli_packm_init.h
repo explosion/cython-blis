@@ -34,11 +34,10 @@
 
 BLIS_EXPORT_BLIS bool bli_packm_init
      (
-       obj_t*  a,
-       obj_t*  p,
-       cntx_t* cntx,
-       rntm_t* rntm,
-       cntl_t* cntl,
-       thrinfo_t* thread
+       const obj_t*  a,
+             obj_t*  p,
+       const cntx_t* cntx,
+       const cntl_t* cntl,
+             thrinfo_t* thread
      );
 

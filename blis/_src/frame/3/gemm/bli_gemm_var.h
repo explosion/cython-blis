@@ -40,7 +40,7 @@
 
 typedef struct
 {
-	gemm_ukr_vft ukr;
+	gemm_ukr_ft ukr;
 } gemm_ker_params_t;
 
 
@@ -53,19 +53,19 @@ typedef struct
 \
 void PASTEMAC0(opname) \
      ( \
-       obj_t*  a, \
-       obj_t*  b, \
-       obj_t*  c, \
-       cntx_t* cntx, \
-       rntm_t* rntm, \
-       cntl_t* cntl, \
-       thrinfo_t* thread  \
+       const obj_t*     a, \
+       const obj_t*     b, \
+       const obj_t*     c, \
+       const cntx_t*    cntx, \
+       const cntl_t*    cntl, \
+             thrinfo_t* thread  \
      );
 
 GENPROT( gemm_blk_var1 )
 GENPROT( gemm_blk_var2 )
 GENPROT( gemm_blk_var3 )
 
-GENPROT( gemm_ker_var1 )
 GENPROT( gemm_ker_var2 )
+
+GENPROT( gemm_ker_var2b )
 

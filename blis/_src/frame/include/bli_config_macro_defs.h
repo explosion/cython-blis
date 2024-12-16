@@ -36,6 +36,16 @@
 #ifndef BLIS_CONFIG_MACRO_DEFS_H
 #define BLIS_CONFIG_MACRO_DEFS_H
 
+// NOTE: This file should ONLY contain processing of macros that are set by
+// configure and output into bli_config.h. Any other macro processing --
+// especially such as for those macros that are expected to be optionally
+// set within a configuration's bli_family_<conf>.h header -- MUST be placed
+// in bli_kernel_macro_defs.h instead. The reason: bli_arch_config.h (which
+// #includes the configuration's bli_family_<conf>.h header) is #included
+// much later in blis.h than this file (bli_config_macro_defs.h), and so any
+// macros set in bli_family_<conf>.h would have no effect on the processing
+// that happens below.
+
 
 // -- INTEGER PROPERTIES -------------------------------------------------------
 
@@ -67,6 +77,25 @@
 #endif
 
 
+// -- MEMORY SUBSYSTEM PROPERTIES ----------------------------------------------
+
+// Size of a cache line (in bytes).
+#ifndef BLIS_CACHE_LINE_SIZE
+#define BLIS_CACHE_LINE_SIZE 64
+#endif
+
+
+// -- MULTITHREADING -----------------------------------------------------------
+
+// Enable caching of queried cntx_t pointers in the gks?
+#ifdef BLIS_DISABLE_GKS_CACHING
+  #undef BLIS_ENABLE_GKS_CACHING
+#else
+  // Default behavior is enabled.
+  #define BLIS_ENABLE_GKS_CACHING
+#endif
+
+
 // -- MULTITHREADING -----------------------------------------------------------
 
 // Enable multithreading via POSIX threads.
@@ -83,19 +112,20 @@
   // Default behavior is disabled.
 #endif
 
-// Perform a sanity check to make sure the user doesn't try to enable
-// both OpenMP and pthreads.
-#if defined ( BLIS_ENABLE_OPENMP ) && \
-    defined ( BLIS_ENABLE_PTHREADS )
-  #error "BLIS_ENABLE_OPENMP and BLIS_ENABLE_PTHREADS may not be simultaneously defined."
+// Enable multithreading via HPX.
+#ifdef BLIS_ENABLE_HPX
+  // No additional definitions needed.
+#else
+  // Default behavior is disabled.
 #endif
 
 // Here, we define BLIS_ENABLE_MULTITHREADING if either OpenMP
 // or pthreads are enabled. This macro is useful in situations when
-// we want to detect use of either OpenMP or pthreads (as opposed
-// to neither being used).
-#if defined ( BLIS_ENABLE_OPENMP ) || \
-    defined ( BLIS_ENABLE_PTHREADS )
+// we want to detect use of either OpenMP or pthreads, or both (as
+// opposed to neither being used).
+#if defined ( BLIS_ENABLE_OPENMP )   || \
+    defined ( BLIS_ENABLE_PTHREADS ) || \
+    defined ( BLIS_ENABLE_HPX )
   #define BLIS_ENABLE_MULTITHREADING
 #endif
 

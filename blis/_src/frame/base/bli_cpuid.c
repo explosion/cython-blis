@@ -327,19 +327,19 @@ bool bli_cpuid_is_zen2
 	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
 
 	// All Zen2 cores have a family of 0x17.
-	if ( family == 0x17 ) {
-		return 0x30 <= model && model <= 0xff;
-	}
+	if ( family != 0x17 ) return FALSE;
 
-#ifndef BLIS_CONFIG_ZEN3
-	// Fallback to Zen 2 kernels on Zen 3, when blis is compiled without
-	// Zen 3 support (e.g. because it requires a newer compiler).
-	if ( family == 0x19 ) {
-		return 0x00 <= model && model <= 0xff;
-	}
-#endif
+	// Finally, check for specific models:
+	// - 0x30 ~ 0xff
+	// NOTE: We must check model because the family 23 (0x17) is shared with
+	// zen.
+	const bool is_arch
+	=
+	( 0x30 <= model && model <= 0xff );
 
-	return FALSE;
+	if ( !is_arch ) return FALSE;
+
+	return TRUE;
 }
 
 bool bli_cpuid_is_zen
@@ -485,7 +485,7 @@ bool bli_cpuid_is_bulldozer
 	return TRUE;
 }
 
-#elif defined(__aarch64__) || defined(__arm__) || defined(_M_ARM)
+#elif defined(__aarch64__) || defined(__arm__) || defined(_M_ARM) || defined(_ARCH_PPC)
 
 arch_t bli_cpuid_query_id( void )
 {
@@ -530,9 +530,14 @@ arch_t bli_cpuid_query_id( void )
 			return BLIS_ARCH_GENERIC;
 		}
 	}
-	else if ( vendor == VENDOR_UNKNOWN )
+	else if ( vendor == VENDOR_IBM )
 	{
-		return BLIS_ARCH_GENERIC;
+		if ( model == MODEL_POWER7)
+			return BLIS_ARCH_POWER7;
+		else if ( model == MODEL_POWER9)
+			return BLIS_ARCH_POWER9;
+		else if ( model == MODEL_POWER10)
+			return BLIS_ARCH_POWER10;
 	}
 
 	return BLIS_ARCH_GENERIC;
@@ -776,7 +781,7 @@ uint32_t bli_cpuid_query
 		if ( bli_cpuid_has_features( ecx, FEATURE_MASK_AVX   ) ) *features |= FEATURE_AVX;
 		if ( bli_cpuid_has_features( ecx, FEATURE_MASK_FMA3  ) ) *features |= FEATURE_FMA3;
 
-		// Check whether the hardware supports xsave/xrestor/xsetbv/xgetbv AND 
+		// Check whether the hardware supports xsave/xrestor/xsetbv/xgetbv AND
 		// support for these is enabled by the OS. If so, then we proceed with
 		// checking that various register-state saving features are available.
 		if ( bli_cpuid_has_features( ecx, FEATURE_MASK_XGETBV ) )
@@ -808,7 +813,7 @@ uint32_t bli_cpuid_query
 
 			// The OS can manage the state of 512-bit zmm (AVX-512) registers
 			// only if the xcr[7:5] bits are set. If they are not set, then
-			// clear all feature bits related to AVX-512. 
+			// clear all feature bits related to AVX-512.
 			if ( !bli_cpuid_has_features( eax, XGETBV_MASK_XMM |
 				                               XGETBV_MASK_YMM |
 				                               XGETBV_MASK_ZMM ) )
@@ -824,7 +829,7 @@ uint32_t bli_cpuid_query
 
 			// The OS can manage the state of 256-bit ymm (AVX) registers
 			// only if the xcr[2] bit is set. If it is not set, then
-			// clear all feature bits related to AVX. 
+			// clear all feature bits related to AVX.
 			if ( !bli_cpuid_has_features( eax, XGETBV_MASK_XMM |
 				                               XGETBV_MASK_YMM ) )
 			{
@@ -837,7 +842,7 @@ uint32_t bli_cpuid_query
 			// The OS can manage the state of 128-bit xmm (SSE) registers
 			// only if the xcr[1] bit is set. If it is not set, then
 			// clear all feature bits related to SSE (which means the
-			// entire bitfield is clear). 
+			// entire bitfield is clear).
 			if ( !bli_cpuid_has_features( eax, XGETBV_MASK_XMM ) )
 			{
 				*features = 0;
@@ -1020,6 +1025,7 @@ static uint32_t get_coretype
 {
 	int implementer = 0x00, part = 0x000;
 	*features = FEATURE_NEON;
+    bool has_sve = FALSE;
 
 #ifdef __linux__
 	if ( getauxval( AT_HWCAP ) & HWCAP_CPUID )
@@ -1028,7 +1034,7 @@ static uint32_t get_coretype
 		// /sys/devices/system/cpu/cpu0/regs/identification/midr_el1
 		// and split out in /proc/cpuinfo (with a tab before the colon):
 		// CPU part	: 0x0a1
-		
+
 		uint64_t midr_el1;
 		__asm("mrs %0, MIDR_EL1" : "=r" (midr_el1));
 		/*
@@ -1042,8 +1048,8 @@ static uint32_t get_coretype
 		implementer = (midr_el1 >> 24) & 0xFF;
 		part        = (midr_el1 >> 4)  & 0xFFF;
 	}
-	
-	bool has_sve = getauxval( AT_HWCAP ) & HWCAP_SVE;
+
+	has_sve = getauxval( AT_HWCAP ) & HWCAP_SVE;
 	if (has_sve)
 		*features |= FEATURE_SVE;
 #endif //__linux__
@@ -1092,7 +1098,7 @@ static uint32_t get_coretype
 	// CAVIUM_CPU_PART_THUNDERX2 0x0AF
 	// CAVIUM_CPU_PART_THUNDERX3 0x0B8  // taken from OpenBLAS
 	//
-	// BRCM_CPU_PART_BRAHMA_B53 0x100 
+	// BRCM_CPU_PART_BRAHMA_B53 0x100
 	// BRCM_CPU_PART_VULCAN 0x516
 	//
 	// QCOM_CPU_PART_FALKOR_V1 0x800
@@ -1203,9 +1209,9 @@ uint32_t bli_cpuid_query
 	return VENDOR_ARM;
 }
 
-#elif defined(__arm__) || defined(_M_ARM)
+#elif defined(__arm__) || defined(_M_ARM) || defined(_ARCH_PPC)
 
-/* 
+/*
    I can't easily find documentation to do this as for aarch64, though
    it presumably could be unearthed from Linux code.  However, on
    Linux 5.2 (and Androids's 3.4), /proc/cpuinfo has this sort of
@@ -1239,6 +1245,20 @@ uint32_t bli_cpuid_query
 	char  ptno_str[ TEMP_BUFFER_SIZE ];
 	char  feat_str[ TEMP_BUFFER_SIZE ];
 	char* r_val;
+
+#ifdef _ARCH_PPC
+	r_val = find_string_in( "cpu", proc_str, TEMP_BUFFER_SIZE, pci_str );
+	if ( r_val == NULL ) return VENDOR_IBM;
+
+	if ( strstr( proc_str, "POWER7" ) != NULL )
+		*model = MODEL_POWER7;
+	else if ( strstr( proc_str, "POWER9" ) != NULL )
+		*model = MODEL_POWER9;
+	else if ( strstr( proc_str, "POWER10" ) != NULL )
+		*model = MODEL_POWER10;
+
+	return VENDOR_IBM;
+#endif
 
 	//printf( "bli_cpuid_query(): beginning search\n" );
 

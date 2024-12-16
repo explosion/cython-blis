@@ -51,8 +51,7 @@ void PASTEMAC(ch,opname) \
        dim_t   n, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
        ctype*  y, inc_t rs_y, inc_t cs_y, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      ) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
@@ -80,7 +79,7 @@ void PASTEMAC(ch,opname) \
 	conjx = bli_extract_conj( transx ); \
 \
 	/* Query the kernel needed for this operation. */ \
-	PASTECH2(ch,kername,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(kername,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	/* Handle dense and upper/lower storage cases separately. */ \
 	if ( bli_is_dense( uplox_eff ) ) \
@@ -149,9 +148,9 @@ void PASTEMAC(ch,opname) \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC2( addm_unb_var1,  addv,  BLIS_ADDV_KER )
-INSERT_GENTFUNC_BASIC2( copym_unb_var1, copyv, BLIS_COPYV_KER )
-INSERT_GENTFUNC_BASIC2( subm_unb_var1,  subv,  BLIS_SUBV_KER )
+INSERT_GENTFUNC_BASIC( addm_unb_var1,  addv,  BLIS_ADDV_KER )
+INSERT_GENTFUNC_BASIC( copym_unb_var1, copyv, BLIS_COPYV_KER )
+INSERT_GENTFUNC_BASIC( subm_unb_var1,  subv,  BLIS_SUBV_KER )
 
 
 #undef  GENTFUNC
@@ -168,8 +167,7 @@ void PASTEMAC(ch,opname) \
        ctype*  alpha, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
        ctype*  y, inc_t rs_y, inc_t cs_y, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      ) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
@@ -197,7 +195,7 @@ void PASTEMAC(ch,opname) \
 	conjx = bli_extract_conj( transx ); \
 \
 	/* Query the kernel needed for this operation. */ \
-	PASTECH2(ch,kername,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(kername,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	/* Handle dense and upper/lower storage cases separately. */ \
 	if ( bli_is_dense( uplox_eff ) ) \
@@ -269,8 +267,8 @@ void PASTEMAC(ch,opname) \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC2( axpym_unb_var1,  axpyv,  BLIS_AXPYV_KER )
-INSERT_GENTFUNC_BASIC2( scal2m_unb_var1, scal2v, BLIS_SCAL2V_KER )
+INSERT_GENTFUNC_BASIC( axpym_unb_var1,  axpyv,  BLIS_AXPYV_KER )
+INSERT_GENTFUNC_BASIC( scal2m_unb_var1, scal2v, BLIS_SCAL2V_KER )
 
 
 #undef  GENTFUNC
@@ -286,8 +284,7 @@ void PASTEMAC(ch,opname) \
        dim_t   n, \
        ctype*  alpha, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      ) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
@@ -310,7 +307,7 @@ void PASTEMAC(ch,opname) \
 	if ( bli_is_zeros( uplox_eff ) ) return; \
 \
 	/* Query the kernel needed for this operation. */ \
-	PASTECH2(ch,kername,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(kername,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	/* Handle dense and upper/lower storage cases separately. */ \
 	if ( bli_is_dense( uplox_eff ) ) \
@@ -376,8 +373,9 @@ void PASTEMAC(ch,opname) \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC2( scalm_unb_var1, scalv, BLIS_SCALV_KER )
-INSERT_GENTFUNC_BASIC2( setm_unb_var1,  setv,  BLIS_SETV_KER )
+INSERT_GENTFUNC_BASIC( invscalm_unb_var1, invscalv, BLIS_INVSCALV_KER )
+INSERT_GENTFUNC_BASIC( scalm_unb_var1, scalv, BLIS_SCALV_KER )
+INSERT_GENTFUNC_BASIC( setm_unb_var1,  setv,  BLIS_SETV_KER )
 
 
 #undef  GENTFUNC
@@ -394,8 +392,7 @@ void PASTEMAC(ch,opname) \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
        ctype*  beta, \
        ctype*  y, inc_t rs_y, inc_t cs_y, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      ) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
@@ -423,7 +420,7 @@ void PASTEMAC(ch,opname) \
 	conjx = bli_extract_conj( transx ); \
 \
 	/* Query the kernel needed for this operation. */ \
-	PASTECH2(ch,kername,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(kername,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	/* Handle dense and upper/lower storage cases separately. */ \
 	if ( bli_is_dense( uplox_eff ) ) \
@@ -495,7 +492,7 @@ void PASTEMAC(ch,opname) \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC2( xpbym_unb_var1,  xpbyv,  BLIS_XPBYV_KER )
+INSERT_GENTFUNC_BASIC( xpbym_unb_var1,  xpbyv,  BLIS_XPBYV_KER )
 
 
 #undef  GENTFUNC2
@@ -512,8 +509,7 @@ void PASTEMAC2(chx,chy,opname) \
        ctype_x* x, inc_t rs_x, inc_t cs_x, \
        ctype_y* beta, \
        ctype_y* y, inc_t rs_y, inc_t cs_y, \
-       cntx_t*  cntx, \
-       rntm_t*  rntm  \
+       cntx_t*  cntx \
      ) \
 { \
 	uplo_t uplox_eff; \
@@ -616,6 +612,6 @@ void PASTEMAC2(chx,chy,opname) \
 	} \
 }
 
-INSERT_GENTFUNC2_BASIC0( xpbym_md_unb_var1 )
-INSERT_GENTFUNC2_MIXDP0( xpbym_md_unb_var1 )
+INSERT_GENTFUNC2_BASIC( xpbym_md_unb_var1 )
+INSERT_GENTFUNC2_MIX_DP( xpbym_md_unb_var1 )
 

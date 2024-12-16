@@ -67,14 +67,27 @@
 
 // The arch_t id for the currently running hardware. We initialize to -1,
 // which will be overwritten upon calling bli_arch_set_id().
-static arch_t id = -1;
+static arch_t cached_id = -1;
 
 arch_t bli_arch_query_id( void )
 {
+
+#ifdef BLIS_ENABLE_GKS_CACHING
+
+	// Deep-query the arch_t id once via bli_pthread_once(). Since we are
+	// constrained by the pthread interface to pthread_once(), the id must be
+	// "returned" indirectly via a static variable (cached_id).
 	bli_arch_set_id_once();
 
-	// Simply return the id that was previously cached.
-	return id;
+	// Return the id that was previously cached.
+	return cached_id;
+
+#else
+
+	// Deep-query and return a fresh arch_t.
+	return bli_arch_query_id_impl();
+
+#endif
 }
 
 // -----------------------------------------------------------------------------
@@ -85,6 +98,9 @@ static bli_pthread_once_t once_id = BLIS_PTHREAD_ONCE_INIT;
 
 void bli_arch_set_id_once( void )
 {
+	// When this file is being compiled as part of the configure script's
+	// hardware auto-detection driver, we avoid calling the bli_pthread APIs
+	// so that we aren't required to include those symbols in the executable.
 #ifndef BLIS_CONFIGURETIME_CPUID
 	bli_pthread_once( &once_id, bli_arch_set_id );
 #endif
@@ -94,6 +110,16 @@ void bli_arch_set_id_once( void )
 
 void bli_arch_set_id( void )
 {
+	// Deep-query the arch_t and save it in the static variable (cached_id).
+	cached_id = bli_arch_query_id_impl();
+}
+
+// -----------------------------------------------------------------------------
+
+arch_t bli_arch_query_id_impl( void )
+{
+	arch_t id;
+
 	// Check the environment variable BLIS_ARCH_DEBUG to see if the user
 	// requested that we echo the result of the subconfiguration selection.
 	bool do_logging = bli_env_get_var( "BLIS_ARCH_DEBUG", 0 );
@@ -103,6 +129,9 @@ void bli_arch_set_id( void )
 	// requested that we use a specific subconfiguration.
 	dim_t req_id = bli_env_get_var( "BLIS_ARCH_TYPE", -1 );
 
+	// When this file is being compiled as part of the configure script's
+	// hardware auto-detection driver, we avoid calling the bli_check APIs
+	// so that we aren't required to include those symbols in the executable.
 #ifndef BLIS_CONFIGURETIME_CPUID
 	if ( req_id != -1 )
 	{
@@ -121,7 +150,7 @@ void bli_arch_set_id( void )
 		// initialized. Query the address of an internal context data structure
 		// corresponding to req_id. This pointer will be NULL if the associated
 		// subconfig is not available.
-		cntx_t** req_cntx = bli_gks_lookup_id( req_id );
+		const cntx_t* const * req_cntx = bli_gks_lookup_id( req_id );
 
 		// This function checks the context pointer and aborts with a useful
 		// error message if the pointer is found to be NULL.
@@ -147,7 +176,9 @@ void bli_arch_set_id( void )
 		    defined BLIS_FAMILY_X86_64  || \
 		    defined BLIS_FAMILY_ARM64   || \
 		    defined BLIS_FAMILY_ARM32   || \
-		    defined BLIS_FAMILY_X86_64_NO_SKX || \
+		    defined BLIS_FAMILY_POWER   || \
+		    defined BLIS_FAMILY_ARM64_NO_SVE   || \
+		    defined BLIS_FAMILY_X86_64_NO_SKX  || \
 		    defined BLIS_FAMILY_X86_64_NO_ZEN2 || \
 		    defined BLIS_FAMILY_X86_64_NO_ZEN3
 		id = bli_cpuid_query_id();
@@ -203,9 +234,17 @@ void bli_arch_set_id( void )
 		#ifdef BLIS_FAMILY_A64FX
 		id = BLIS_ARCH_A64FX;
 		#endif
+
+		#ifdef BLIS_FAMILY_ALTRAMAX
+		id = BLIS_ARCH_ALTRAMAX;
+		#endif
+		#ifdef BLIS_FAMILY_ALTRA
+		id = BLIS_ARCH_ALTRA;
+		#endif
 		#ifdef BLIS_FAMILY_FIRESTORM
 		id = BLIS_ARCH_FIRESTORM;
 		#endif
+
 		#ifdef BLIS_FAMILY_THUNDERX2
 		id = BLIS_ARCH_THUNDERX2;
 		#endif
@@ -215,6 +254,7 @@ void bli_arch_set_id( void )
 		#ifdef BLIS_FAMILY_CORTEXA53
 		id = BLIS_ARCH_CORTEXA53;
 		#endif
+
 		#ifdef BLIS_FAMILY_CORTEXA15
 		id = BLIS_ARCH_CORTEXA15;
 		#endif
@@ -236,6 +276,25 @@ void bli_arch_set_id( void )
 		id = BLIS_ARCH_BGQ;
 		#endif
 
+		// RISC-V microarchitectures
+		#ifdef BLIS_FAMILY_RV32I
+		id = BLIS_ARCH_RV32I;
+		#endif
+		#ifdef BLIS_FAMILY_RV64I
+		id = BLIS_ARCH_RV64I;
+		#endif
+		#ifdef BLIS_FAMILY_RV32IV
+		id = BLIS_ARCH_RV32IV;
+		#endif
+		#ifdef BLIS_FAMILY_RV64IV
+		id = BLIS_ARCH_RV64IV;
+		#endif
+
+		// SiFive microarchitectures.
+		#ifdef BLIS_FAMILY_SIFIVE_X280
+		id = BLIS_ARCH_SIFIVE_X280;
+		#endif
+
 		// Generic microarchitecture.
 		#ifdef BLIS_FAMILY_GENERIC
 		id = BLIS_ARCH_GENERIC;
@@ -246,8 +305,12 @@ void bli_arch_set_id( void )
 		fprintf( stderr, "libblis: selecting sub-configuration '%s'.\n",
 				 bli_arch_string( id ) );
 
-	//printf( "blis_arch_query_id(): id = %u\n", id );
-	//exit(1);
+	#if 0
+	printf( "blis_arch_query_id_impl(): id = %u\n", id );
+	exit(1);
+	#endif
+
+	return id;
 }
 
 // -----------------------------------------------------------------------------
@@ -256,7 +319,7 @@ void bli_arch_set_id( void )
 // enumeration that is typedef'ed in bli_type_defs.h. That is, the
 // index order of each string should correspond to the implied/assigned
 // enum value given to the corresponding BLIS_ARCH_ value.
-static char* config_name[ BLIS_NUM_ARCHS ] =
+static const char* config_name[ BLIS_NUM_ARCHS ] =
 {
     "skx",
     "knl",
@@ -275,10 +338,15 @@ static char* config_name[ BLIS_NUM_ARCHS ] =
 
     "armsve",
     "a64fx",
+
+	"altramax",
+	"altra",
     "firestorm",
+
     "thunderx2",
     "cortexa57",
     "cortexa53",
+
     "cortexa15",
     "cortexa9",
 
@@ -286,11 +354,18 @@ static char* config_name[ BLIS_NUM_ARCHS ] =
     "power9",
     "power7",
     "bgq",
-    
+
+    "rv32i",
+    "rv64i",
+    "rv32iv",
+    "rv64iv",
+
+    "sifive_x280",
+
     "generic"
 };
 
-char* bli_arch_string( arch_t id )
+const char* bli_arch_string( arch_t id )
 {
 	return config_name[ id ];
 }
@@ -309,9 +384,9 @@ bool bli_arch_get_logging( void )
 	return arch_dolog;
 }
 
-void bli_arch_log( char* fmt, ... )
+void bli_arch_log( const char* fmt, ... )
 {
-	char prefix[] = "libblis: ";
+	const char prefix[] = "libblis: ";
 	int  n_chars  = strlen( prefix ) + strlen( fmt ) + 1;
 
 	if ( bli_arch_get_logging() && fmt )

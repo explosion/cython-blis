@@ -36,13 +36,13 @@
 
 err_t bli_gemmsup
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	// Return early if small matrix handling is disabled at configure-time.
@@ -63,7 +63,7 @@ err_t bli_gemmsup
 	// Return early if a microkernel preference-induced transposition would
 	// have been performed and shifted the dimensions outside of the space
 	// of sup-handled problems.
-	if ( bli_cntx_l3_vir_ukr_dislikes_storage_of( c, BLIS_GEMM_UKR, cntx ) )
+	if ( bli_cntx_dislikes_storage_of( c, BLIS_GEMM_VIR_UKR, cntx ) )
 	{
 		const num_t dt = bli_obj_dt( c );
 		const dim_t m  = bli_obj_length( c );
@@ -89,8 +89,8 @@ err_t bli_gemmsup
 	// Initialize a local runtime with global settings if necessary. Note
 	// that in the case that a runtime is passed in, we make a local copy.
 	rntm_t rntm_l;
-	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); rntm = &rntm_l; }
-	else                { rntm_l = *rntm;                       rntm = &rntm_l; }
+	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); }
+	else                { rntm_l = *rntm;                       }
 
 #if 0
 const num_t dt = bli_obj_dt( c );
@@ -127,20 +127,20 @@ printf( "dims: %d %d %d (threshs: %d %d %d)\n",
 	  beta,
 	  c,
 	  cntx,
-	  rntm
+	  &rntm_l
 	);
 }
 
 
 err_t bli_gemmtsup
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const rntm_t* rntm
      )
 {
 	// Return early if small matrix handling is disabled at configure-time.
@@ -174,8 +174,8 @@ err_t bli_gemmtsup
 	// Initialize a local runtime with global settings if necessary. Note
 	// that in the case that a runtime is passed in, we make a local copy.
 	rntm_t rntm_l;
-	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); rntm = &rntm_l; }
-	else                { rntm_l = *rntm;                       rntm = &rntm_l; }
+	if ( rntm == NULL ) { bli_rntm_init_from_global( &rntm_l ); }
+	else                { rntm_l = *rntm;                       }
 
 	// We've now ruled out the possibility that the sup thresholds are
 	// unsatisfied.
@@ -196,7 +196,7 @@ err_t bli_gemmtsup
 	  beta,
 	  c,
 	  cntx,
-	  rntm
+	  &rntm_l
 	);
 }
 
