@@ -2,6 +2,8 @@ name: tests
 
 on:
   push:
+    #tags-ignore:
+    #  - '**'
     paths-ignore:
       - "*.md"
   pull_request:
@@ -20,13 +22,8 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, windows-22, macos-13]
+        os: [ubuntu-latest, windows-latest]
         python_version: ["3.9", "3.10", "3.11", "3.12"]
-        include:
-          - os: windows-2019
-            python_version: "3.6"
-          - os: ubuntu-20.04
-            python_version: "3.6"
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -43,7 +40,7 @@ jobs:
         shell: bash
         if: startsWith(matrix.os, 'windows')
         run: |
-          choco install llvm --version=15.0.7 --allow-downgrade
+          choco install llvm
 
       - name: Install dependencies
         run: |
@@ -74,20 +71,23 @@ jobs:
       - name: Build wheel (Linux / gcc-9)
         if: startsWith(matrix.os, 'ubuntu') && (matrix.python_version == '3.7' || matrix.python_version == '3.8')
         run: |
+          sudo apt update
+          sudo apt install gcc-9
           gcc-9 --version
           CC=gcc-9 python -m build --wheel
 
       - name: Build wheel (Linux / gcc-10)
         if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.9'
         run: |
+          sudo apt update
+          sudo apt install gcc-10
           gcc-10 --version
           CC=gcc-10 python -m build --wheel
-
       - name: Build wheel (Linux / clang-13)
         if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.10'
         run: |
-          clang-13 --version
-          CC=clang-13 python -m build --wheel
+          clang --version
+          CC=clang python -m build --wheel
 
       - name: Build wheel (Linux / gcc)
         if: startsWith(matrix.os, 'ubuntu') && (matrix.python_version == '3.11' || matrix.python_version == '3.12')
