@@ -15,7 +15,7 @@ if [ ! -f $JSONL ]; then
     if [[ "$OS" == "windows" ]]; then
         echo "Build with mingw32-make"
         mingw32-make clean
-        ./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --enable-arg-max-hack $ARCH
+        ./configure --disable-blas --disable-cblas --disable-shared --disable-threading --int-size=64 --enable-verbose-make --enable-arg-max-hack --export-shared=all $ARCH
         echo "Compiling"
         mingw32-make | tee make.log
     else
