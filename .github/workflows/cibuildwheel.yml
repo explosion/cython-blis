@@ -28,12 +28,19 @@ jobs:
       #  uses: docker/setup-qemu-action@v3
       #  with:
       #    platforms: all
+      - name: Debug env
+        run: env
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_ARCHS_LINUX: auto
           DISTUTILS_USE_SDK: 1
           MSSdk: 1
+          AR: llvm-ar
+          AS: llvm-as
+          CC: clang
+          RANLIB: echo
+          CIBW_BUILD_VERBOSITY: 5
         with:
           package-dir: .
           output-dir: wheelhouse
