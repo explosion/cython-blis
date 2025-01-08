@@ -7,7 +7,7 @@ trigger:
 jobs:
 - job: 'JSONL'
   # Manually enable for generating JSONL
-  condition: false
+  condition: true
   strategy:
     matrix:
       Python310Mac:
