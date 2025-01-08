@@ -45,7 +45,7 @@ cdef extern from "blis.h" nogil:
     blis_err_t bli_init()
     blis_err_t bli_finalize()
 
-    blis_err_t bli_rntm_init(blis_rntm_t* rntm);
+    blis_err_t bli_rntm_init()
 
     # BLAS level 3 routines
     void bli_dgemm_ex(
@@ -279,7 +279,7 @@ cdef blis_rntm_t rntm;
 
 def init():
     bli_init()
-    bli_rntm_init(&rntm);
+    bli_rntm_init()
     assert BLIS_NO_TRANSPOSE == <blis_trans_t>NO_TRANSPOSE
     assert BLIS_TRANSPOSE == <blis_trans_t>TRANSPOSE
     assert BLIS_CONJ_NO_TRANSPOSE == <blis_trans_t>CONJ_NO_TRANSPOSE
