@@ -17,11 +17,8 @@ jobs:
         os: [ubuntu-latest, windows-2022, macos-13, macos-14]
 
     steps:
-      - name: Setup Visual Studio Environment
-        if: runner.os == 'Windows'
-        run: |
-          # Using powershell to call vcvarsall.bat and export the environment
-          cmd.exe /c "call `"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"`"
+      # See https://cibuildwheel.pypa.io/en/1.x/cpp_standards/
+      - uses: ilammy/msvc-dev-cmd@v1
       - uses: actions/checkout@v4
       # This is crazy slow. We'll need to wait for arm Linux
       # runners.
@@ -36,11 +33,8 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: auto
           CIBW_ENVIRONMENT_WINDOWS: >-
-            CC=clang
-            AR=llvm-ar
-            AS=llvm-as
-            RANLIB=echo
-            PATH="C:\Program Files\LLVM\bin;$PATH"
+            DISTUTILS_USE_SDK: 1
+            MSSdk: 1
         with:
           package-dir: .
           output-dir: wheelhouse
