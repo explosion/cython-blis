@@ -174,12 +174,13 @@ class ExtensionBuilder(build_ext, build_ext_options):
         supports_znver3 = self.check_compiler_arch("znver3")
         supports_skx = self.check_compiler_arch("skylake-avx512")
 
+        # TODO: Restore these architectures
         if supports_znver3 and supports_skx:
             return "x86_64"
-        elif supports_znver2 and supports_skx:
-            return "x86_64_no_zen3"
-        elif supports_znver1 and supports_skx:
-            return "x86_64_no_zen2"
+        # elif supports_znver2 and supports_skx:
+        #    return "x86_64_no_zen3"
+        # elif supports_znver1 and supports_skx:
+        #    return "x86_64_no_zen2"
         elif not supports_znver1 or not supports_skx:
             return "x86_64_no_skx"
         else:
