@@ -229,6 +229,7 @@ class ExtensionBuilder(build_ext, build_ext_options):
                     env = spec["environment"]
                     print(env)
                     continue
+                spec["includes"] = _ensure_abs_paths(BLIS_DIR, spec["include"])
                 _, target_name = os.path.split(spec["target"])
                 if platform == "windows":
                     target_name = target_name.replace("/", "\\")
@@ -270,7 +271,6 @@ class ExtensionBuilder(build_ext, build_ext_options):
         command.extend(macros)
         command.extend(include)
         print("[COMMAND]", " ".join(command))
-        print("\n" * 500)
         # TODO: change this to subprocess.run etc. once we drop 2.7
         subprocess.check_call(command, cwd=BLIS_DIR)
         return target
@@ -286,6 +286,16 @@ def chdir(new_dir):
     finally:
         del sys.path[0]
         os.chdir(old_dir)
+
+def _ensure_abs_paths(root, paths):
+    """Ensure that paths aren't relative"""
+    output = []
+    for path in paths:
+        if os.path.isabs(path):
+            output.append(path)
+        else:
+            output.append(os.path.join(root, path))
+    return output
 
 
 PWD = os.path.join(os.path.abspath(os.path.dirname(".")))
