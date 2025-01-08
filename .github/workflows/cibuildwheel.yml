@@ -21,7 +21,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           # Using powershell to call vcvarsall.bat and export the environment
-          cmd.exe /c "call `"C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"`"
+          cmd.exe /c "call `"C:\Program Files\Microsoft Visual Studio\2022\Enterprise"`"
       - uses: actions/checkout@v4
       # This is crazy slow. We'll need to wait for arm Linux
       # runners.
