@@ -229,7 +229,7 @@ class ExtensionBuilder(build_ext, build_ext_options):
                     env = spec["environment"]
                     print(env)
                     continue
-                spec["includes"] = _ensure_abs_paths(BLIS_DIR, spec["include"])
+                spec["include"] = _ensure_abs_paths(BLIS_DIR, spec["include"])
                 _, target_name = os.path.split(spec["target"])
                 if platform == "windows":
                     target_name = target_name.replace("/", "\\")
