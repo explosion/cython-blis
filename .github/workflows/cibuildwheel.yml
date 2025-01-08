@@ -21,14 +21,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           # Using powershell to call vcvarsall.bat and export the environment
-          $vsPath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
-          cmd.exe /c "call `"$vsPath`" amd64 && set" | foreach-object {
-            if ($_ -match "=") {
-              $v = $_.split("=")
-              Write-Host "$($v[0])=$($v[1])"
-              echo "$($v[0])=$($v[1])" >> $env:GITHUB_ENV
-            }
-          }
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
       - uses: actions/checkout@v4
       # This is crazy slow. We'll need to wait for arm Linux
       # runners.
