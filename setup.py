@@ -27,7 +27,7 @@ PLATFORM_TO_ARCH = {
     "linux": {
         "ppc64le": "power9",
     },
-    "darwin": {"arm64": "firestorm"},
+    "darwin": {"arm64": "generic"},
     "windows": {
         "ARM64": "generic",
     },
