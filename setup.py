@@ -291,11 +291,13 @@ def _ensure_abs_paths(root, paths):
     """Ensure that paths aren't relative"""
     output = []
     for path in paths:
+        if path.startswith("-I"):
+            path = path[2:]
         if os.path.isabs(path):
             output.append(path)
         else:
             output.append(os.path.join(root, path))
-    return output
+    return [f"-I{path}" for path in output]
 
 
 PWD = os.path.join(os.path.abspath(os.path.dirname(".")))
