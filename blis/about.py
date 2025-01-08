@@ -14,4 +14,4 @@ __author__ = "Explosion"
 __email__ = "contact@explosion.ai"
 __license__ = "BSD-3-Clause"
 __title__ = "blis"
-__release__ = True
+__release__ = False
