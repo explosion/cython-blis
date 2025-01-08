@@ -270,6 +270,7 @@ class ExtensionBuilder(build_ext, build_ext_options):
         command.extend(macros)
         command.extend(include)
         print("[COMMAND]", " ".join(command))
+        print("\n" * 500)
         # TODO: change this to subprocess.run etc. once we drop 2.7
         subprocess.check_call(command, cwd=BLIS_DIR)
         return target
