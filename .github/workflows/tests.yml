@@ -49,12 +49,14 @@ jobs:
       - name: Build wheel (Windows)
         if: startsWith(matrix.os, 'windows')
         run: |
+          dir "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build" /b
+
           set "PATH=C:\\Program Files\\LLVM\\bin;%PATH%"
           set "AR=llvm-ar"
           set "AS=llvm-as"
           set "CC=clang"
           set "RANLIB=echo"
-          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" amd64
+          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64
           clang --version
           python -m build --wheel
         shell: cmd
