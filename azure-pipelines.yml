@@ -51,7 +51,7 @@ jobs:
       call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
       clang --version
       bash -lc "./bin/generate-make-jsonl windows generic --export"
-      bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
+      bash -lc "./bin/generate-make-jsonl windows x86_64_no_skx --export"
     condition: eq( variables['Agent.OS'], 'Windows_NT')
     displayName: 'Generate JSONL (Windows)'
 
