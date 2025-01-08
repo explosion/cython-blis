@@ -30,6 +30,12 @@ jobs:
         uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_ARCHS_LINUX: auto
+          CIBW_ENVIRONMENT_WINDOWS: >-
+            CC=clang
+            AR=llvm-ar
+            AS=llvm-as
+            RANLIB=echo
+            PATH="C:\Program Files\LLVM\bin;$PATH"
         with:
           package-dir: .
           output-dir: wheelhouse
