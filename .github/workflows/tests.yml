@@ -2,8 +2,8 @@ name: tests
 
 on:
   push:
-    tags-ignore:
-      - '**'
+    #tags-ignore:
+    #  - '**'
     paths-ignore:
       - "*.md"
   pull_request:
