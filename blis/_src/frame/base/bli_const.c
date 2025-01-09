@@ -43,8 +43,7 @@ static constdata_t bli_mone_buffer  = bli_obj_init_constdata( -1.0 );
 static constdata_t bli_mtwo_buffer  = bli_obj_init_constdata( -2.0 );
 static constdata_t bli_onei_buffer  = bli_obj_init_constdata_ri( 0.0,  1.0 );
 static constdata_t bli_monei_buffer = bli_obj_init_constdata_ri( 0.0, -1.0 );
-// NAN is not a compile time constant on certain windows, so use IEEE code
-static constdata_t bli_nan_buffer   = bli_obj_init_constdata_ri( 0x7FC00000,  0x7FC00000 );
+static constdata_t bli_nan_buffer   = bli_obj_init_constdata_ri( NAN,  NAN );
 
 // Statically initialize global scalar constants, attaching the addresses
 // of the corresponding structs above.
