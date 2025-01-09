@@ -10,10 +10,10 @@ jobs:
   condition: true
   strategy:
     matrix:
-      Python38Mac:
+      Python39Mac:
         imageName: 'macos-latest'
         python.version: '3.9'
-      Python38Windows:
+      Python39Windows:
         imageName: 'windows-latest'
         python.version: '3.9'
     maxParallel: 4
@@ -42,16 +42,18 @@ jobs:
 
   # Set the correct paths and includes. Only the env variables set here are
   # used, not the ones defined in the .jsonl.
+  #      #set "PATH=C:\Program Files\LLVM\bin;%PATH%"
+  #set "AR=llvm-ar"
+  #set "AS=llvm-as"
+  #set "CC=clang"
+  #set RANLIB=echo
+  #call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+  #clang --version
+  #bash -lc "./bin/generate-make-jsonl windows generic --export"
+  #bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
   - script: |
-      #set "PATH=C:\Program Files\LLVM\bin;%PATH%"
-      #set "AR=llvm-ar"
-      #set "AS=llvm-as"
-      #set "CC=clang"
-      #set RANLIB=echo
-      #call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
-      #clang --version
-      bash -lc "./bin/generate-make-jsonl windows generic --export"
-      bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
+      clang --version
+      python -m build --wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
     displayName: 'Generate JSONL (Windows)'
 
