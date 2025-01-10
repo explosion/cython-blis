@@ -53,6 +53,7 @@ jobs:
   #bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
   - script: |
       clang --version
+      python -m pip install -U build pip setuptools wheel
       python -m build --wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
     displayName: 'Generate JSONL (Windows)'
