@@ -101,6 +101,15 @@ jobs:
   - script: git config --global core.autocrlf false
     displayName: 'Disable automatic crlf conversion'
   - script: |
+      call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+      clang --version
+      # Set the correct paths and includes. Only the env variables set here are
+      # used, not the ones defined in the .jsonl.
+      set "PATH=C:\Program Files\LLVM\bin;%PATH%"
+      set "AR=llvm-ar"
+      set "AS=llvm-as"
+      set "CC=clang"
+      set RANLIB=echo
       python -m pip install --upgrade pip build wheel setuptools
       python -m pip build --wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
@@ -122,13 +131,4 @@ jobs:
     displayName: 'Build wheel (Mac)'
 
 
-#call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
-#clang --version
-# Set the correct paths and includes. Only the env variables set here are
-# used, not the ones defined in the .jsonl.
-#      #set "PATH=C:\Program Files\LLVM\bin;%PATH%"
-#set "AR=llvm-ar"
-#set "AS=llvm-as"
-#set "CC=clang"
-#set RANLIB=echo
- 
+
