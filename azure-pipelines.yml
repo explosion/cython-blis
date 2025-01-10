@@ -73,7 +73,7 @@ jobs:
       python -m pip install --upgrade pip wheel setuptools
       python -m pip build --wheel
     condition: eq(variables['Agent.OS'], 'Windows')
-    displayName: 'Generate JSONL (Linux)'
+    displayName: 'Build wheel (Windows)'
   - publish: $(System.DefaultWorkingDirectory)/artifacts
     artifact: '$(Agent.JobName)'
 
