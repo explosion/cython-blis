@@ -58,13 +58,10 @@
 
 // -----------------------------------------------------------------------------
 
-#if (defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86))
-
 #ifdef __cpuid
 #define __SAVED_CPUID __cpuid
 #undef __cpuid
 #endif
-
 
 // This has a conflicting definition in intrin.h on Windows
 #include "cpuid.h"
@@ -74,6 +71,8 @@
 #define __cpuid __SAVED_CPUID
 #endif
 
+
+#if (defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86))
 
 arch_t bli_cpuid_query_id( void )
 {
