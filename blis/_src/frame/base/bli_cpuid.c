@@ -46,19 +46,21 @@
   #define __arm__
 #endif
 
-#ifndef BLIS_CONFIGURETIME_CPUID
-  #include "blis.h"
-#else
+#ifdef BLIS_CONFIGURETIME_CPUID
   #define BLIS_EXPORT_BLIS
   #include "bli_system.h"
   #include "bli_type_defs.h"
   #include "bli_cpuid.h"
   #include "bli_arch.h"
+#else
+  #include "blis.h"
 #endif
 
 // -----------------------------------------------------------------------------
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
+
+#include "cpuid.h"
 
 arch_t bli_cpuid_query_id( void )
 {
@@ -272,16 +274,17 @@ bool_t bli_cpuid_is_zen2
 	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
 
 	// All Zen2 cores have a family of 0x17.
-	if ( family == 0x17 ) {
-		return 0x30 <= model && model <= 0xff;
-	}
+	if ( family != 0x17 ) return FALSE;
 
-	// Fallback to Zen 2 kernels on Zen 3, as long as Zen 3 is not supported.
-	if ( family == 0x19 ) {
-		return 0x00 <= model && model <= 0xff;
-	}
+	// Finally, check for specific models:
+	// - 0x30-0xff (THIS NEEDS UPDATING)
+	const bool_t is_arch
+	=
+	( 0x30 <= model && model <= 0xff );
 
-	return FALSE;
+	if ( !is_arch ) return FALSE;
+
+	return TRUE;
 }
 
 bool_t bli_cpuid_is_zen
