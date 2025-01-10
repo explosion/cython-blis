@@ -62,11 +62,11 @@ jobs:
     condition: eq(variables['Agent.OS'], 'Darwin')
     displayName: 'Generate JSONL (Mac)'
   - script: |
-      bin/generate-make-jsonl darwin generic --export
-      bin/generate-make-jsonl darwin x86_64 --export
-      bin/generate-make-jsonl darwin x86_64_no_zen3 --export
-      bin/generate-make-jsonl darwin x86_64_no_zen2 --export
-      bin/generate-make-jsonl darwin x86_64_no_skx --export
+      bin/generate-make-jsonl linux generic --export
+      bin/generate-make-jsonl linux x86_64 --export
+      bin/generate-make-jsonl linux x86_64_no_zen3 --export
+      bin/generate-make-jsonl linux x86_64_no_zen2 --export
+      bin/generate-make-jsonl linux x86_64_no_skx --export
     condition: eq(variables['Agent.OS'], 'Linux')
     displayName: 'Generate JSONL (Linux)'
   - publish: $(System.DefaultWorkingDirectory)/artifacts
