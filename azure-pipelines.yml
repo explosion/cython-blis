@@ -67,8 +67,6 @@ jobs:
       bin/generate-make-jsonl darwin x86_64_no_zen3 --export
       bin/generate-make-jsonl darwin x86_64_no_zen2 --export
       bin/generate-make-jsonl darwin x86_64_no_skx --export
-      python -m pip install -U build pip setuptools wheel
-      python -m build --wheel
     condition: eq(variables['Agent.OS'], 'Linux')
     displayName: 'Generate JSONL (Linux)'
 
