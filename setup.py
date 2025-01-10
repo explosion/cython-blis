@@ -228,9 +228,9 @@ class ExtensionBuilder(build_ext, build_ext_options):
                 spec["flags"] = [
                     f for f in spec["flags"] if "visibility=hidden" not in f
                 ]
-                spec["flags"].append(
-                    "-D__cpuid=__cpuid_function"
-                )
+                #spec["flags"].append(
+                #    "-D__cpuid=__cpuid_function"
+                #)
                 objects.append(self.build_object(env=env, **spec))
         return objects
 
