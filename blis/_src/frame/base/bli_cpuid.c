@@ -46,6 +46,10 @@
   #define __arm__
 #endif
 
+#ifdef __cpuid
+  #undef __cpuid
+#endif
+
 #ifdef BLIS_CONFIGURETIME_CPUID
   #define BLIS_EXPORT_BLIS
   #include "bli_system.h"
