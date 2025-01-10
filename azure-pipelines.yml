@@ -53,14 +53,12 @@ jobs:
   #set RANLIB=echo
   #call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
   #clang --version
-  # bash -lc "./bin/generate-make-jsonl windows generic --export"
-  #bash -lc "./bin/generate-make-jsonl windows x86_64_no_zen3 --export"
-  #bash -lc "./bin/generate-make-jsonl windows x86_64_no_zen2 --export"
-  #bash -lc "./bin/generate-make-jsonl windows x86_64_no_skx --export"
   - script: |
-      #bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
-      python -m pip install -U build pip setuptools wheel
-      python -m build --wheel
+      bash -lc "./bin/generate-make-jsonl windows x86_64 --export"
+      bash -lc "./bin/generate-make-jsonl windows generic --export"
+      bash -lc "./bin/generate-make-jsonl windows x86_64_no_zen3 --export"
+      bash -lc "./bin/generate-make-jsonl windows x86_64_no_zen2 --export"
+      bash -lc "./bin/generate-make-jsonl windows x86_64_no_skx --export"
     condition: eq( variables['Agent.OS'], 'Windows_NT')
     displayName: 'Generate JSONL (Windows)'
 
@@ -70,8 +68,6 @@ jobs:
       bin/generate-make-jsonl darwin x86_64_no_zen3 --export
       bin/generate-make-jsonl darwin x86_64_no_zen2 --export
       bin/generate-make-jsonl darwin x86_64_no_skx --export
-      python -m pip install -U build pip setuptools wheel
-      python -m build --wheel
     condition: eq(variables['Agent.OS'], 'Darwin')
     displayName: 'Generate JSONL (Mac)'
   - script: |
