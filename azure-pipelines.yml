@@ -69,6 +69,11 @@ jobs:
       bin/generate-make-jsonl linux x86_64_no_skx --export
     condition: eq(variables['Agent.OS'], 'Linux')
     displayName: 'Generate JSONL (Linux)'
+  - script: |
+      python -m pip install --upgrade pip wheel setuptools
+      python -m pip build --wheel
+    condition: eq(variables['Agent.OS'], 'Windows')
+    displayName: 'Generate JSONL (Linux)'
   - publish: $(System.DefaultWorkingDirectory)/artifacts
     artifact: '$(Agent.JobName)'
 
