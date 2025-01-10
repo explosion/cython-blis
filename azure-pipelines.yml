@@ -76,7 +76,7 @@ jobs:
     displayName: 'Build wheel (Windows)'
   - publish: $(System.DefaultWorkingDirectory)/artifacts
     artifact: '$(Agent.JobName)'
-- job: 'Build wheels'
+- job: 'Wheels'
   condition: true
   strategy:
     matrix:
