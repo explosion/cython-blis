@@ -58,7 +58,12 @@
 
 // -----------------------------------------------------------------------------
 
-#if (defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)) && !defined(_MSC_VER)
+#if (defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86))
+
+// This has a conflicting definition in intrin.h
+#ifdef __cpuid
+#undef __cpuid
+#endif
 
 #include "cpuid.h"
 
