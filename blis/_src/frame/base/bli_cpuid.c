@@ -60,12 +60,20 @@
 
 #if (defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86))
 
-// This has a conflicting definition in intrin.h
 #ifdef __cpuid
+#define __SAVED_CPUID __cpuid
 #undef __cpuid
 #endif
 
+
+// This has a conflicting definition in intrin.h on Windows
 #include "cpuid.h"
+
+// If cpuid.h didn't define it and we had a previous definition, restore it
+#if !defined(__cpuid) && defined(__SAVED_CPUID)
+#define __cpuid __SAVED_CPUID
+#endif
+
 
 arch_t bli_cpuid_query_id( void )
 {
