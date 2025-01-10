@@ -7,7 +7,7 @@ trigger:
 jobs:
 - job: 'JSONL'
   # Manually enable for generating JSONL
-  condition: true
+  condition: false
   strategy:
     matrix:
       Python39Mac:
@@ -76,7 +76,50 @@ jobs:
     displayName: 'Build wheel (Windows)'
   - publish: $(System.DefaultWorkingDirectory)/artifacts
     artifact: '$(Agent.JobName)'
-
+- job: 'Build wheels'
+  condition: true
+  strategy:
+    matrix:
+      Python39Mac:
+        imageName: 'macos-latest'
+        python.version: '3.9'
+      Python39Windows:
+        imageName: 'windows-latest'
+        python.version: '3.9'
+      Python39Linux:
+        imageName: 'ubuntu-22.04'
+        python.version: '3.9'
+ 
+    maxParallel: 4
+  pool:
+    vmImage: $(imageName)
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+      architecture: 'x64'
+  - script: git config --global core.autocrlf false
+    displayName: 'Disable automatic crlf conversion'
+  - script: |
+      python -m pip install --upgrade pip wheel setuptools
+      python -m pip build --wheel
+    condition: eq( variables['Agent.OS'], 'Windows_NT')
+    displayName: 'Build wheel (Windows)'
+  - script: |
+      python -m pip install --upgrade pip wheel setuptools
+      python -m pip build --wheel
+    condition: eq( variables['Agent.OS'], 'Windows_NT')
+    displayName: 'Build wheel (Windows)'
+  - script: |
+      python -m pip install --upgrade pip wheel setuptools
+      python -m pip build --wheel
+    condition: eq( variables['Agent.OS'], 'Linux')
+    displayName: 'Build wheel (Linux)'
+  - script: |
+      python -m pip install --upgrade pip wheel setuptools
+      python -m pip build --wheel
+    condition: eq(variables['Agent.OS'], 'Darwin')
+    displayName: 'Build wheel (Mac)'
 
 
 #call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
