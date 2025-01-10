@@ -1119,3 +1119,6 @@ char* find_string_in( char* target, char* buffer, size_t buf_len, char* filepath
 
 #endif
 
+#ifdef __cpuid
+  #undef __cpuid
+#endif
