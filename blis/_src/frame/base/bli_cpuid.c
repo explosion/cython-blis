@@ -46,10 +46,6 @@
   #define __arm__
 #endif
 
-#ifdef __cpuid
-  #undef __cpuid
-#endif
-
 #ifdef BLIS_CONFIGURETIME_CPUID
   #define BLIS_EXPORT_BLIS
   #include "bli_system.h"
@@ -62,7 +58,7 @@
 
 // -----------------------------------------------------------------------------
 
-#if (defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86))
+#if 0 // (defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86))
 
 // This has a conflicting definition in intrin.h on Windows
 #include "cpuid.h"
@@ -613,7 +609,7 @@ bool_t bli_cpuid_is_cortexa9
 
 */
 
-#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
+#if 0 // defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
 
 enum
 {
@@ -1117,8 +1113,4 @@ char* find_string_in( char* target, char* buffer, size_t buf_len, char* filepath
 	return r_val;
 }
 
-#endif
-
-#ifdef __cpuid
-  #undef __cpuid
 #endif
