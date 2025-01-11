@@ -609,7 +609,7 @@ bool_t bli_cpuid_is_cortexa9
 
 */
 
-#if 0 // defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
 
 enum
 {
