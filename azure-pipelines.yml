@@ -7,7 +7,7 @@ trigger:
 jobs:
 - job: 'JSONL'
   # Manually enable for generating JSONL
-  condition: false
+  condition: true
   strategy:
     matrix:
       Python39Mac:
@@ -80,16 +80,15 @@ jobs:
   condition: true
   strategy:
     matrix:
-      #Python39Mac:
-      #  imageName: 'macos-latest'
-      #  python.version: '3.9'
+      Python39Mac:
+        imageName: 'macos-latest'
+        python.version: '3.9'
       Python39Windows:
         imageName: 'windows-latest'
         python.version: '3.9'
-        #Python39Linux:
-        #imageName: 'ubuntu-22.04'
-        #python.version: '3.9'
- 
+      Python39Linux:
+        imageName: 'ubuntu-22.04'
+        python.version: '3.9'
     maxParallel: 4
   pool:
     vmImage: $(imageName)
