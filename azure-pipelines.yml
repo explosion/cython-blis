@@ -80,15 +80,15 @@ jobs:
   condition: true
   strategy:
     matrix:
-      Python39Mac:
-        imageName: 'macos-latest'
-        python.version: '3.9'
+      #Python39Mac:
+      #  imageName: 'macos-latest'
+      #  python.version: '3.9'
       Python39Windows:
         imageName: 'windows-latest'
         python.version: '3.9'
-      Python39Linux:
-        imageName: 'ubuntu-22.04'
-        python.version: '3.9'
+        #Python39Linux:
+        #imageName: 'ubuntu-22.04'
+        #python.version: '3.9'
  
     maxParallel: 4
   pool:
@@ -114,16 +114,13 @@ jobs:
       python -m pip build --wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
     displayName: 'Build wheel (Windows)'
-    #- script: |
-    #    python -m pip install --upgrade pip build wheel setuptools
-    #    python -m build --wheel
-    #  condition: eq( variables['Agent.OS'], 'Linux')
-    #  displayName: 'Build wheel (Linux)'
-    #- script: |
-    #    python -m pip install --upgrade pip build wheel setuptools
-    #    python -m build --wheel
-    #  condition: eq(variables['Agent.OS'], 'Darwin')
-    #  displayName: 'Build wheel (Mac)'
-
-
-
+  - script: |
+      python -m pip install --upgrade pip build wheel setuptools
+      python -m build --wheel
+    condition: eq( variables['Agent.OS'], 'Linux')
+    displayName: 'Build wheel (Linux)'
+  - script: |
+      python -m pip install --upgrade pip build wheel setuptools
+      python -m build --wheel
+    condition: eq(variables['Agent.OS'], 'Darwin')
+    displayName: 'Build wheel (Mac)'
