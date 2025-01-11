@@ -26890,7 +26890,7 @@ static bool_t bli_cpuid_has_features( uint32_t have, uint32_t want )
 
 // -----------------------------------------------------------------------------
 
-#if 0 //defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
 
 //#include "cpuid.h" // skipped
 

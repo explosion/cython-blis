@@ -58,7 +58,7 @@
 
 // -----------------------------------------------------------------------------
 
-#if 0 // (defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86))
+#if (defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86))
 
 // This has a conflicting definition in intrin.h on Windows
 #include "cpuid.h"
@@ -1113,4 +1113,8 @@ char* find_string_in( char* target, char* buffer, size_t buf_len, char* filepath
 	return r_val;
 }
 
+#endif
+
+#ifdef __cpuid
+  #undef __cpuid
 #endif
