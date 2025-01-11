@@ -111,7 +111,7 @@ jobs:
       set "CC=clang"
       set RANLIB=echo
       python -m pip install --upgrade pip build wheel setuptools
-      python -m pip build --wheel
+      python -m build --wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
     displayName: 'Build wheel (Windows)'
   - script: |
