@@ -114,21 +114,16 @@ jobs:
       python -m pip build --wheel
     condition: eq( variables['Agent.OS'], 'Windows_NT')
     displayName: 'Build wheel (Windows)'
-  - script: |
-      python -m pip install --upgrade pip wheel setuptools
-      python -m build --wheel
-    condition: eq( variables['Agent.OS'], 'Windows_NT')
-    displayName: 'Build wheel (Windows)'
-  - script: |
-      python -m pip install --upgrade pip build wheel setuptools
-      python -m build --wheel
-    condition: eq( variables['Agent.OS'], 'Linux')
-    displayName: 'Build wheel (Linux)'
-  - script: |
-      python -m pip install --upgrade pip build wheel setuptools
-      python -m build --wheel
-    condition: eq(variables['Agent.OS'], 'Darwin')
-    displayName: 'Build wheel (Mac)'
+    #- script: |
+    #    python -m pip install --upgrade pip build wheel setuptools
+    #    python -m build --wheel
+    #  condition: eq( variables['Agent.OS'], 'Linux')
+    #  displayName: 'Build wheel (Linux)'
+    #- script: |
+    #    python -m pip install --upgrade pip build wheel setuptools
+    #    python -m build --wheel
+    #  condition: eq(variables['Agent.OS'], 'Darwin')
+    #  displayName: 'Build wheel (Mac)'
 
 
 
