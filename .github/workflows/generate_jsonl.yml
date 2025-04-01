@@ -38,6 +38,7 @@ jobs:
         python -m pip install --upgrade pip wheel setuptools
         pip install -r requirements.txt
     - name: Generate make jsonl (Linux)
+      run: |
         ./bin/generate-make-jsonl linux cortexa57 --export
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
