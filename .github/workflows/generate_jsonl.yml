@@ -48,11 +48,10 @@ jobs:
 
     # Optional: Automatically commit artifacts
     - name: Download all artifacts
-       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-       uses: actions/download-artifact@v4
-       with:
-         path: downloaded-artifacts
-    
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: actions/download-artifact@v4
+      with:
+        path: downloaded-artifacts
     - name: Commit artifacts
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
