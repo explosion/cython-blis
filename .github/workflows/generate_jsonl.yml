@@ -18,7 +18,7 @@ jobs:
       matrix:
         os: [ubuntu-24.04-arm]
         python-version: ['3.10']
-      fail-fast: false
+      fail-fast: true
 
     runs-on: ${{ matrix.os }}
 
@@ -31,7 +31,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-        architecture: x64
+        architecture: arm64
 
     - name: Install dependencies (Linux)
       run: |
