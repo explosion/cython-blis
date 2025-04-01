@@ -5,9 +5,12 @@ name: Generate JSONL
 on:
   push:
     branches: ['*']
+    paths:
+      - 'flame-blis/**'
   pull_request:
     branches: ['*']
-
+    paths:
+      - 'flame-blis/**'
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -48,17 +51,17 @@ jobs:
         retention-days: 5
 
     # Optional: Automatically commit artifacts
-    - name: Download all artifacts
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      uses: actions/download-artifact@v4
-      with:
-        path: downloaded-artifacts
-    - name: Commit artifacts
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        cp -r downloaded-artifacts/* artifacts/
-        git add artifacts/
-        git commit -m "Update JSONL artifacts [skip ci]" || echo "No changes to commit"
-        git push
+    #- name: Download all artifacts
+    #  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    #  uses: actions/download-artifact@v4
+    #  with:
+    #    path: downloaded-artifacts
+    #- name: Commit artifacts
+    #  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    #  run: |
+    #    git config --local user.email "github-actions[bot]@users.noreply.github.com"
+    #    git config --local user.name "github-actions[bot]"
+    #    cp -r downloaded-artifacts/* artifacts/
+    #    git add artifacts/
+    #    git commit -m "Update JSONL artifacts [skip ci]" || echo "No changes to commit"
+    #    git push
