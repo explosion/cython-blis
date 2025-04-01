@@ -1,0 +1,64 @@
+name: Generate JSONL
+
+# The windows jsonl generation isn't working, and I don't know why
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate-jsonl:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04-arm]
+        python-version: ['3.10']
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        architecture: x64
+
+    - name: Install dependencies (Linux)
+        python -m pip install --upgrade pip wheel setuptools
+        pip install -r requirements.txt
+
+    - name: Generate make jsonl (Linux)
+        ./bin/generate-make-jsonl linux cortexa57 --export
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: jsonl-${{ runner.os }}
+        path: artifacts/
+        retention-days: 5
+
+    # Optional: Automatically commit artifacts
+    - name: Download all artifacts
+       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+       uses: actions/download-artifact@v4
+       with:
+         path: downloaded-artifacts
+    
+    - name: Commit artifacts
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        cp -r downloaded-artifacts/* artifacts/
+        git add artifacts/
+        git commit -m "Update JSONL artifacts [skip ci]" || echo "No changes to commit"
+        git push
