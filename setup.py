@@ -228,9 +228,9 @@ class ExtensionBuilder(build_ext, build_ext_options):
                 spec["flags"] = [
                     f for f in spec["flags"] if "visibility=hidden" not in f
                 ]
-                #spec["flags"].append(
+                # spec["flags"].append(
                 #    "-D__cpuid=__cpuid_function"
-                #)
+                # )
                 objects.append(self.build_object(env=env, **spec))
         return objects
 
@@ -302,7 +302,7 @@ with chdir(root):
 
 setup(
     setup_requires=[
-        "cython>=0.25,<4.0",
+        "cython>=3.0,<4.0",
         "numpy>=2.0.0,<3.0.0",
     ],
     install_requires=[
