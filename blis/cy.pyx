@@ -61,7 +61,7 @@ cdef extern from "blis.h" nogil:
        double*  c, inc_t rsc, inc_t csc,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
     # BLAS level 3 routines
     void bli_sgemm_ex(
        blis_trans_t transa,
@@ -76,7 +76,7 @@ cdef extern from "blis.h" nogil:
        float*  c, inc_t rsc, inc_t csc,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_dger_ex(
        blis_conj_t  conjx,
@@ -89,7 +89,7 @@ cdef extern from "blis.h" nogil:
        double*  a, inc_t rsa, inc_t csa,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_sger_ex(
        blis_conj_t  conjx,
@@ -102,7 +102,7 @@ cdef extern from "blis.h" nogil:
        float*  a, inc_t rsa, inc_t csa,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_dgemv_ex(
        blis_trans_t transa,
@@ -116,7 +116,7 @@ cdef extern from "blis.h" nogil:
        double*  y, inc_t incy,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-     )
+     ) noexcept nogil
 
     void bli_sgemv_ex(
        blis_trans_t transa,
@@ -130,7 +130,7 @@ cdef extern from "blis.h" nogil:
        float*  y, inc_t incy,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-     )
+     ) noexcept nogil
 
     void bli_daxpyv_ex(
        blis_conj_t  conjx,
@@ -140,7 +140,7 @@ cdef extern from "blis.h" nogil:
        double*  y, inc_t incy,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-     )
+     ) noexcept nogil
 
     void bli_saxpyv_ex(
        blis_conj_t  conjx,
@@ -150,7 +150,7 @@ cdef extern from "blis.h" nogil:
        float*  y, inc_t incy,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-     )
+     ) noexcept nogil
 
     void bli_dscalv_ex(
        blis_conj_t  conjalpha,
@@ -159,7 +159,7 @@ cdef extern from "blis.h" nogil:
        double*  x, inc_t incx,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_sscalv_ex(
        blis_conj_t  conjalpha,
@@ -168,7 +168,7 @@ cdef extern from "blis.h" nogil:
        float*  x, inc_t incx,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_ddotv_ex(
        blis_conj_t  conjx,
@@ -179,7 +179,7 @@ cdef extern from "blis.h" nogil:
        double*  rho,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_sdotv_ex(
        blis_conj_t  conjx,
@@ -190,7 +190,7 @@ cdef extern from "blis.h" nogil:
        float*  rho,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_snorm1v_ex(
        dim_t n,
@@ -198,7 +198,7 @@ cdef extern from "blis.h" nogil:
        float* norm,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_dnorm1v_ex(
        dim_t   n,
@@ -206,7 +206,7 @@ cdef extern from "blis.h" nogil:
        double* norm,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_snormfv_ex(
        dim_t   n,
@@ -214,7 +214,7 @@ cdef extern from "blis.h" nogil:
        float*  norm,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_dnormfv_ex(
        dim_t   n,
@@ -222,7 +222,7 @@ cdef extern from "blis.h" nogil:
        double*  norm,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_snormiv_ex(
        dim_t   n,
@@ -230,7 +230,7 @@ cdef extern from "blis.h" nogil:
        float*  norm,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_dnormiv_ex(
        dim_t   n,
@@ -238,21 +238,21 @@ cdef extern from "blis.h" nogil:
        double*  norm,
        blis_cntx_t* cntx,
        blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_srandv_ex(
         dim_t   m,
         float*  x, inc_t incx,
         blis_cntx_t* cntx,
         blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_drandv_ex(
         dim_t   m,
         double*  x, inc_t incx,
         blis_cntx_t* cntx,
         blis_rntm_t* rntm,
-    )
+    ) noexcept nogil
 
     void bli_ssumsqv_ex(
         dim_t   m,
@@ -261,7 +261,7 @@ cdef extern from "blis.h" nogil:
         float*  sumsq,
         blis_cntx_t* cntx,
         blis_rntm_t* rntm,
-    ) nogil
+    ) noexcept nogil
 
     void bli_dsumsqv_ex(
         dim_t   m,
@@ -270,7 +270,7 @@ cdef extern from "blis.h" nogil:
         double*  sumsq,
         blis_cntx_t* cntx,
         blis_rntm_t* rntm,
-    ) nogil
+    ) noexcept nogil
 
 
 
@@ -312,7 +312,7 @@ cdef void gemm(
     reals_ft  b, inc_t rsb, inc_t csb,
     double  beta,
     reals_ft  c, inc_t rsc, inc_t csc
-) nogil:
+) noexcept nogil:
     cdef float alpha_f = alpha
     cdef float beta_f = beta
     cdef double alpha_d = alpha
@@ -353,7 +353,7 @@ cdef void ger(
     reals_ft  x, inc_t incx,
     reals_ft  y, inc_t incy,
     reals_ft  a, inc_t rsa, inc_t csa
-) nogil:
+) noexcept nogil:
     cdef float alpha_f = alpha
     cdef double alpha_d = alpha
     if reals_ft is floats_t:
@@ -395,7 +395,7 @@ cdef void gemv(
     reals_ft  x, inc_t incx,
     real_ft  beta,
     reals_ft  y, inc_t incy
-) nogil:
+) noexcept nogil:
     cdef float alpha_f = alpha
     cdef double alpha_d = alpha
     cdef float beta_f = alpha
@@ -439,7 +439,7 @@ cdef void axpyv(
     real_ft  alpha,
     reals_ft  x, inc_t incx,
     reals_ft  y, inc_t incy
-) nogil:
+) noexcept nogil:
     cdef float alpha_f = alpha
     cdef double alpha_d = alpha
     if reals_ft is floats_t:
@@ -460,7 +460,7 @@ cdef void scalv(
     dim_t   m,
     real_ft  alpha,
     reals_ft  x, inc_t incx
-) nogil:
+) noexcept nogil:
     cdef float alpha_f = alpha
     cdef double alpha_d = alpha
     if reals_ft is floats_t:
@@ -479,7 +479,7 @@ cdef void scalv(
 cdef double norm_L1(
     dim_t n,
     reals_ft x, inc_t incx
-) nogil:
+) noexcept nogil:
     cdef double dnorm = 0
     cdef float snorm = 0
     if reals_ft is floats_t:
@@ -501,7 +501,7 @@ cdef double norm_L1(
 cdef double norm_L2(
     dim_t n,
     reals_ft x, inc_t incx
-) nogil:
+) noexcept nogil:
     cdef double dnorm = 0
     cdef float snorm = 0
     if reals_ft is floats_t:
@@ -523,7 +523,7 @@ cdef double norm_L2(
 cdef double norm_inf(
     dim_t n,
     reals_ft x, inc_t incx
-) nogil:
+) noexcept nogil:
     cdef double dnorm = 0
     cdef float snorm = 0
     if reals_ft is floats_t:
@@ -550,7 +550,7 @@ cdef double dotv(
     reals_ft y,
     inc_t incx,
     inc_t incy,
-) nogil:
+) noexcept nogil:
     cdef double rho_d = 0.0
     cdef float rho_f = 0.0
     if reals_ft is floats_t:
@@ -571,7 +571,7 @@ cdef double dotv(
         raise ValueError("Unhandled fused type")
 
 
-cdef void randv(dim_t m, reals_ft x, inc_t incx) nogil:
+cdef void randv(dim_t m, reals_ft x, inc_t incx) noexcept nogil:
     if reals_ft is floats_t:
         bli_srandv_ex(m, x, incx, NULL, &rntm)
     elif reals_ft is float1d_t:
@@ -586,7 +586,7 @@ cdef void randv(dim_t m, reals_ft x, inc_t incx) nogil:
 
 
 cdef void sumsqv(dim_t   m, reals_ft  x, inc_t incx,
-        reals_ft scale, reals_ft sumsq) nogil:
+        reals_ft scale, reals_ft sumsq) noexcept nogil:
     if reals_ft is floats_t:
         bli_ssumsqv_ex(m, &x[0], incx, scale, sumsq, NULL, &rntm)
     elif reals_ft is float1d_t:
@@ -602,7 +602,7 @@ cdef void sumsqv(dim_t   m, reals_ft  x, inc_t incx,
 
 cdef void dgemm(bint transA, bint transB, int M, int N, int K,
                 double alpha, const double* A, int lda, const double* B,
-                int ldb, double beta, double* C, int ldc) nogil:
+                int ldb, double beta, double* C, int ldc) noexcept nogil:
     gemm(
         TRANSPOSE if transA else NO_TRANSPOSE,
         TRANSPOSE if transB else NO_TRANSPOSE,
@@ -615,7 +615,7 @@ cdef void dgemm(bint transA, bint transB, int M, int N, int K,
 
 cdef void sgemm(bint transA, bint transB, int M, int N, int K,
                 float alpha, const float* A, int lda, const float* B,
-                int ldb, float beta, float* C, int ldc) nogil:
+                int ldb, float beta, float* C, int ldc) noexcept nogil:
     gemm(
         TRANSPOSE if transA else NO_TRANSPOSE,
         TRANSPOSE if transB else NO_TRANSPOSE,
@@ -627,12 +627,12 @@ cdef void sgemm(bint transA, bint transB, int M, int N, int K,
 
 
 cdef void saxpy(int N, float alpha, const float* X, int incX,
-                float* Y, int incY) nogil:
+                float* Y, int incY) noexcept nogil:
     axpyv(NO_CONJUGATE, N, alpha, X, incX, Y, incY)
 
 
 cdef void daxpy(int N, double alpha, const double* X, int incX,
-                double* Y, int incY) nogil:
+                double* Y, int incY) noexcept nogil:
     axpyv(NO_CONJUGATE, N, alpha, X, incX, Y, incY)
 
 

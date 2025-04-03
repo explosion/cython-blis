@@ -102,7 +102,7 @@ cdef void gemm(
     reals_ft  b, inc_t rsb, inc_t csb,
     double  beta,
     reals_ft  c, inc_t rsc, inc_t csc,
-) nogil
+) noexcept nogil
 
 
 cdef void ger(
@@ -114,7 +114,7 @@ cdef void ger(
     reals_ft  x, inc_t incx,
     reals_ft  y, inc_t incy,
     reals_ft  a, inc_t rsa, inc_t csa
-) nogil
+) noexcept nogil
 
 
 cdef void gemv(
@@ -127,7 +127,7 @@ cdef void gemv(
     reals_ft  x, inc_t incx,
     real_ft  beta,
     reals_ft  y, inc_t incy
-) nogil
+) noexcept nogil
 
 
 cdef void axpyv(
@@ -136,7 +136,7 @@ cdef void axpyv(
     real_ft  alpha,
     reals_ft  x, inc_t incx,
     reals_ft  y, inc_t incy
-) nogil
+) noexcept nogil
 
 
 cdef void scalv(
@@ -144,7 +144,7 @@ cdef void scalv(
     dim_t   m,
     real_ft  alpha,
     reals_ft  x, inc_t incx
-) nogil
+) noexcept nogil
 
 
 cdef double dotv(
@@ -155,46 +155,46 @@ cdef double dotv(
     reals_ft y,
     inc_t incx,
     inc_t incy,
-) nogil
+) noexcept nogil
 
 
 cdef double norm_L1(
     dim_t n,
     reals_ft x, inc_t incx
-) nogil
+) noexcept nogil
 
 
 cdef double norm_L2(
     dim_t n,
     reals_ft x, inc_t incx
-) nogil
+) noexcept nogil
 
 
 cdef double norm_inf(
     dim_t n,
     reals_ft x, inc_t incx
-) nogil
+) noexcept nogil
 
 
 cdef void randv(
     dim_t m,
     reals_ft x, inc_t incx
-) nogil
+) noexcept nogil
 
 
 cdef void dgemm(bint transA, bint transB, int M, int N, int K,
                 double alpha, const double* A, int lda, const double* B,
-                int ldb, double beta, double* C, int ldc) nogil
+                int ldb, double beta, double* C, int ldc) noexcept nogil
 
 
 cdef void sgemm(bint transA, bint transB, int M, int N, int K,
                 float alpha, const float* A, int lda, const float* B,
-                int ldb, float beta, float* C, int ldc) nogil
+                int ldb, float beta, float* C, int ldc) noexcept nogil
 
 
 cdef void daxpy(int N, double alpha, const double* X, int incX,
-                double* Y, int incY) nogil
+                double* Y, int incY) noexcept nogil
 
 
 cdef void saxpy(int N, float alpha, const float* X, int incX,
-                float* Y, int incY) nogil
+                float* Y, int incY) noexcept nogil
