@@ -1,0 +1,111 @@
+name: Build wheels for Windows ARM64
+
+on:
+  push:
+    tags:
+      # ytf did they invent their own syntax that's almost regex?
+      # ** matches 'zero or more of any character'
+      - 'release-v[0-9]+.[0-9]+.[0-9]+**'
+      - 'prerelease-v[0-9]+.[0-9]+.[0-9]+**'
+      
+jobs:
+  build_wheels:
+    name: Build wheels on Windows ARM64
+    runs-on: windows-11-arm
+
+    steps:
+      - name: Setup MSVC for Windows ARM64
+        uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
+        with:
+          architecture: arm64
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM for Windows ARM64
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.6/LLVM-20.1.6-woa64.exe -UseBasicParsing -OutFile LLVM-woa64.exe
+          Start-Process -FilePath ".\LLVM-woa64.exe" -ArgumentList "/S" -Wait
+          echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "CC=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Debug env
+        run: env
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21.3
+        env:
+          DISTUTILS_USE_SDK: 1
+          MSSdk: 1
+          AR: llvm-ar
+          AS: llvm-as
+          CC: clang-cl
+          RANLIB: echo
+          CIBW_BUILD_VERBOSITY: 5
+          CIBW_BUILD: cp311-* cp312-* cp313-*
+        with:
+          package-dir: .
+          output-dir: wheelhouse
+          config-file: "{package}/pyproject.toml"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-Windows ARM64
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sdist
+        run: pipx run build --sdist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-sdist
+          path: dist/*.tar.gz
+          
+  create_release:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      checks: write
+      actions: read
+      issues: read
+      packages: write
+      pull-requests: read
+      repository-projects: read
+      statuses: read
+    steps:
+      - name: Get the tag name and determine if it's a prerelease
+        id: get_tag_info
+        run: |
+          FULL_TAG=${GITHUB_REF#refs/tags/}
+          if [[ $FULL_TAG == release-* ]]; then
+            TAG_NAME=${FULL_TAG#release-}
+            IS_PRERELEASE=false
+          elif [[ $FULL_TAG == prerelease-* ]]; then
+            TAG_NAME=${FULL_TAG#prerelease-}
+            IS_PRERELEASE=true
+          else
+            echo "Tag does not match expected patterns" >&2
+            exit 1
+          fi
+          echo "FULL_TAG=$TAG_NAME" >> $GITHUB_ENV
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_ENV
+      - uses: actions/download-artifact@v4
+        with:
+          # unpacks all CIBW artifacts into dist/
+          pattern: cibw-*
+          path: dist
+          merge-multiple: true
+      - name: Create Draft Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: ${{ env.TAG_NAME }}
+          draft: true
+          prerelease: ${{ env.IS_PRERELEASE }}
+          files: "./dist/*" 
