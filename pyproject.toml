@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "setuptools",
-    "cython>=3.0,<4.0",
+    "cython>=3.1,<4.0",
     "numpy>=1.19.3,<3.0.0"
 ]
 build-backend = "setuptools.build_meta"
@@ -10,9 +10,9 @@ build-backend = "setuptools.build_meta"
 build = "*"
 skip = "pp* cp36* cp37* cp38* cp39*"
 test-skip = ""
-free-threaded-support = false
 
 archs = ["native"]
+enable = ["cpython-freethreading"]
 
 build-frontend = "default"
 config-settings = {}
