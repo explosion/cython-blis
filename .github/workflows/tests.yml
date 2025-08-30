@@ -23,15 +23,15 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-2019]
-        python_version: ["3.9", "3.10", "3.11", "3.12"]
+        python_version: ["3.9", "3.10", "3.11", "3.12", "3.x"]
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Check out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Configure Python version
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
           architecture: x64
