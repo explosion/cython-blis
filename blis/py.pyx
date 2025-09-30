@@ -1,4 +1,5 @@
 # cython: boundscheck=False
+# cython: freethreading_compatible=True
 # Copyright ExplsionAI GmbH, released under BSD.
 cimport numpy as np
 from . cimport cy

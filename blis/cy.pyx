@@ -1,5 +1,6 @@
 # cython: infer_types=True
 # cython: boundscheck=False
+# cython: freethreading_compatible=True
 # Copyright ExplsionAI GmbH, released under BSD.
 
 import atexit
