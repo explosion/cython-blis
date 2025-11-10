@@ -14,6 +14,7 @@ jobs:
     with:
       wheel-name-pattern: "blis-*.whl"
       env: |
+        AAAAAAEXAMPLE=1
         DISTUTILS_USE_SDK=1
         MSSdk=1
         AR=llvm-ar
