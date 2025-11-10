@@ -322,7 +322,7 @@ setup(
                 extra_compile_args=["-std=c99"],
             ),
         ],
-        language_level=2,
+        language_level=3,
     ),
     python_requires=">=3.6,<3.15",
     cmdclass={"build_ext": ExtensionBuilder},
