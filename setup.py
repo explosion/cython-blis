@@ -324,7 +324,7 @@ setup(
         ],
         language_level=3,
     ),
-    python_requires=">=3.6,<3.15",
+    python_requires=">=3.9,<3.15",
     cmdclass={"build_ext": ExtensionBuilder},
     package_data={"": ["*.json", "*.jsonl", "*.pyx", "*.pxd"]},
     name="blis",
