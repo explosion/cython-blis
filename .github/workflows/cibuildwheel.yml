@@ -25,7 +25,7 @@ jobs:
       - name: Install LLVM 18 on Windows
         if: runner.os == 'Windows'
         run: |
-          choco install llvm --version=18.1.8 -y
+          choco install llvm --version=18.1.8 -y --force
           echo "C:\Program Files\LLVM\bin" >> $env:GITHUB_PATH
       # This is crazy slow. We'll need to wait for arm Linux
       # runners.
