@@ -38,7 +38,7 @@ jobs:
       - name: Debug env
         run: env
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.3
+        uses: pypa/cibuildwheel@v3.2.1
         env:
           CIBW_ARCHS_LINUX: auto
           DISTUTILS_USE_SDK: 1
