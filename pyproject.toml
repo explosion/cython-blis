@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
 build = "*"
-skip = "cp38* cp39*"
+skip = "cp38* cp39* cp3??t-*"
 test-skip = ""
 
 archs = ["native"]
