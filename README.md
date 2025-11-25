@@ -55,8 +55,8 @@ architectures. For example, here's how to build support for the ARM architecture
 ```bash
 git clone https://github.com/explosion/cython-blis && cd cython-blis
 git pull && git submodule init && git submodule update && git submodule status
-python3 -m venv env3.6
-source env3.6/bin/activate
+python3 -m venv env
+source env/bin/activate
 pip install -r requirements.txt
 ./bin/generate-make-jsonl linux cortexa57
 BLIS_ARCH="cortexa57" python setup.py build_ext --inplace
@@ -130,8 +130,8 @@ build the jsonl files for the generic arch:
     git clone https://github.com/explosion/cython-blis && cd cython-blis
     git pull && git submodule init && git submodule update && git submodule
     status
-    /opt/python/cp36-cp36m/bin/python -m venv env3.6
-    source env3.6/bin/activate
+    /opt/python/cp36-cp36m/bin/python -m venv env
+    source env/bin/activate
     pip install -r requirements.txt
     ./bin/generate-make-jsonl linux generic --export
     BLIS_ARCH=generic python setup.py build_ext --inplace
