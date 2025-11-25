@@ -26,12 +26,12 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: 'recursive'
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
         architecture: arm64
@@ -44,7 +44,7 @@ jobs:
       run: |
         ./bin/generate-make-jsonl linux cortexa57 --export
     - name: Upload artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: jsonl-${{ runner.os }}
         path: artifacts/
@@ -53,7 +53,7 @@ jobs:
     # Optional: Automatically commit artifacts
     #- name: Download all artifacts
     #  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    #  uses: actions/download-artifact@v4
+    #  uses: actions/download-artifact@v5
     #  with:
     #    path: downloaded-artifacts
     #- name: Commit artifacts

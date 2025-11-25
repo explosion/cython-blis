@@ -19,7 +19,7 @@ jobs:
     steps:
       # See https://cibuildwheel.pypa.io/en/1.x/cpp_standards/
       - uses: ilammy/msvc-dev-cmd@v1
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       # Install LLVM 18 on Windows
       - name: Install LLVM 18 on Windows
@@ -37,8 +37,9 @@ jobs:
       #    platforms: all
       - name: Debug env
         run: env
+
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.2.1
+        uses: pypa/cibuildwheel@v3.3.0
         env:
           CIBW_ARCHS_LINUX: auto
           DISTUTILS_USE_SDK: 1
@@ -52,7 +53,8 @@ jobs:
           package-dir: .
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
-      - uses: actions/upload-artifact@v4
+
+      - uses: actions/upload-artifact@v5
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
@@ -61,14 +63,16 @@ jobs:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build sdist
         run: pipx run build --sdist
-      - uses: actions/upload-artifact@v4
+
+      - uses: actions/upload-artifact@v5
         with:
           name: cibw-sdist
           path: dist/*.tar.gz
+
   create_release:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
@@ -99,12 +103,14 @@ jobs:
           echo "FULL_TAG=$TAG_NAME" >> $GITHUB_ENV
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
           echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_ENV
-      - uses: actions/download-artifact@v4
+
+      - uses: actions/download-artifact@v5
         with:
           # unpacks all CIBW artifacts into dist/
           pattern: cibw-*
           path: dist
           merge-multiple: true
+      
       - name: Create Draft Release
         id: create_release
         uses: softprops/action-gh-release@v2
