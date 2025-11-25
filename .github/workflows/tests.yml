@@ -32,6 +32,7 @@ jobs:
           - windows-latest  # x64
         python_version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         cc: ['']
+        numpy-runtime: ['']
         include:
           # Note: default compiler for Linux is gcc. cibuildwheel uses gcc.
           # FIXME: clang crashes on ARM Linux
@@ -41,6 +42,23 @@ jobs:
           - os: ubuntu-latest
             python_version: "3.14"
             cc: clang
+          # Test oldest runtime version of NumPy.
+          # Note that we always use the latest available version for building.
+          - os: ubuntu-latest
+            python_version: "3.10"
+            numpy-runtime: "1.21.2"
+          - os: ubuntu-24.04-arm
+            python_version: "3.10"
+            numpy-runtime: "1.21.3"
+          - os: macos-15-intel
+            python_version: "3.10"
+            numpy-runtime: "1.21.3"
+          - os: macos-latest
+            python_version: "3.10"
+            numpy-runtime: "1.21.3"
+          - os: windows-latest
+            python_version: "3.10"
+            numpy-runtime: "1.21.3"
 
     runs-on: ${{ matrix.os }}
 
@@ -110,9 +128,17 @@ jobs:
           python -m pip uninstall -y -r installed.txt
 
       - name: Install wheel
+        if: matrix.numpy-runtime == ''
         shell: bash
         run: |
           python -m pip install dist/*.whl
+
+      - name: Install wheel with pinned NumPy
+        if: matrix.numpy-runtime != ''
+        shell: bash
+        run: |
+          python -m pip install numpy==${{ matrix.numpy-runtime }}
+          python -m pip install --no-deps dist/*.whl
 
       - name: Delete source directory
         shell: bash
