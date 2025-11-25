@@ -2,14 +2,16 @@ name: tests
 
 on:
   push:
-    #tags-ignore:
-    #  - '**'
-    paths-ignore:
-      - "*.md"
+    branches: [main]
   pull_request:
-    types: [opened, synchronize, reopened, edited]
-    paths-ignore:
-      - "*.md"
+    branches: ["*"]
+  workflow_dispatch: # allows you to trigger manually
+
+# When this workflow is queued, automatically cancel any previous running
+# or pending jobs from the same branch
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   MODULE_NAME: 'blis'
@@ -20,7 +22,7 @@ jobs:
     name: Test
     if: github.repository_owner == 'explosion'
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os:
           - ubuntu-latest  # x64
