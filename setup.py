@@ -327,7 +327,7 @@ setup(
     cmdclass={"build_ext": ExtensionBuilder},
     package_data={"": ["*.json", "*.jsonl", "*.pyx", "*.pxd"]},
     name="blis",
-    packages=["blis", "blis.tests"],
+    packages=["blis"],
     author=about["__author__"],
     author_email=about["__email__"],
     version=about["__version__"],
