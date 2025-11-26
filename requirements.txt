@@ -1,5 +1,4 @@
 # Test requirements
 numpy>=1.21.2
 pytest
-cython>=3.0,<4.0
 hypothesis>=4.0.0,<7.0.0
