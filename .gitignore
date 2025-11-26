@@ -6,7 +6,7 @@ blis/cy.c
 blis/py.c
 .eggs
 .env/
-env3.6
+env/
 .hypothesis/
 build/
 cache/

@@ -22,8 +22,24 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, windows-2022]
-        python_version: ["3.9", "3.10", "3.11", "3.12"]
+        os:
+          - ubuntu-latest  # x64
+          - ubuntu-24.04-arm  # ARM
+          - macos-15-intel  # x64
+          - macos-latest  # ARM
+          - windows-latest  # x64
+        python_version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        cc: ['']  # default: gcc on Linux; clang on Mac/Windows
+        include:
+          # Note: default compiler for Linux is gcc. cibuildwheel uses gcc.
+          # FIXME: clang crashes on ARM Linux
+          - os: ubuntu-latest
+            python_version: "3.10"
+            cc: clang
+          - os: ubuntu-latest
+            python_version: "3.14"
+            cc: clang
+
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -34,7 +50,6 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python_version }}
-          architecture: x64
 
       # Install LLVM 18 on Windows
       - name: Install LLVM 18 on Windows
@@ -52,18 +67,6 @@ jobs:
         run: |
           dir "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build" /b
 
-          set "PATH=C:\\Program Files\\LLVM\\bin;%PATH%"
-          set "AR=llvm-ar"
-          set "AS=llvm-as"
-          set "CC=clang"
-          set "RANLIB=echo"
-          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64
-          clang --version
-          python -m build --wheel
-        shell: cmd
-      - name: Build wheel (Windows)
-        if: startsWith(matrix.os, 'windows')
-        run: |
           set "PATH=C:\Program Files\LLVM\bin;%PATH%"
           set "AR=llvm-ar"
           set "AS=llvm-as"
@@ -77,40 +80,20 @@ jobs:
       - name: Build wheel (Mac)
         if: startsWith(matrix.os, 'macos')
         run: |
+          clang --version
+          python -m build --wheel
+
+      - name: Build wheel (Linux / gcc)
+        if: startsWith(matrix.os, 'ubuntu') && matrix.cc == ''
+        run: |
+          gcc --version
           python -m build --wheel
 
       - name: Build wheel (Linux / clang)
-        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.6'
+        if: startsWith(matrix.os, 'ubuntu') && matrix.cc == 'clang'
         run: |
           clang --version
           CC=clang python -m build --wheel
-
-      - name: Build wheel (Linux / gcc-9)
-        if: startsWith(matrix.os, 'ubuntu') && (matrix.python_version == '3.7' || matrix.python_version == '3.8')
-        run: |
-          sudo apt update
-          sudo apt install gcc-9
-          gcc-9 --version
-          CC=gcc-9 python -m build --wheel
-
-      - name: Build wheel (Linux / gcc-10)
-        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.9'
-        run: |
-          sudo apt update
-          sudo apt install gcc-10
-          gcc-10 --version
-          CC=gcc-10 python -m build --wheel
-      - name: Build wheel (Linux / clang-13)
-        if: startsWith(matrix.os, 'ubuntu') && matrix.python_version == '3.10'
-        run: |
-          clang --version
-          CC=clang python -m build --wheel
-
-      - name: Build wheel (Linux / gcc)
-        if: startsWith(matrix.os, 'ubuntu') && (matrix.python_version == '3.11' || matrix.python_version == '3.12')
-        run: |
-          gcc --version
-          CC=gcc python -m build --wheel
 
       # TODO: install mypy from requirements if reenabled
       - name: Run mypy

@@ -306,8 +306,7 @@ setup(
         "numpy>=2.0.0,<3.0.0",
     ],
     install_requires=[
-        "numpy>=1.15.0,<3.0.0; python_version < '3.9'",
-        "numpy>=1.19.0,<3.0.0; python_version >= '3.9'",
+        "numpy>=1.21.2,<3.0.0",
     ],
     ext_modules=cythonize(
         [
@@ -324,7 +323,7 @@ setup(
         ],
         language_level=3,
     ),
-    python_requires=">=3.9,<3.15",
+    python_requires=">=3.10,<3.15",
     cmdclass={"build_ext": ExtensionBuilder},
     package_data={"": ["*.json", "*.jsonl", "*.pyx", "*.pxd"]},
     name="blis",

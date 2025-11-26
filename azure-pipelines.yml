@@ -10,15 +10,15 @@ jobs:
   condition: true
   strategy:
     matrix:
-      Python39Mac:
+      Python310Mac:
         imageName: 'macos-latest'
-        python.version: '3.9'
-      Python39Windows:
+        python.version: '3.10'
+      Python310Windows:
         imageName: 'windows-latest'
-        python.version: '3.9'
-      Python39Linux:
+        python.version: '3.10'
+      Python310Linux:
         imageName: 'ubuntu-22.04'
-        python.version: '3.9'
+        python.version: '3.10'
  
     maxParallel: 4
   pool:
@@ -80,15 +80,15 @@ jobs:
   condition: true
   strategy:
     matrix:
-      Python39Mac:
+      Python310Mac:
         imageName: 'macos-latest'
-        python.version: '3.9'
-      Python39Windows:
+        python.version: '3.10'
+      Python310Windows:
         imageName: 'windows-latest'
-        python.version: '3.9'
-      Python39Linux:
+        python.version: '3.10'
+      Python310Linux:
         imageName: 'ubuntu-22.04'
-        python.version: '3.9'
+        python.version: '3.10'
     maxParallel: 4
   pool:
     vmImage: $(imageName)
