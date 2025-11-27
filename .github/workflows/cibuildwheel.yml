@@ -26,18 +26,37 @@ jobs:
           - macos-15-intel  # x64
           - macos-latest  # ARM
           - windows-latest  # x64
+          - windows-11-arm  # ARM
 
     steps:
-      # See https://cibuildwheel.pypa.io/en/1.x/cpp_standards/
-      - uses: ilammy/msvc-dev-cmd@v1
       - uses: actions/checkout@v6
-      
-      # Install LLVM 18 on Windows
-      - name: Install LLVM 18 on Windows
-        if: runner.os == 'Windows'
+
+      # See https://cibuildwheel.pypa.io/en/1.x/cpp_standards/
+      - name: Setup MSVC on Windows x64
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Setup MSVC on Windows ARM64
+        if: matrix.os == 'windows-11-arm'
+        uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
+        with:
+          architecture: arm64
+
+      # Install LLVM on Windows
+      - name: Install LLVM on Windows x64
+        if: matrix.os == 'windows-latest'
         run: |
           choco install llvm --version=18.1.8 -y --force
           echo "C:\Program Files\LLVM\bin" >> $env:GITHUB_PATH
+
+      - name: Install LLVM on Windows ARM64
+        if: matrix.os == 'windows-11-arm'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.6/LLVM-20.1.6-woa64.exe -UseBasicParsing -OutFile LLVM-woa64.exe
+          Start-Process -FilePath ".\LLVM-woa64.exe" -ArgumentList "/S" -Wait
+          echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "CC=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Debug env
         run: env
