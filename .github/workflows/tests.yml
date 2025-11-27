@@ -158,5 +158,4 @@ jobs:
 
       - name: Run tests
         shell: bash
-        run: |
-          python -m pytest --pyargs $MODULE_NAME -Werror
+        run: pytest tests -Werror
