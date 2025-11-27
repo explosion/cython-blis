@@ -267,24 +267,6 @@ SRC = os.path.join(PWD, "blis")
 BLIS_DIR = os.path.join(SRC, "_src")
 INCLUDE = os.path.join(PWD, "blis", "_src", "include")
 COMPILER = os.environ.get("BLIS_COMPILER", "gcc")
-BLIS_REALLY_COMPILE = os.environ.get("BLIS_REALLY_COMPILE", 0)
-
-if not BLIS_REALLY_COMPILE:
-    try:
-        import pip
-
-        version_parts = pip.__version__.split(".")
-        major = int(version_parts[0])
-        minor = int(version_parts[1])
-        if major < 19 or (major == 19 and minor < 3):
-            print(
-                "WARNING: pip versions <19.3 (currently installed: "
-                + pip.__version__
-                + ") are unable to detect binary wheel compatibility for blis. To avoid a source install with a very long compilation time, please upgrade pip with `pip install --upgrade pip`.\n\nIf you know what you're doing and you really want to compile blis from source, please set the environment variable BLIS_REALLY_COMPILE=1."
-            )
-            sys.exit(1)
-    except Exception:
-        pass
 
 if len(sys.argv) > 1 and sys.argv[1] == "clean":
     clean(PWD)
