@@ -17,6 +17,7 @@ dist/
 .pytest_cache
 blis.egg-info/
 tmp/
+z/
 
 # Blis stuff
 blis/include
