@@ -2,3 +2,4 @@
 numpy>=1.21.2
 pytest
 hypothesis>=4.0.0,<7.0.0
+pytest-run-parallel; python_version>="3.13"

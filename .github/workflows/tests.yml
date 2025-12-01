@@ -34,7 +34,7 @@ jobs:
           - macos-latest  # ARM
           - windows-latest  # x64
           - windows-11-arm  # ARM
-        python_version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python_version: ["3.10", "3.11", "3.12", "3.13", "3.13t", "3.14", "3.14t"]
         cc: ['']  # default: gcc on Linux; clang on Mac/Windows
         numpy-runtime: ['']  # default: latest version
         include:
@@ -174,3 +174,7 @@ jobs:
 
       - name: Run tests
         run: pytest
+
+      - name: Run pytest-run-parallel
+        if: endsWith(matrix.python_version, 't')
+        run: pytest --parallel-threads 4
