@@ -13,10 +13,13 @@ self-contained Python C-extension.
 
 ## Thread-safety
 
-This library is fully thread-safe and is compatible with free-threaded Python
-interpreters (e.g. 3.14t).
-The usual caveats about NumPy thread-safety apply; e.g. if you shrink a NumPy
-buffer from one thread while blis is running on another, you will experience a
+It is safe to concurrently use Blis from multiple threads with immutable data. The
+library is re-entrant, does not rely on global state, and is compatible with
+free-threaded Python interpreters (e.g. 3.14t).
+
+The usual caveats about NumPy thread-safety apply: concurrent mutation of input arrays
+might trigger torn reads and data races and should be avoided; if you resize a NumPy
+buffer from one thread while Blis is running on another, you will likely experience a
 segmentation fault.
 
 Currently, you can't use multiple threads to collaborate to a single Blis operation.
