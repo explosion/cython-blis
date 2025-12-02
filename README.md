@@ -7,6 +7,7 @@ This repository provides the
 self-contained Python C-extension.
 
 [![tests](https://github.com/explosion/cython-blis/actions/workflows/tests.yml/badge.svg)](https://github.com/explosion/cython-blis/actions/workflows/tests.yml)
+[![sanitizers](https://github.com/explosion/cython-blis/actions/workflows/sanitizers.yml/badge.svg)](https://github.com/explosion/cython-blis/actions/workflows/sanitizers.yml)
 [![pypi Version](https://img.shields.io/pypi/v/blis.svg?style=flat-square&logo=pypi&logoColor=white)](https://pypi.python.org/pypi/blis)
 [![conda](https://img.shields.io/conda/vn/conda-forge/cython-blis.svg?style=flat-square&logo=conda-forge&logoColor=white)](https://anaconda.org/conda-forge/cython-blis)
 [![Python wheels](https://img.shields.io/badge/wheels-%E2%9C%93-4c1.svg?longCache=true&style=flat-square&logo=python&logoColor=white)](https://github.com/explosion/wheelwright/releases)
