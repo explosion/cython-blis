@@ -99,6 +99,8 @@ class ExtensionBuilder(build_ext):
             # Py_GIL_DISABLED because its pyconfig.h is shared with the
             # default build, so we need to define it here
             # (see pypa/setuptools#4662).
+            # setuptools normally implements a workaround internally, but we
+            # need to define it ourselves because we're replacing the compiler.
             if not is_gil_enabled():
                 self.compiler.define_macro('Py_GIL_DISABLED', '1')
 
