@@ -1,5 +1,6 @@
 # cython: infer_types=True
 # cython: boundscheck=False
+# cython: freethreading_compatible=True
 # Copyright ExplsionAI GmbH, released under BSD.
 
 import atexit
@@ -273,7 +274,8 @@ cdef extern from "blis.h" nogil:
     ) noexcept nogil
 
 
-
+# Thread-safety note: bli_init() and bli_finalize() are thread-safe in the
+# underlying C library; see flame-blis/frame/base/bli_init.c for details.
 bli_init()
 cdef blis_rntm_t rntm;
 

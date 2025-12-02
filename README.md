@@ -6,13 +6,23 @@ This repository provides the
 [Blis linear algebra](https://github.com/flame/blis) routines as a
 self-contained Python C-extension.
 
-Currently, we only supports single-threaded execution, as this is actually best
-for our workloads (ML inference).
-
 [![tests](https://github.com/explosion/cython-blis/actions/workflows/tests.yml/badge.svg)](https://github.com/explosion/cython-blis/actions/workflows/tests.yml)
 [![pypi Version](https://img.shields.io/pypi/v/blis.svg?style=flat-square&logo=pypi&logoColor=white)](https://pypi.python.org/pypi/blis)
 [![conda](https://img.shields.io/conda/vn/conda-forge/cython-blis.svg?style=flat-square&logo=conda-forge&logoColor=white)](https://anaconda.org/conda-forge/cython-blis)
 [![Python wheels](https://img.shields.io/badge/wheels-%E2%9C%93-4c1.svg?longCache=true&style=flat-square&logo=python&logoColor=white)](https://github.com/explosion/wheelwright/releases)
+
+## Thread-safety
+
+It is safe to concurrently use Blis from multiple threads with immutable data. The
+library is re-entrant, does not rely on global state, and is compatible with
+free-threaded Python interpreters (e.g. 3.14t).
+
+The usual caveats about NumPy thread-safety apply: concurrent mutation of input arrays
+might trigger torn reads and data races and should be avoided; if you resize a NumPy
+buffer from one thread while Blis is running on another, you will likely experience a
+segmentation fault.
+
+Currently, you can't use multiple threads to collaborate to a single Blis operation.
 
 ## Installation
 

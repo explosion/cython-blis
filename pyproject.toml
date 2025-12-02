@@ -1,16 +1,17 @@
 [build-system]
 requires = [
     "setuptools",
-    "cython>=3.0,<4.0",
+    "cython>=3.1,<4.0",
     "numpy>=2.0.0,<3.0.0",
 ]
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
 build = "*"
-skip = "cp38* cp39* cp310-win_arm64* cp3??t-*"
+skip = "cp38* cp39* cp310-win_arm64*"
 
 archs = ["native"]
+enable = ["cpython-freethreading"]  # Build cp313t wheels
 
 build-frontend = "default"
 config-settings = {}

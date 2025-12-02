@@ -61,6 +61,12 @@ def find_in_path(name, path):
     return None
 
 
+def is_gil_enabled():
+    if sys.version_info < (3, 13):
+        return True
+    return sys._is_gil_enabled()
+
+
 class ExtensionBuilder(build_ext):
     # By overriding build_extensions we have the actual compiler that will be used
     # which is really known only after finalize_options
@@ -88,6 +94,15 @@ class ExtensionBuilder(build_ext):
             self.compiler.archiver = ["llvm-ar"]
             self.compiler.library_dirs = library_dirs
             self.compiler.include_dirs = include_dirs
+
+            # The official Windows free threaded Python installer doesn't set
+            # Py_GIL_DISABLED because its pyconfig.h is shared with the
+            # default build, so we need to define it here
+            # (see pypa/setuptools#4662).
+            # setuptools normally implements a workaround internally, but we
+            # need to define it ourselves because we're replacing the compiler.
+            if not is_gil_enabled():
+                self.compiler.define_macro("Py_GIL_DISABLED", "1")
 
         if sys.platform in ("msvc", "win32"):
             platform_name = "windows"
@@ -121,6 +136,17 @@ class ExtensionBuilder(build_ext):
 
         super().build_extensions()
         shutil.rmtree(short_dir)
+
+    def get_libraries(self, ext):
+        libs = super().get_libraries(ext)
+        if os.name == "nt" and not is_gil_enabled():
+            # Work around https://github.com/pypa/setuptools/issues/5126
+            # Replace cmake parameter '-lpython314'  with '-lpython314t'
+            libs = [
+                lib + "t" if lib.startswith("python") and not lib.endswith("t") else lib
+                for lib in libs
+            ]
+        return libs
 
     def get_arch_name(self, platform_name):
         # User-defined
@@ -281,7 +307,7 @@ with chdir(root):
 
 setup(
     setup_requires=[
-        "cython>=3.0,<4.0",
+        "cython>=3.1,<4.0",
         "numpy>=2.0.0,<3.0.0",
     ],
     install_requires=[
@@ -329,6 +355,7 @@ setup(
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3.14",
+        "Programming Language :: Python :: Free Threading :: 2 - Beta",
         "Topic :: Scientific/Engineering",
     ],
 )
