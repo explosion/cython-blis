@@ -102,7 +102,7 @@ class ExtensionBuilder(build_ext):
             # setuptools normally implements a workaround internally, but we
             # need to define it ourselves because we're replacing the compiler.
             if not is_gil_enabled():
-                self.compiler.define_macro('Py_GIL_DISABLED', '1')
+                self.compiler.define_macro("Py_GIL_DISABLED", "1")
 
         if sys.platform in ("msvc", "win32"):
             platform_name = "windows"
