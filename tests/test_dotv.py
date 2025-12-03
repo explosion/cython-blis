@@ -5,7 +5,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from numpy.testing import assert_allclose
 
-from blis_tests_common import dtypes_tols, ndarrays
+from blis_tests_common import dtypes_tols, ndarrays, run_threaded
 from blis.py import dotv
 
 
@@ -29,3 +29,17 @@ def test_memoryview_noconj(arrays):
     numpy_result = A.dot(B)
     result = dotv(A, B)
     assert_allclose(result, numpy_result, atol=atol, rtol=rtol)
+
+
+@given(dotv_arrays())
+@pytest.mark.thread_unsafe(reason="Uses run_threaded")
+def test_threads_share_input(arrays):
+    """Test when multiple threads share the same input arrays."""
+    A, B, atol, rtol = arrays
+    numpy_result = A.dot(B)
+
+    def f():
+        result = dotv(A, B)
+        assert_allclose(result, numpy_result, atol=atol, rtol=rtol)
+
+    run_threaded(f)
