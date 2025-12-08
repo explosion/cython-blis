@@ -48,8 +48,8 @@ def test_incompatible_shape():
 
 
 @given(
-    ndarrays(min_len=10, max_len=100, min_val=-100.0, max_val=100.0, dtype="float64"),
-    ndarrays(min_len=10, max_len=100, min_val=-100.0, max_val=100.0, dtype="float64"),
+    ndarrays(min_len=1, max_len=100, min_val=-100.0, max_val=100.0, dtype="float64"),
+    ndarrays(min_len=1, max_len=100, min_val=-100.0, max_val=100.0, dtype="float64"),
     integers(min_value=2, max_value=1000),
     integers(min_value=2, max_value=1000),
     integers(min_value=2, max_value=1000),
@@ -68,8 +68,8 @@ def test_memoryview_double_notrans(A, B, a_rows, a_cols, out_cols):
 
 
 @given(
-    ndarrays(min_len=10, max_len=100, min_val=-100.0, max_val=100.0, dtype="float32"),
-    ndarrays(min_len=10, max_len=100, min_val=-100.0, max_val=100.0, dtype="float32"),
+    ndarrays(min_len=1, max_len=100, min_val=-100.0, max_val=100.0, dtype="float32"),
+    ndarrays(min_len=1, max_len=100, min_val=-100.0, max_val=100.0, dtype="float32"),
     integers(min_value=2, max_value=1000),
     integers(min_value=2, max_value=1000),
     integers(min_value=2, max_value=1000),
