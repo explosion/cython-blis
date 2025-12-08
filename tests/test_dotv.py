@@ -1,9 +1,16 @@
 # Copyright ExplosionAI GmbH, released under BSD.
+import numpy as np
+import pytest
 from hypothesis import given, assume
 
 from numpy.testing import assert_allclose
 from blis_tests_common import ndarrays
 from blis.py import dotv
+
+
+def test_incompatible_shape():
+    with pytest.raises(ValueError):
+        dotv(np.zeros(2), np.zeros(3))
 
 
 @given(
