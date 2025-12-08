@@ -3,9 +3,12 @@ import numpy as np
 
 np.random.seed(0)
 
-from hypothesis.strategies import tuples, integers, floats
+from hypothesis import settings
+from hypothesis.strategies import integers, floats
 from hypothesis.extra.numpy import arrays
 
+# Increase this to run more thorough tests
+hypothesis_default_profile = settings.register_profile("default", max_examples=100)
 
 
 def lengths(lo, hi):
