@@ -63,3 +63,7 @@ addopts = "--strict-markers --strict-config -v -r sxfE --color=yes --durations=1
 python_files = ["test_*.py"]
 testpaths = ["tests"]
 filterwarnings = ["error"]
+markers = [
+  # Needed when pytest-run-parallel is not installed
+  "thread_unsafe: Run test in single thread in pytest-run-parallel"
+]
