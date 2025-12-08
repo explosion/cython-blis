@@ -1,11 +1,21 @@
 # Copyright ExplosionAI GmbH, released under BSD.
 import numpy as np
 import pytest
-from hypothesis import given, assume
-
+from hypothesis import given
+from hypothesis import strategies as st
 from numpy.testing import assert_allclose
-from blis_tests_common import ndarrays
+
+from blis_tests_common import dtypes_tols, ndarrays
 from blis.py import dotv
+
+
+@st.composite
+def dotv_arrays(draw):
+    """Draw two 1D NumPy arrays of the same size and dtype"""
+    size = draw(st.integers(min_value=1, max_value=100))
+    dtype, atol, rtol = draw(dtypes_tols)
+    arr_st = ndarrays((size,), lo=-100.0, hi=100.0, dtype=dtype)
+    return draw(arr_st), draw(arr_st), atol, rtol
 
 
 def test_incompatible_shape():
@@ -13,33 +23,9 @@ def test_incompatible_shape():
         dotv(np.zeros(2), np.zeros(3))
 
 
-@given(
-    ndarrays(min_len=1, max_len=100, min_val=-100.0, max_val=100.0, dtype="float64"),
-    ndarrays(min_len=1, max_len=100, min_val=-100.0, max_val=100.0, dtype="float64"),
-)
-def test_memoryview_double_noconj(A, B):
-    if len(A) < len(B):
-        B = B[: len(A)]
-    else:
-        A = A[: len(B)]
-    assume(A is not None)
-    assume(B is not None)
+@given(dotv_arrays())
+def test_memoryview_noconj(arrays):
+    A, B, atol, rtol = arrays
     numpy_result = A.dot(B)
     result = dotv(A, B)
-    assert_allclose(result, numpy_result, atol=1e-9, rtol=1e-9)
-
-
-@given(
-    ndarrays(min_len=1, max_len=100, min_val=-100.0, max_val=100.0, dtype="float32"),
-    ndarrays(min_len=1, max_len=100, min_val=-100.0, max_val=100.0, dtype="float32"),
-)
-def test_memoryview_float_noconj(A, B):
-    if len(A) < len(B):
-        B = B[: len(A)]
-    else:
-        A = A[: len(B)]
-    assume(A is not None)
-    assume(B is not None)
-    numpy_result = A.dot(B)
-    result = dotv(A, B)
-    assert_allclose(result, numpy_result, atol=1e-2, rtol=1e-4)
+    assert_allclose(result, numpy_result, atol=atol, rtol=rtol)
