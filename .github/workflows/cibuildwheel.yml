@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: ["*"]
   schedule:  # runs on last commit on main branch
-    - cron: "0 3 * * *"  # every night at 3AM, for nightly wheels
+    - cron: "0 1 * * 1"  # every Monday at 1AM, for weekly wheels
   workflow_dispatch: # allows you to trigger manually
 
 # When this workflow is queued, automatically cancel any previous running
@@ -22,18 +22,18 @@ jobs:
     outputs:
       skip: ${{ env.skip }}
     steps:
-      - name: On explosion main, skip scheduled run if no changes in last 24 hours
+      - name: On explosion main, skip scheduled run if no changes in last week
         if: github.event_name == 'schedule' && github.repository_owner == 'explosion'
         run: |
           LAST_COMMIT_TIME=$(git log -1 --format=%ct)
           CURRENT_TIME=$(date +%s)
           TIME_DIFF=$((CURRENT_TIME - LAST_COMMIT_TIME))
           echo "Time since last commit: $TIME_DIFF seconds"
-          if [ $TIME_DIFF -gt 86400 ]; then
-            echo "No changes in the last 24 hours. Skipping build."
+          if [ $TIME_DIFF -gt 604800 ]; then
+            echo "No changes in the last week. Skipping build."
             echo "skip=true" >> $GITHUB_ENV
           else
-            echo "Changes detected in the last 24 hours. Proceeding with build."
+            echo "Changes detected in the last week. Proceeding with build."
             echo "skip=false" >> $GITHUB_ENV
           fi
 
