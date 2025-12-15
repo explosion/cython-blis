@@ -22,6 +22,8 @@ jobs:
     outputs:
       skip: ${{ env.skip }}
     steps:
+      - uses: actions/checkout@v6
+
       - name: On explosion main, skip scheduled run if no changes in last week
         if: github.event_name == 'schedule' && github.repository_owner == 'explosion'
         run: |
