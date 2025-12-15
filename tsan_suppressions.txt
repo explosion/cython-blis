@@ -1,6 +1,8 @@
 # This file contains suppressions for the TSAN tool
 # Reference: https://github.com/google/sanitizers/wiki/ThreadSanitizerSuppressions
 
+# https://github.com/python/cpython/issues/113956
+race:_Py_SetImmortal
 # https://github.com/numpy/numpy/issues/30085
 race:mt19937
 race:mtrand
