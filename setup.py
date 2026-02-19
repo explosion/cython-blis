@@ -265,7 +265,21 @@ class ExtensionBuilder(build_ext):
 
                 specs.append(spec)
 
-        jobs = int(os.getenv("MAX_JOBS", "1")) if self.parallel is None else self.parallel
+        jobs = int(os.getenv("MAX_JOBS", -1)) if self.parallel is None else self.parallel
+        if jobs == -1:
+            # By default, enable parallelism but at a safe level:
+            #   - use the number of physical cores on machines (also on machines
+            #     with hyperthreading)
+            #   - limit to a reasonably low number to avoid potential issues on large
+            #     shared/virtualized machines.
+            # `process_cpu_count` does the right thing, but is >=3.13 only. It's
+            # non-trivial to determine this value on older versions, and requiring
+            # `psutil` would be a bit much - so do a safe approximation.
+            if sys.version_info >= (3, 13):
+                jobs = os.process_cpu_count()
+            else:
+                jobs = max(min(os.cpu_count()//2, 8), 1)
+
         pool = ThreadPool(jobs or None)
         with pool:
             objects = pool.map(lambda spec: self.build_object(env=env, **spec), specs)
