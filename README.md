@@ -38,13 +38,20 @@ pip install blis
 Wheels should be available, so installation should be fast. If you want to
 install from source and you're on Windows, you'll need to install LLVM.
 
+### Compiler requirements
+
+Building from source requires a C99 compiler with `-fopenmp-simd` support:
+
+- gcc >= 7 or clang >= 9 (recommended; tested in CI)
+- The minimum is gcc >= 4.9 or clang >= 3.6, but older versions are untested
+- On Windows, LLVM/clang is required
+
 ### Building BLIS for alternative architectures
 
-The provided wheels should work on x86_64 architectures. Unfortunately we do not
-currently know a way to provide different wheels for alternative architectures,
-and we cannot provide a single binary that works everywhere. So if the wheel
-doesn't work for your CPU, you'll need to specify source distribution, and tell
-Blis your CPU architecture using the `BLIS_ARCH` environment variable.
+The provided wheels should work on x86_64, ARM64 (aarch64), and Windows
+architectures. If the wheel doesn't work for your CPU, you'll need to build from
+a source distribution and tell Blis your CPU architecture using the `BLIS_ARCH`
+environment variable.
 
 #### a) Installing with generic arch support
 
@@ -59,7 +66,7 @@ architectures, that are compiled by running the Blis build system and logging
 the commands. We do not yet have logs for every architecture, as there are some
 architectures we have not had access to.
 
-[See here](https://github.com/flame/blis/blob/0.5.1/config_registry) for list of
+[See here](https://github.com/flame/blis/blob/0.7.0/config_registry) for list of
 architectures. For example, here's how to build support for the ARM architecture
 `cortexa57`:
 
@@ -126,12 +133,12 @@ jsonl file and the header.
 
 ### Linux
 
-The Linux build files need to be produced from within the manylinux1 docker
+The Linux build files need to be produced from within the manylinux2014 docker
 container, so that they will be compatible with the wheel building process.
 
 First, install docker. Then do the following to start the container:
 
-    sudo docker run -it quay.io/pypa/manylinux1_x86_64:latest
+    sudo docker run -it quay.io/pypa/manylinux2014_x86_64:latest
 
 Once within the container, the following commands should check out the repo and
 build the jsonl files for the generic arch:
@@ -141,7 +148,7 @@ build the jsonl files for the generic arch:
     git clone https://github.com/explosion/cython-blis && cd cython-blis
     git pull && git submodule init && git submodule update && git submodule
     status
-    /opt/python/cp36-cp36m/bin/python -m venv env
+    python3 -m venv env
     source env/bin/activate
     pip install -r requirements.txt
     ./bin/generate-make-jsonl linux generic --export
