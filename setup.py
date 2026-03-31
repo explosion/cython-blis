@@ -175,6 +175,19 @@ class ExtensionBuilder(build_ext):
         if machine == "aarch64":
             return "cortexa57"
         elif machine == "ppc64le":
+            # Default to power9; only fall back to generic for known older CPUs.
+            # Under QEMU emulation, /proc/cpuinfo shows the host CPU, so we
+            # correctly default to power9 rather than requiring BLIS_ARCH.
+            try:
+                with open("/proc/cpuinfo") as f:
+                    for line in f:
+                        if line.startswith("cpu"):
+                            cpu_info = line.split(":")[1].strip().upper()
+                            if "POWER8" in cpu_info or "POWER7" in cpu_info:
+                                return "generic"
+                            break
+            except (IOError, IndexError):
+                pass
             return "power9"
         elif machine != "x86_64":
             return "generic"
