@@ -1,13 +1,7 @@
 #!/usr/bin/env python
 import shutil
 import os
-
-# This is maybe not the best place to put this,
-# but we need to tell OSX to build for 10.7.
-# Otherwise, wheels don't work. We can't use 10.6,
-# it doesn't compile.
-# if "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
-#    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.7"
+import sysconfig
 
 from setuptools import Extension, setup
 import contextlib
@@ -303,6 +297,13 @@ class ExtensionBuilder(build_ext):
                 jobs = os.process_cpu_count()
             else:
                 jobs = max(min(os.cpu_count()//2, 8), 1)
+
+        if platform == "darwin" and "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
+            # Ensure BLIS objects are compiled with the same deployment
+            # target that Python/distutils will use when linking.
+            dt = sysconfig.get_config_var("MACOSX_DEPLOYMENT_TARGET")
+            if dt:
+                os.environ["MACOSX_DEPLOYMENT_TARGET"] = str(dt)
 
         pool = ThreadPool(jobs or None)
         with pool:
