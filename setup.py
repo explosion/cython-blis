@@ -1,13 +1,7 @@
 #!/usr/bin/env python
 import shutil
 import os
-
-# This is maybe not the best place to put this,
-# but we need to tell OSX to build for 10.7.
-# Otherwise, wheels don't work. We can't use 10.6,
-# it doesn't compile.
-# if "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
-#    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.7"
+import sysconfig
 
 from setuptools import Extension, setup
 import contextlib
@@ -128,12 +122,18 @@ class ExtensionBuilder(build_ext):
             assert os.path.exists(new_path), new_path
             short_paths.append(new_path)
         root = os.path.abspath(os.path.dirname(__file__))
+        # Filter WARN_FLAGS to only those the compiler supports, to avoid
+        # notes from GCC about unrecognized Clang-only flags.
+        supported_warn_flags = [
+            flag for flag in WARN_FLAGS if self.check_warning_flag(flag)
+        ]
         for e in self.extensions:
             e.include_dirs.append(os.path.join(root, "include"))
             e.include_dirs.append(
                 os.path.join(INCLUDE, "%s-%s" % (platform_name, arch))
             )
             e.extra_objects = list(short_paths)
+            e.extra_compile_args.extend(supported_warn_flags)
 
         super().build_extensions()
         shutil.rmtree(short_dir)
@@ -211,6 +211,24 @@ class ExtensionBuilder(build_ext):
         os.close(DEVNULL)
         return supports_flag
 
+    def check_warning_flag(self, flag):
+        """Check whether the compiler supports a given warning flag."""
+        DEVNULL = os.open(os.devnull, os.O_RDWR)
+        try:
+            subprocess.check_call(
+                " ".join(self.compiler.compiler_so)
+                + " -Werror {flag} -E -xc - -o -".format(flag=flag),
+                stdin=DEVNULL,
+                stdout=DEVNULL,
+                stderr=DEVNULL,
+                shell=True,
+            )
+            return True
+        except Exception:
+            return False
+        finally:
+            os.close(DEVNULL)
+
     def get_compiler_name(self):
         if "BLIS_COMPILER" in os.environ:
             return os.environ["BLIS_COMPILER"]
@@ -280,6 +298,13 @@ class ExtensionBuilder(build_ext):
             else:
                 jobs = max(min(os.cpu_count()//2, 8), 1)
 
+        if platform == "darwin" and "MACOSX_DEPLOYMENT_TARGET" not in os.environ:
+            # Ensure BLIS objects are compiled with the same deployment
+            # target that Python/distutils will use when linking.
+            dt = sysconfig.get_config_var("MACOSX_DEPLOYMENT_TARGET")
+            if dt:
+                os.environ["MACOSX_DEPLOYMENT_TARGET"] = str(dt)
+
         pool = ThreadPool(jobs or None)
         with pool:
             objects = pool.map(lambda spec: self.build_object(env=env, **spec), specs)
@@ -319,6 +344,18 @@ BLIS_DIR = os.path.join(SRC, "_src")
 INCLUDE = os.path.join(PWD, "blis", "_src", "include")
 COMPILER = os.environ.get("BLIS_COMPILER", "gcc")
 
+# Warning flags for Cython extensions. These are filtered at build time to
+# only include flags the compiler actually supports (e.g. GCC doesn't accept
+# Clang-only flags like -Wno-incompatible-pointer-types-discards-qualifiers).
+WARN_FLAGS = [
+    # Wrappers use const pointers but fused types can't express const;
+    # suppress for gcc and clang respectively.
+    "-Wno-discarded-qualifiers",
+    "-Wno-incompatible-pointer-types-discards-qualifiers",
+    # Vendored blis.h has many inline functions not all used.
+    "-Wno-unused-function",
+]
+
 if len(sys.argv) > 1 and sys.argv[1] == "clean":
     clean(PWD)
 
@@ -351,7 +388,13 @@ setup(
             Extension(
                 "blis.py",
                 [os.path.join("blis", "py.pyx")],
-                extra_compile_args=["-std=c99"],
+                extra_compile_args=[
+                    "-std=c99",
+                    # This avoids build-time warnings from numpy. It doesn't
+                    # need to be kept in sync with the minimum supported numpy
+                    # version, it just should be defined and not be set too high.
+                    "-DNPY_NO_DEPRECATED_API=NPY_1_21_API_VERSION",
+                ],
             ),
         ],
         language_level=3,
@@ -365,7 +408,7 @@ setup(
     author_email=about["__email__"],
     version=about["__version__"],
     url=about["__uri__"],
-    license=about["__license__"],
+    license="BSD-3-Clause",
     description=about["__summary__"],
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -374,7 +417,6 @@ setup(
         "Environment :: Console",
         "Intended Audience :: Developers",
         "Intended Audience :: Information Technology",
-        "License :: OSI Approved :: BSD License",
         "Operating System :: POSIX :: Linux",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: Microsoft :: Windows",
