@@ -36,7 +36,7 @@ jobs:
           - macos-latest  # ARM
           - windows-latest  # x64
           - windows-11-arm  # ARM
-        python_version: ["3.10", "3.11", "3.12", "3.13", "3.13t", "3.14", "3.14t"]
+        python_version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.14t", "3.15", "3.15t"]
         cc: ['']  # default: gcc on Linux; clang on Mac/Windows
         numpy-runtime: ['']  # default: latest version
         include:
@@ -46,7 +46,7 @@ jobs:
             python_version: "3.10"
             cc: clang
           - os: ubuntu-latest
-            python_version: "3.14"
+            python_version: "3.15"
             cc: clang
           # Test oldest runtime version of NumPy.
           # Note that we always use the latest available version for building.
